@@ -236,6 +236,11 @@ scalable(nil: int): int
 	return 1;
 }
 
+pinned(nil: int): int
+{
+	return 0;
+}
+
 paint(h: int, n: int, scale: int, dst: ref Image, r: Rect, org: Point): string
 {
 	s := get(h);
@@ -335,6 +340,10 @@ lineto(nil: int, nil: int): (int, int)
 lineat(nil: int, nil: int, nil: int): int
 {
 	return 0;
+}
+
+viewing(nil: int, nil: int, nil: int)
+{
 }
 
 commands(nil: int): list of string

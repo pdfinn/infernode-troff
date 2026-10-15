@@ -5,31 +5,73 @@ troff and its preprocessors (eqn, tbl, pic, refer), PDF output (tr2pdf),
 macro packages for books (`-mbook`), papers (`-ms`) and manual pages
 (`-man`), an index maker, a LaTeX converter, and the Libertinus fonts.
 
-This is an add-on, not a copy of InferNode. It needs an InferNode
-checkout to build and to run in, and changes nothing in it: it is built
-into its own `dis/`, and put into a name space by binding its
-directories after InferNode's own.
+This is an add-on, not a copy of InferNode. It changes nothing in
+InferNode: it is built into its own `dis/`, and put into a name space
+by binding its directories after InferNode's own.
 
-Tested against InferNode at `4a35c2e91` (13 October 2026).
+Tested in Xenith.app 0.8.0. It needs InferNode from 14 October 2026 or later
+(`af0acc617`): Xenith's document engine interface, `docengine(2)`,
+gained `pinned` and `viewing` then.
 
-## Install
+## Build
 
-From the host, with InferNode built (its `mk` and `limbo` in
-`$ROOT/<OS>/<arch>/bin`):
+The build is InferNode's `mk`: a top-level `mkfile` runs `mk` in each
+of the package's directories, with InferNode's `mkconfig` and
+`mksubdirs`. It needs InferNode's host `mk` and `limbo` on the path
+(`$ROOT/<OS>/<arch>/bin` of a built InferNode tree; on a Mac with
+plan9port, put InferNode's ahead of plan9port's `mk`), and `ROOT` set
+to the InferNode the package is to run in:
 
-    git clone https://github.com/pdfinn/InferNode-troff troffpkg
-    troffpkg/build.sh /path/to/infernode
+    git clone https://github.com/pdfinn/infernode-troff troffpkg
+    cd troffpkg
+    PATH=/path/to/infernode/MacOSX/arm64/bin:$PATH
+    mk ROOT=/path/to/infernode install
 
-Then, inside InferNode, put it into the name space:
+`ROOT` gives the build InferNode's modules (`$ROOT/module`) and its
+`mkconfig`; nothing is written there. To run in Xenith.app, build
+against the app's own tree, with the tools from any InferNode tree:
+
+    mk ROOT=/Applications/Xenith.app/Contents/Resources install
+
+After InferNode changes a module the package uses, build again from
+clean: `mk nuke` and `mk install`.
+
+## Put it in the name space
+
+`troffns` is an InferNode shell script that binds each of the
+package's directories after InferNode's (`bind -a`): commands in
+`/dis`, macros and device descriptions in `/lib/tmac` and `/lib/troff`,
+fonts in `/fonts/libertinus`, pages in `/man`. Nothing of InferNode's is
+hidden, and nothing on disk changes: the binds are in the name space of
+the shell that runs it, and of what that shell starts. Run it with `run`
+(not as a command, whose binds would end with it), giving it the
+package's directory as InferNode sees it. A host directory is under
+`#U*`:
 
     run '#U*/path/to/troffpkg/troffns' '#U*/path/to/troffpkg'
 
-(or bind it somewhere first and use that: `bind '#U*/path/to/troffpkg' /n/troff`,
-then `run /n/troff/troffns /n/troff`). To have it in every session, put
-that line in your `lib/profile`. `troffns` binds each of the package's
-directories after InferNode's (`bind -a`): commands in `/dis`, macros
-and device descriptions in `/lib/tmac` and `/lib/troff`, fonts in
-`/fonts/libertinus`, pages in `/man`. Nothing of InferNode's is hidden.
+For every shell, put that line in the profile the shell runs at start.
+
+A directory InferNode does not have is not bound, since there is
+nothing to bind it after. Xenith.app has no `/man`, so there the pages
+are read from the package: `troff -man '#U*/path/to/troffpkg/man/1/troff'`.
+
+## Xenith
+
+Xenith shows troff output (`x T` in its first bytes) as a document, and
+troff source (`.ms`, `.man`, ...) with Render, through the engine
+`dis/xenith/doc/trodoc.dis`. Xenith finds engines through
+`/lib/xenith/doctypes`, which is InferNode's; add these two lines to it:
+
+    troff	binary	/dis/xenith/doc/trodoc.dis	magic=x\x20T\x20
+    roff	source	/dis/xenith/doc/trodoc.dis	.ms .mm .me .man .roff .tr .t
+
+Xenith keeps the name space it starts with, and a command run from it
+cannot change that. So `troffns` must run before Xenith starts, in the
+shell that starts it: in a development tree, the profile; in Xenith.app,
+whose profile (`lib/sh/profile`) and start (`lib/xen/boot.sh`) are in the
+app and have no place for a user's own, those files in the app, which
+an update of the app replaces.
 
 ## Use
 
@@ -41,13 +83,6 @@ and device descriptions in `/lib/tmac` and `/lib/troff`, fonts in
 `docs/TROFF.md` is the design.
 
 ## Not yet
-
-- Xenith's document view of troff's output (`dis/xenith/doc/trodoc.dis`,
-  built here) is found through `/lib/xenith/doctypes`, one file in
-  InferNode. To use it, add these two lines to that file:
-
-      troff	binary	/dis/xenith/doc/trodoc.dis	magic=x\x20T\x20
-      roff	source	/dis/xenith/doc/trodoc.dis	.ms .mm .me .man .roff .tr .t
 
 - The tests in `tests/` were written to run inside an InferNode tree
   and have not yet been made to run against the package.

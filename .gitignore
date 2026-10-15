@@ -1,4 +1,4 @@
-# built by build.sh: dis/ holds only the book script in git
+# built by mk: dis/ holds only the book script in git
 dis/*
 !dis/book
 *.dis
