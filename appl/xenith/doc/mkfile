@@ -1,0 +1,18 @@
+<$ROOT/mkconfig
+
+TARG=\
+	trodoc.dis\
+
+SYSMODULES=\
+	bufio.m\
+	docengine.m\
+	draw.m\
+	sh.m\
+	sys.m\
+
+PKGMODULES=\
+	troffpage.m\
+
+DISBIN=$PKG/dis/xenith/doc
+
+<$PKG/mkfiles/mkdis

@@ -1,0 +1,1011 @@
+.\" tmac.book: a book (troff -mbook)
+.\"
+.\" Semantic macros, each one of LaTeX's, so that a book written with
+.\" them is readily turned into LaTeX:
+.\"
+.\"	.title T  .subtitle S  .author A  .date D  .maketitle
+.\"	.frontmatter  .mainmatter  .backmatter
+.\"	.part "Title"
+.\"	.chapter "Title" [label]	.chapter* "Title"	(unnumbered)
+.\"	.section "Title" [label]	.subsection "Title" [label]
+.\"	a blank line, or .p		a paragraph
+.\"	.quote ... .endquote		a block quotation
+.\"	.epigraph ... .attrib "Source" .endepigraph
+.\"	text\*[fnmark] then .fn ... .fe	a footnote (.fn alone marks the
+.\"					text before if it ended with \c,
+.\"					as refer's notes do)
+.\"	text\*[enmark] then .en ... .ee	an endnote; .notes prints them
+.\"	.label name, \*[ref name], \*[pageref name]	(the second pass's)
+.\"	.contents			the table of contents (the second pass's)
+.\"	.cite key loc			refer -S chicago's notes; .bibliography
+.\"	.index "term!sub|see{other}"	an index entry, as makeindex's;
+.\"	.printindex			the index (mkindex(1)'s, the
+.\"					second pass's), in two columns
+.\"
+.\" The PDF (tr2pdf's) is read on a screen too: the contents' lines,
+.\" references, notes' marks and the index's pages are links where they
+.\" lead, the headings bookmarks, the pages labelled as numbered.
+.\"
+.\" The page: .papersize W H (6i 9i), .margins top bottom inner outer;
+.\" the type: registers book-ps (point size, in points) and book-vs.
+.\" Set them before the first text. Greek is hyphenated as Greek.
+.\"
+.\" The second pass: a book's table of contents and its references are
+.\" known only when it has been set once. Each is written to the
+.\" standard error as a line beginning "aux:", and book(1) gathers them
+.\" into the file the string book-aux names, read here.
+.\"
+.\" ---------------------------------------------------------------
+.\" the page and the type
+.\"
+.nr book-ps 11		\" point size, in whole points
+.nr book-vs 14p
+.nr book-pw 6i
+.nr book-ph 9i
+.nr book-tm 0.75i	\" top margin, to the text
+.nr book-bm 0.875i	\" bottom margin
+.nr book-im 0.875i	\" inner (binding) margin
+.nr book-om 0.75i	\" outer margin
+.nr book-pi 1.5m	\" paragraph indent
+.nr book-recto 1	\" chapters open on a right-hand page
+.\"
+.\" the point size book-ps times $1/$2
+.de book-size
+.nr book-sz \\n[book-ps]*\\$1/\\$2
+.ps \\n[book-sz]
+..
+.de papersize
+.nr book-pw (\\$1)
+.nr book-ph (\\$2)
+..
+.de margins
+.if !'\\$1'' .nr book-tm (\\$1)
+.if !'\\$2'' .nr book-bm (\\$2)
+.if !'\\$3'' .nr book-im (\\$3)
+.if !'\\$4'' .nr book-om (\\$4)
+..
+.\"
+.\" hyphenation: English's patterns, and Ancient Greek's
+.hpfa
+.hpfa /lib/troff/hyph/grc.pat
+.\"
+.\" the fonts: R I B BI as the device has them; small capitals
+.fp 11 SC R
+.ff SC +smcp
+.\" the fallback: a character none of Libertinus's fonts has is DejaVu
+.\" Sans's (a special font, searched when the font set in lacks a glyph)
+.fp 12 DF
+.\" and a character none has is said, not dropped without a word
+.mg 1
+.\"
+.\" rules (tbl's, \l's of \(ul, \L's) drawn as lines, not glyphs
+.rules 1
+.\"
+.\" microtypography, for the book as it goes to press (book -f, which
+.\" sets the register book-final): punctuation, hyphens, quotation marks
+.\" and a few letters hang into the margins (protrusion), so the text's
+.\" edges look straight; in thousandths of each glyph's width, after
+.\" microtype's defaults.  And a justified line's glyphs may widen or
+.\" narrow by up to 2%, in steps of 0.5% (expansion, .mte 20 20 5, as
+.\" pdfTeX's are commonly set), so its spaces vary less.  Drafts are set
+.\" without either.
+.de book-mtpc
+.mtpc \\$1 0 700 . \(hy - ‐
+.mtpc \\$1 0 500 , : ;
+.mtpc \\$1 0 200 ? ! ·
+.mtpc \\$1 200 300 –
+.mtpc \\$1 150 200 —
+.mtpc \\$1 500 300 “ ‘ « ‹
+.mtpc \\$1 300 500 ” ’ » › '
+.mtpc \\$1 100 0 ( [
+.mtpc \\$1 0 100 ) ]
+.mtpc \\$1 50 50 A T V W X Y v w x y
+.mtpc \\$1 0 50 F K L k r
+.mtpc \\$1 0 70 t
+..
+.book-mtpc R
+.book-mtpc I
+.book-mtpc B
+.book-mtpc BI
+.\"
+.\" ---------------------------------------------------------------
+.\" begin: the page set, once, before the first text
+.\"
+.nr book-begun 0
+.de book-begin
+.if !\\n[book-begun] .book-begin1
+..
+.de book-begin1
+.nr book-begun 1
+.pl \\n[book-ph]u
+.ll \\n[book-pw]u-\\n[book-im]u-\\n[book-om]u
+.lt \\n[.l]u
+.ps \\n[book-ps]
+.vs \\n[book-vs]u
+.nr book-ll \\n[.l]
+.fi
+.ad b
+.mtp \\n[book-final]
+.if \\n[book-final] .mte 20 20 5
+.\" no paragraph's first line alone at a page's foot, nor its last alone
+.\" at the next page's head (drafts too, so that they break as the book)
+.wo 1
+.ev fn
+.book-noteenv
+.ev
+.ev en
+.book-noteenv
+.ev
+.ev quote
+.ft R
+.wo 1
+.mtp \\n[book-final]
+.if \\n[book-final] .mte 20 20 5
+.ev
+.ev hd
+.ft R
+.ev
+.wh 0 book-hd
+.\" the first page began before its trap was set; the head plants the foot's
+.book-hd
+..
+.\" the page's size in points, for tr2pdf and the viewers, on the first page
+.nr book-sized 0
+.de book-papersize
+.nr book-sized 1
+.nr book-wpt \\n[book-pw]*72/1i
+.nr book-hpt \\n[book-ph]*72/1i
+\X'papersize \\n[book-wpt]x\\n[book-hpt]'
+.br
+..
+.de book-noteenv
+.ft R
+.ps \\n[book-ps]-2
+.vs \\n[book-vs]u-2p
+.ll \\n[book-ll]u
+.fi
+.ad b
+.in 0
+.ti 0
+.mtp \\n[book-final]
+.if \\n[book-final] .mte 20 20 5
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" the page's top and bottom
+.\"
+.nr book-nohead 0	\" no running head on this page (a chapter's first), its folio at its foot
+.nr book-blank 0	\" a blank page: neither
+.ds book-lh
+.ds book-rh
+.\" The page's top: its margin. Its running head is set at its foot,
+.\" when it is known whether the page opened a chapter or was left blank.
+.\" A trap's requests that would break the text being set are given with
+.\" the no-break control character.
+.nr book-ncol 1		\" columns on the page (the index's two)
+.nr book-col 1		\" the column being set
+.nr book-colw 0
+.nr book-gut 0
+.de book-hd
+.if !\\n[book-sized] .book-papersize
+.\" the binding margin alternates: inner on the left of a right-hand page
+.ie o .po \\n[book-im]u
+.el .po \\n[book-om]u
+'sp |\\n[book-tm]u
+.nr book-col 1
+.nr book-po \\n[.o]
+.mk book-coltop
+.ns
+.\" the foot's trap, lifted while the foot was set; troff sets the line
+.\" that reaches a trap, then springs it, so the trap is a line of the
+.\" text less a unit above the margin, and no line is set below it
+.wh -\\n[book-bm]u-\\n[book-vs]u+1u book-fo
+.if \\n[book-balance] .book-colbal
+.book-fnplan
+..
+.\" the foot of a column: the next column, or the page's foot
+.de book-fo
+.if \\n[book-balance] .nr book-left -(\\n[nl]-\\n[book-coltop])
+.ie \\n[book-col]<\\n[book-ncol] \{\
+.	nr book-col +1
+.	po +\\n[book-colw]u+\\n[book-gut]u
+'	sp |\\n[book-coltop]u
+.	if \\n[book-balance] .ch book-fo -\\n[book-bm]u-\\n[book-vs]u+1u
+.\}
+.el .book-pagefo
+..
+.\" the page's foot: its notes, its folio (written for mkindex as well,
+.\" x X folio), the next page
+.de book-pagefo
+.\" not sprung again by the moves below
+.ch book-fo
+.\" the page's own margin, not its last column's
+.po \\n[book-po]u
+.book-fnput
+.ev hd
+.ps \\n[book-ps]-1
+.lt \\n[book-ll]u
+.if !\\n[book-blank] \{\
+.	ie \\n[book-nohead] \{\
+'	sp |\\n[.p]u-\\n[book-bm]u+0.4i
+.	tl '\X^folio \\n%^\X^dest pg-\\n% page^'\\n%''
+.	\}
+.	el \{\
+'	sp |\\n[book-tm]u-0.45i
+.	ie o .tl '\X^folio \\n%^\X^dest pg-\\n% page^\f[SC]\\*[book-rh]\fP''\\n%'
+.	el .tl '\X^folio \\n%^\X^dest pg-\\n% page^\\n%''\f[SC]\\*[book-lh]\fP'
+.	\}
+.\}
+.ev
+.nr book-nohead 0
+.nr book-blank 0
+'bp
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" paragraphs
+.\"
+.nr book-noindent 1	\" the next paragraph is not indented (after a heading)
+.de p
+.br
+.ie \\n[book-noindent] .ti 0
+.el .ti \\n[book-pi]u
+.nr book-noindent 0
+..
+.de book-blank
+.book-begin
+.p
+..
+.blm book-blank
+.\"
+.\" ---------------------------------------------------------------
+.\" the title page
+.\"
+.de title
+.ds book-title \\$*
+.ds book-lh \\$*
+.dv info Title \\$*
+..
+.de subtitle
+.ds book-subtitle \\$*
+..
+.de author
+.ds book-author \\$*
+.dv info Author \\$*
+..
+.de date
+.ds book-date \\$*
+..
+.de maketitle
+.book-begin
+.nr book-blank 1
+.rs
+.sp 2i
+.ce 1
+.book-size 2 1
+\f[B]\\*[book-title]\fP
+.ps
+.if !'\\*[book-subtitle]'' \{\
+.	sp 0.3i
+.	ce 1
+.	book-size 14 10
+\f[I]\\*[book-subtitle]\fP
+.	ps
+.\}
+.sp 1i
+.ce 1
+.book-size 14 10
+\\*[book-author]
+.ps
+.if !'\\*[book-date]'' \{\
+.	sp 0.3i
+.	ce 1
+\\*[book-date]
+.\}
+.book-newpage 1 0
+..
+.\" a new page (none if this one is still empty), a right-hand one if $1
+.\" and book-recto, with no running head if $2
+.de book-newpage
+.br
+.bp
+.if \\$1 .if \\n[book-recto] .if e \{\
+.	nr book-blank 1
+.	rs
+.	bp
+.\}
+.nr book-nohead \\$2
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" the book's parts
+.\"
+.nr book-chapter 0 1
+.nr book-section 0 1
+.nr book-subsection 0 1
+.nr book-numbered 1	\" chapters numbered (main matter)
+.ds book-cur
+.de frontmatter
+.book-begin
+.af % i
+.nr book-numbered 0
+..
+.de mainmatter
+.book-begin
+.book-newpage 1 0
+.af % 1
+.nr % 1
+.nr book-numbered 1
+..
+.de backmatter
+.book-begin
+.nr book-numbered 0
+..
+.de part
+.book-begin
+.book-newpage 1 1
+.rs
+.sp 2.5i
+.ce 1
+.book-size 16 10
+.nr book-hn +1
+\X^dest book-h\\n[book-hn]^\X^outline 0 \\$1^\f[B]\\$1\fP
+.ps
+.tm aux:.book-tocent part "" "\\$1" \\n% book-h\\n[book-hn]
+.book-newpage 1 0
+..
+.de chapter
+.book-begin
+.book-chapterhead 1 "\\$1" "\\$2"
+..
+.de chapter*
+.book-begin
+.book-chapterhead 0 "\\$1" "\\$2"
+..
+.de book-chapterhead
+.book-newpage 1 1
+.nr book-section 0
+.nr book-subsection 0
+.nr fn-n 0
+.nr en-n 0
+.ds book-rh \\$2
+.ds book-en-chapter
+.rs
+.sp 1.25i
+.\" the heading a destination (for the contents and references) and a
+.\" bookmark, at its first line
+.nr book-hn +1
+.ds book-hx \X^dest book-h\\n[book-hn]^
+.if !'\\$3'' .as book-hx \X^dest lab-\\$3^
+.ie \\$1&\\n[book-numbered] \{\
+.	nr book-chapter +1
+.	ds book-cur \\n[book-chapter]
+.	as book-hx \X^outline 1 \\n[book-chapter] \\$2^
+.	ce 1
+\\*[book-hx]\f[SC]Chapter \\n[book-chapter]\fP
+.	ds book-hx
+.	sp 0.25i
+.	tm aux:.book-tocent chapter "\\n[book-chapter]" "\\$2" \\n% book-h\\n[book-hn]
+.	ds book-en-chapter Chapter \\n[book-chapter]: \\$2
+.\}
+.el \{\
+.	as book-hx \X^outline 1 \\$2^
+.	if !'\\$2'Contents' .tm aux:.book-tocent chapter "" "\\$2" \\n% book-h\\n[book-hn]
+.	ds book-en-chapter \\$2
+.\}
+.ce 1
+.book-size 17 10
+.vs \\n[book-vs]u*16/10
+\\*[book-hx]\f[I]\\$2\fP
+.ds book-hx
+.ps
+.vs
+.sp 0.6i
+.if !'\\$3'' .book-label \\$3
+.nr book-noindent 1
+.nr book-en-new 1
+..
+.de section
+.book-begin
+.nr book-section +1
+.nr book-subsection 0
+.ds book-cur \\n[book-chapter].\\n[book-section]
+.br
+.sp 1v
+.ne 4v
+.ad l
+.nr book-hn +1
+.ds book-hx \X^dest book-h\\n[book-hn]^\X^outline 2 \\*[book-cur] \\$1^
+.if !'\\$2'' .as book-hx \X^dest lab-\\$2^
+\\*[book-hx]\f[B]\\$1\fP
+.br
+.ad b
+.sp 0.5v
+.tm aux:.book-tocent section "\\*[book-cur]" "\\$1" \\n% book-h\\n[book-hn]
+.if !'\\$2'' .book-label \\$2
+.nr book-noindent 1
+.ns
+..
+.de subsection
+.book-begin
+.nr book-subsection +1
+.ds book-cur \\n[book-chapter].\\n[book-section].\\n[book-subsection]
+.br
+.sp 0.75v
+.ne 3v
+.ad l
+.nr book-hn +1
+.ds book-hx \X^dest book-h\\n[book-hn]^\X^outline 3 \\*[book-cur] \\$1^
+.if !'\\$2'' .as book-hx \X^dest lab-\\$2^
+\\*[book-hx]\f[I]\\$1\fP
+.br
+.ad b
+.sp 0.25v
+.tm aux:.book-tocent subsection "\\*[book-cur]" "\\$1" \\n% book-h\\n[book-hn]
+.if !'\\$2'' .book-label \\$2
+.nr book-noindent 1
+.ns
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" block quotations and epigraphs
+.\"
+.de quote
+.book-begin
+.br
+.sp 0.5v
+.ev quote
+.evc 0
+.ps \\n[book-ps]-1
+.vs \\n[book-vs]u-1.5p
+.in +2m
+.ll -2m
+.\" the first line at the indent too (a paragraph's .ti cancelled;
+.\" .ti 0 put it at the margin)
+.ti +0
+..
+.de endquote
+.br
+.ev
+.sp 0.5v
+.nr book-noindent 1
+..
+.de epigraph
+.book-begin
+.br
+.ev quote
+.evc 0
+.ps \\n[book-ps]-1
+.vs \\n[book-vs]u-1.5p
+.in \\n[book-ll]u*4/10
+.\" the first line at the indent too (a paragraph's .ti cancelled;
+.\" .ti 0 put it at the margin)
+.ti +0
+.ad l
+..
+.de attrib
+.br
+.ad r
+\(em\ \\$*
+.br
+..
+.de endepigraph
+.br
+.ev
+.sp 1v
+.nr book-noindent 1
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" footnotes
+.\"
+.\" A note is set in the environment fn, diverted to a macro of its own
+.\" (fn-pN, N counted through the book) and queued.  The notes go out in
+.\" order: a page plans those at the queue's head that fit (book-fnplan
+.\" at its head, .fe as their marks come), moving its foot up by their
+.\" height; at the foot (book-fnput) are set those whose marks went out on
+.\" the page, after a short rule.  A note longer than the page has room
+.\" for is begun there if three of its lines fit, and goes on on the next
+.\" (its rest, at the queue's head), as LaTeX splits a note.
+.\"
+.nr fn-n 0 1		\" the note's number (each chapter's)
+.nr fn-tot 0		\" the notes so far, through the book
+.nr fn-out 0		\" the last mark set (as its line goes out: \X'nr')
+.nr fn-qf 1		\" the queue: the first note waiting
+.nr fn-ql 0		\" the last
+.nr fn-qp 0		\" the last planned for the page
+.nr fn-split 0		\" the last planned is begun on the page, not set whole
+.nr fn-h 0		\" the planned notes' height
+.nr fn-marked 0		\" \*[fn] marked the text for the note to come
+.nr fn-gap 1v		\" from the foot of the text to the rule
+.\" a note's mark a link to the note (fn-N), the note's number one back
+.\" to the mark (fnm-N)
+.ds book-fnmk \s-3\\n[fn-n]\s+3
+.ds book-fnnt \s-2\\n[fn-n]\s+2
+.ds fnmark \R'fn-n +1'\R'fn-tot +1'\R'fn-marked 1'\X^dest fnm-\\n[fn-tot]^\X^nr fn-out \\n[fn-tot]^\v'-0.4m'\\*[book-lks fn-\\n[fn-tot] book-fnmk]\v'0.4m'
+.de fn
+.book-begin
+.if !\\n[fn-marked] \{\
+.	nr fn-n +1
+.	nr fn-tot +1
+\X^dest fnm-\\n[fn-tot]^\X^nr fn-out \\n[fn-tot]^\v'-0.4m'\\*[book-lks fn-\\n[fn-tot] book-fnmk]\v'0.4m'
+.\}
+.nr fn-marked 0
+.nr fn-tv \\n[.v]	\" the text's line, the note's mark in it
+.\" the lines of the paragraph not yet set, the mark's the last of them:
+.\" troff fills a paragraph at once, so they may be several (the foot
+.\" finds a mark moved on after all)
+.nr fn-pend \\n[.pend]
+.if \\n[fn-pend]<1 .nr fn-pend 1
+.ev fn
+.di fn-p\\n[fn-tot]
+\X^dest fn-\\n[fn-tot]^\v'-0.3m'\\*[book-lks fnm-\\n[fn-tot] book-fnnt]\v'0.3m'\ \c
+..
+.de fe
+.br
+.di
+.nr fn-dn\\n[fn-tot] \\n[dn]
+.nr fn-ql \\n[fn-tot]
+.\" planned for the page, with any before it waiting, if they fit below
+.\" the mark's line (or three lines of the last do)
+.nr fn-qp0 \\n[fn-qp]
+.nr fn-i \\n[fn-qp]+1
+.if !\\n[fn-split] .book-fnfe \\n[fn-i]
+.if \\n[fn-qp]>\\n[fn-qp0] .ch book-fo -\\n[book-bm]u-\\n[fn-h]u-\\n[book-vs]u+1u
+.ev
+..
+.de book-fnfe
+.book-fnover1
+.nr fn-room \\n[.p]-\\n[book-bm]-\\n[nl]-(\\n[fn-pend]*\\n[fn-tv])-\\n[fn-h]-\\n[fn-ovh]
+.ie \\n[fn-dn\\$1]<=\\n[fn-room] \{\
+.	nr fn-qp \\$1
+.	nr fn-h +\\n[fn-dn\\$1]+\\n[fn-ovh]
+.	nr fn-i \\$1+1
+.	if \\n[fn-i]<=\\n[fn-tot] .book-fnfe \\n[fn-i]
+.\}
+.el .if \\n[fn-room]>=(3*\\n[.v]) \{\
+.	nr fn-qp \\$1
+.	nr fn-h +\\n[fn-room]+\\n[fn-ovh]
+.	nr fn-split 1
+.\}
+..
+.\" what a note takes besides its own height: the first, the gap and the
+.\" rule, 0.4v below it; each after, 0.3v from the one before
+.de book-fnover1
+.ie \\n[fn-h]=0 .nr fn-ovh \\n[fn-gap]+0.4v
+.el .nr fn-ovh 0.3v
+..
+.\" a page's head: the notes waiting planned, as many as fit, leaving
+.\" the page a line of text at least (four, if the mark is still to come)
+.de book-fnplan
+.nr fn-h 0
+.nr fn-split 0
+.nr fn-qp \\n[fn-qf]-1
+.if \\n[fn-qf]<=\\n[fn-ql] \{\
+.	ev fn
+.	book-fnplan1 \\n[fn-qf]
+.	ev
+.	if \\n[fn-h] .ch book-fo -\\n[book-bm]u-\\n[fn-h]u-\\n[book-vs]u+1u
+.\}
+..
+.de book-fnplan1
+.book-fnover1
+.nr fn-room \\n[.p]-\\n[book-bm]-\\n[book-tm]-\\n[book-vs]-\\n[fn-h]-\\n[fn-ovh]
+.\" one whose mark is still to come leaves room for the text it is in
+.if \\$1>\\n[fn-out] .nr fn-room -(4*\\n[book-vs])
+.ie \\n[fn-dn\\$1]<=\\n[fn-room] \{\
+.	nr fn-qp \\$1
+.	nr fn-h +\\n[fn-dn\\$1]+\\n[fn-ovh]
+.	nr fn-i \\$1+1
+.	if \\n[fn-i]<=\\n[fn-ql] .book-fnplan1 \\n[fn-i]
+.\}
+.el .if \\n[fn-room]>=(3*\\n[.v]) \{\
+.	nr fn-qp \\$1
+.	nr fn-h +\\n[fn-room]+\\n[fn-ovh]
+.	nr fn-split 1
+.\}
+..
+.\" a page's foot: the planned notes whose marks went out on it, in the
+.\" room the text left them; what does not fit waits at the queue's head
+.de book-fnput
+.if \\n[fn-qp]>\\n[fn-out] .nr fn-qp \\n[fn-out]
+.if \\n[fn-qp]<(\\n[fn-qf]-1) .nr fn-qp \\n[fn-qf]-1
+.nr fn-h 0
+.if \\n[fn-qp]>=\\n[fn-qf] .book-fnsum \\n[fn-qf]
+.\" (the foot's trap a line less a unit above the notes, the text's last
+.\" line is no lower than their top)
+.nr fn-room \\n[.p]-\\n[book-bm]-\\n[nl]
+.if \\n[fn-h]>\\n[fn-room] .nr fn-h \\n[fn-room]
+.if \\n[fn-qp]>=\\n[fn-qf] \{\
+.	ev fn
+.	nf
+.	rs
+.\"	the rule a line of its own: its baseline fn-gap below the text's foot
+.	sp |\\n[.p]u-\\n[book-bm]u-\\n[fn-h]u+\\n[fn-gap]u-1v
+\D'l 1.5i 0'
+.	sp 0.4v
+.\"	what does not fit above the foot waits for the next page
+.	nr fn-over 0
+.	wh -\\n[book-bm]u-1v+1u book-fnover
+.	nr fn-first \\n[fn-qf]
+.	book-fnout \\n[fn-qf]
+.	ch book-fnover
+.	if \\n[fn-over] \{\
+.		br
+.		di
+.		book-fnrest
+.	\}
+.	fi
+.	ev
+.\}
+.nr fn-h 0
+.nr fn-split 0
+.nr fn-qp \\n[fn-qf]-1
+..
+.\" the planned notes' height, from $1 on
+.de book-fnsum
+.book-fnover1
+.nr fn-h +\\n[fn-dn\\$1]+\\n[fn-ovh]
+.nr fn-i \\$1+1
+.if \\n[fn-i]<=\\n[fn-qp] .book-fnsum \\n[fn-i]
+..
+.\" the planned notes from $1 on, each after the one before, until the
+.\" foot is reached
+.de book-fnout
+.if \\$1>\\n[fn-first] .sp 0.3v
+.nr fn-cur \\$1
+.fn-p\\$1
+.if !\\n[fn-over] \{\
+.	rm fn-p\\$1
+.	nr fn-qf \\$1+1
+.	if \\n[fn-qf]<=\\n[fn-qp] .book-fnout \\n[fn-qf]
+.\}
+..
+.de book-fnover
+.nr fn-over 1
+.di fn-rest
+..
+.\" the rest of the note the foot was reached in, at the queue's head
+.\" (none, if it ended there: what was diverted is no more than the
+.\" space before the next)
+.de book-fnrest
+.ie \\n[dn]>(\\n[.v]/2) \{\
+.	rn fn-rest fn-p\\n[fn-cur]
+.	nr fn-dn\\n[fn-cur] \\n[dn]
+.	nr fn-qf \\n[fn-cur]
+.\}
+.el \{\
+.	rm fn-rest
+.	rm fn-p\\n[fn-cur]
+.	nr fn-qf \\n[fn-cur]+1
+.\}
+..
+.\" the last page's notes, and those waiting past it
+.nr book-endn 0
+.de book-end
+.br
+.nr book-endn +1
+.if \\n[book-endn]>1000 \{\
+.	tm book: notes \\n[fn-qf] to \\n[fn-ql] never set
+.	nr fn-ql \\n[fn-qp]
+.	nr fn-split 0
+.\}
+.if (\\n[fn-ql]>\\n[fn-qp])+\\n[fn-split]+(\\n[fn-h]>(\\n[.p]-\\n[book-bm]-\\n[nl])) \{\
+.	nr book-nohead 0
+\&
+.	bp
+.	book-end
+.\}
+..
+.em book-end
+.\"
+.\" ---------------------------------------------------------------
+.\" endnotes, gathered for .notes, each chapter's under its name
+.\"
+.nr en-n 0 1
+.nr en-set 0
+.nr en-marked 0
+.nr book-en-new 0
+.nr en-tot 0
+.ds book-enmk \s-3\\n[en-n]\s+3
+.ds book-ennt \\n[en-n].
+.ds enmark \R'en-n +1'\R'en-tot +1'\R'en-marked 1'\X^dest enm-\\n[en-tot]^\v'-0.4m'\\*[book-lks en-\\n[en-tot] book-enmk]\v'0.4m'
+.de en
+.book-begin
+.if !\\n[en-marked] \{\
+.	nr en-n +1
+.	nr en-tot +1
+\X^dest enm-\\n[en-tot]^\v'-0.4m'\\*[book-lks en-\\n[en-tot] book-enmk]\v'0.4m'
+.\}
+.nr en-marked 0
+.ev en
+.nr en-set 1
+.da en-all
+.if \\n[book-en-new] \{\
+.	sp 1v
+.\"	kept with its notes when they are set, not while they are gathered
+\\!.ne 3v
+.	in 0
+\f[I]\\*[book-en-chapter]\fP
+.	sp 0.5v
+.	nr book-en-new 0
+.\}
+.\" a hanging indent: the numbers right-aligned in a field of their own,
+.\" each note's lines aligned past them, however many digits
+.in 2.2m
+.ti 0
+\h'1.8m-\w'\\n[en-n].'u'\X^dest en-\\n[en-tot]^\\*[book-lks enm-\\n[en-tot] book-ennt]\h'0.4m'\c
+..
+.de ee
+.br
+.di
+.fi
+.ev
+..
+.de notes
+.book-begin
+.book-chapterhead 0 "Notes"
+.if \\n[en-set] \{\
+.	nr en-set 0
+.	ev en
+.	nf
+.	en-all
+.	fi
+.	ev
+.	rm en-all
+.\}
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" equations: eqn's displays, centred, a label (.EQ (1.1)) at the right
+.\"
+.\" the equation's depth, as eqn last measured it, when it is set
+.ds .eqnbeg \R'book-eqlly \\n[bblly]'
+.de EQ
+.br
+.ds book-eqlabel \\$1
+.di book-eqd
+.nf
+..
+.de EN
+.br
+.di
+.\" the line's extra space below: the equation's depth past the line's own
+.nr book-eqpost \\n[book-eqlly]-(\\n[.v]-\\n[.s]p+(\\n[.s]p*25u/100u))
+.if \\n[book-eqpost]<0 .nr book-eqpost 0
+.fi
+.if \\n[dn] \{\
+.	book-begin
+.	nr book-eqw \\n[dl]
+.	sp 0.5v
+.	ne \\n[dn]u
+.	nf
+.	in (\\n[book-ll]u-\\n[book-eqw]u)/2u
+.	book-eqd
+.	in 0
+.	fi
+.	nr book-eqe \\n[.d]
+.	if !'\\*[book-eqlabel]'' \{\
+.\"		on the equation's baseline
+.		sp -(\\n[book-eqpost]u+1v)
+.		lt \\n[book-ll]u
+.		tl '''\\*[book-eqlabel]'
+.		sp |\\n[book-eqe]u
+.	\}
+.	sp 0.5v
+.	nr book-noindent 1
+.\}
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" tables (tbl's: centred by its own option, center) and pictures
+.\" (pic's: centred), with space above and below
+.\"
+.de TS
+.book-begin
+.br
+.sp 0.5v
+..
+.de TE
+.sp 0.5v
+.nr book-noindent 1
+..
+.de PS
+.book-begin
+.br
+.\" pic gives the picture's height and width
+.ie \\$1>0 \{\
+.	sp 0.35v
+.	nr book-pich 1
+.\}
+.el .nr book-pich 0
+.in (\\n[.l]u-\\$2)/2u
+.ne \\$1
+..
+.de PE
+.in
+.if \\n[book-pich] .sp 0.65v
+.nr book-noindent 1
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" refer's citations and bibliography
+.\"
+.ds book-citenotes fn	\" notes citing: fn (footnotes) or en (endnotes)
+.de ]fn
+.ie '\\*[book-citenotes]'en' .en
+.el .fn
+..
+.de ]fe
+.ie '\\*[book-citenotes]'en' .ee
+.el .fe
+..
+.de ]bb
+.book-chapterhead 0 "Bibliography"
+.ad l
+.\" set ragged, so not hyphenated: nothing gained by it
+.nr book-hy0 \\n[.hy]
+.nh
+..
+.de ]be
+.br
+.in 2m
+.ti -2m
+.sp 0.25v
+..
+.de ]bz
+.br
+.in 0
+.ad b
+.hy \\n[book-hy0]
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" the index: .index puts its entry where the text it is on is set, as
+.\" x X idx in troff's output, mkindex(1) sorts them with each page's
+.\" folio, and .printindex reads what mkindex made (the file the string
+.\" book-ind names; book(1) runs mkindex, and sets the book again)
+.\"
+.de index
+\\X^idx \\$*^\c
+..
+.de printindex
+.book-begin
+.book-chapterhead 0 "Index"
+.nr book-gut 0.25i
+.nr book-colw (\\n[book-ll]-\\n[book-gut])/2
+.ll \\n[book-colw]u
+.ps \\n[book-ps]-2
+.vs \\n[book-vs]u-2p
+.ad l
+.nh
+.in 0
+.mk book-coltop
+.nr book-col 1
+.nr book-ncol 2
+.\" set in a column's measure, kept, then put out in columns: its height
+.\" known, the last page's are balanced
+.di book-ixd
+.if !'\\*[book-ind]'' .so \\*[book-ind]
+.br
+.di
+.nr book-left \\n[dn]
+.nf
+.in 0
+.ti 0
+.mk book-coltop
+.nr book-col 1
+.nr book-ncol 2
+.nr book-balance 1
+.book-colbal
+.book-ixd
+.rm book-ixd
+.nr book-balance 0
+.\" one column again, or the last page's foot would move to the next
+.\" column and troff, ending, set another page
+.nr book-ncol 1
+.fi
+..
+.\" at a page's first column: if what is left fits in this page's two,
+.\" the first ends at half of it (in whole lines; troff sets the line
+.\" that reaches the trap, so the trap is a line less a unit above)
+.nr book-balance 0
+.nr book-left 0
+.de book-colbal
+.nr book-room \\n[.p]-\\n[book-bm]-\\n[book-coltop]
+.if \\n[book-left]<=(2*\\n[book-room]) \{\
+.	nr book-half (\\n[book-left]/\\n[.v]+1)/2*\\n[.v]
+.	if \\n[book-half]<\\n[.v] .nr book-half \\n[.v]
+.	ch book-fo \\n[book-coltop]u+\\n[book-half]u-\\n[.v]u+1u
+.\}
+..
+.\" an entry at its level (0 the heading, 1 and 2 subentries), its lines
+.\" after the first indented past the deepest
+.de book-ix
+.br
+.in 3m
+.ti \\$1m
+..
+.\" between the entries of one letter and the next
+.de book-ixgroup
+.br
+.sp 1v
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" cross-references and the contents, from the first pass
+.\"
+.\" .label: its place a destination (lab-name) where it is in the text
+.de book-label
+.tm aux:.ds ref-\\$1 \\*[book-cur]
+.tm aux:.ds pageref-\\$1 \\n%
+..
+.de label
+.book-label \\$1
+\\X^dest lab-\\$1^\c
+..
+.\" links: \*[book-lks dest string], the string's text a link to the
+.\" destination; \*[book-pl folio text], the text a link to the page
+.de book-lks
+\R'book-lkw \w'\\*[\\$2]'u'\R'book-lkh \\n[.v]'\v'0.25m'\X^link "#\\$1" \\n[book-lkw] -\\n[book-lkh]^\v'-0.25m'\\*[\\$2]
+..
+.chop book-lks
+.de book-pl
+\R'book-lkw \w'\\$2'u'\R'book-lkh \\n[.v]'\v'0.25m'\X^link "#pg-\\$1" \\n[book-lkw] -\\n[book-lkh]^\v'-0.25m'\\$2
+..
+.chop book-pl
+.\" the contents' line from here a link to the heading
+.de book-tl
+\R'book-lkw \\n[book-ll]-\\n[.i]'\R'book-lkh \\n[.v]'\v'0.25m'\X^link "#\\$1" \\n[book-lkw] -\\n[book-lkh]^\v'-0.25m'
+..
+.chop book-tl
+.ds ref \\*[book-lks lab-\\$1 ref-\\$1]
+.ds pageref \\*[book-lks lab-\\$1 pageref-\\$1]
+.\" an entry, kept for .contents
+.nr toc-set 0
+.de book-tocent
+.nr toc-set 1
+.am toc-calls book-x
+.book-tocline \\$1 "\\$2" "\\$3" \\$4 \\$5
+.book-x
+..
+.\" a line of the contents: its title, leaders to a stop the same on every
+.\" line (so their dots line up), the page at the right margin; tab stops
+.\" are measured from the indent, so an indented line's are moved back
+.char \[book-ld] \h'0.18m'.\h'0.18m'
+.de book-tocline
+.nf
+.in 0
+.ti 0
+.lc \[book-ld]
+.ie '\\$1'part' \{\
+.	sp 1v
+\\*[book-tl \\$5]\f[B]\\$3\fP
+.\}
+.el .ie '\\$1'chapter' \{\
+.	sp 0.5v
+.	ta \\n[book-ll]u-2m \\n[book-ll]uR
+.	ie !'\\$2'' \\*[book-tl \\$5]\\$2.\ \ \\$3\a\t\\$4
+.	el \\*[book-tl \\$5]\\$3\a\t\\$4
+.\}
+.el \{\
+.	in 2m
+.	ta \\n[book-ll]u-2m-2m \\n[book-ll]u-2mR
+\\*[book-tl \\$5]\\$2\ \ \\$3\a\t\\$4
+.\}
+.br
+.lc .
+.fi
+..
+.de contents
+.book-begin
+.book-chapterhead 0 "Contents"
+.if \\n[toc-set] \{\
+.	ad l
+.	toc-calls
+.	in 0
+.	ad b
+.\}
+..
+.\" the first pass's knowledge
+.if !'\*[book-aux]'' .so \*[book-aux]

@@ -1,0 +1,20 @@
+<$ROOT/mkconfig
+
+TARG=\
+	refer.dis\
+
+MODULES=\
+	accents.b\
+	bibtex.b\
+
+SYSMODULES=\
+	bufio.m\
+	draw.m\
+	sys.m\
+
+PKGMODULES=\
+	referstyle.m\
+
+DISBIN=$PKG/dis
+
+<$PKG/mkfiles/mkdis

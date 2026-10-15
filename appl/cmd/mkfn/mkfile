@@ -1,0 +1,19 @@
+<$ROOT/mkconfig
+
+TARG=mkfn.dis
+
+MODULES=\
+	tables.b\
+	otf.b\
+	afm.b\
+
+SYSMODULES=\
+	bufio.m\
+	draw.m\
+	sys.m\
+
+PKGMODULES=
+
+DISBIN=$PKG/dis
+
+<$PKG/mkfiles/mkdis

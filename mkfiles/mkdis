@@ -1,0 +1,28 @@
+# mkdis for the troff package: as InferNode's $ROOT/mkfiles/mkdis, but
+# installing into the package's dis ($PKG/dis), and with the package's
+# own modules (PKGMODULES, in $PKG/module) beside InferNode's (SYSMODULES)
+BINTARG=${TARG:%=$DISBIN/%}
+MODDIR=$ROOT/module
+SYS_MODULE=${SYSMODULES:%=$MODDIR/%}
+PKG_MODULE=${PKGMODULES:%=$PKG/module/%}
+LIMBOFLAGS=-I$PKG/module -I$MODDIR
+
+all:V:		$TARG
+
+install:V:	$BINTARG
+
+clean:V:
+	rm -f *.dis *.sbl
+
+nuke:V:	clean
+	cd $DISBIN; rm -f $TARG
+
+$DISBIN/%.dis:	%.dis
+	mkdir -p $DISBIN
+	rm -f $DISBIN/$stem.dis
+	cp $stem.dis $DISBIN/$stem.dis
+
+%.dis:		$MODULES $SYS_MODULE $PKG_MODULE
+
+%.dis:		%.b
+	limbo $LIMBOFLAGS -gw $stem.b

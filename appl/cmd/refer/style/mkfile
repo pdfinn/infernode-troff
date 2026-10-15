@@ -1,0 +1,16 @@
+<$ROOT/mkconfig
+
+MODULES=
+
+TARG=\
+	chicago.dis\
+
+SYSMODULES=\
+	sys.m\
+
+PKGMODULES=\
+	referstyle.m\
+
+DISBIN=$PKG/dis/refer
+
+<$PKG/mkfiles/mkdis

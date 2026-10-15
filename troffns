@@ -1,0 +1,20 @@
+#!/dis/sh
+# troffns dir: put the troff package, at dir, into this name space,
+# each of its directories after InferNode's own (bind -a): its commands
+# in /dis, its macros and fonts in /lib and /fonts, its pages in /man.
+# Nothing of InferNode is changed or hidden.
+#
+#	bind '#U*/home/me/troffpkg' /n/troff
+#	/n/troff/troffns /n/troff
+load std
+if {! ~ $#* 1} {echo 'usage: troffns dir' >[1=2]; raise usage}
+p=$1
+dirs=(dis dis/lib dis/xenith dis/xenith/doc dis/refer lib lib/tmac lib/tmac/me lib/troff lib/troff/devutf lib/troff/hyph fonts fonts/libertinus man man/1 man/6)
+# the directories InferNode has, found before any is bound
+have=()
+for d in $dirs {
+	if {ftest -d /$d} {have=($have $d)}
+}
+for d in $have {
+	if {ftest -d $p/$d} {bind -a $p/$d /$d}
+}

@@ -1,0 +1,5 @@
+# built by build.sh: dis/ holds only the book script in git
+dis/*
+!dis/book
+*.dis
+*.sbl

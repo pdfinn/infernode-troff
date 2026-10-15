@@ -1,0 +1,16 @@
+<$ROOT/mkconfig
+
+TARG=\
+	troffpage.dis\
+
+SYSMODULES=\
+	draw.m\
+	outlinefont.m\
+	sys.m\
+
+PKGMODULES=\
+	troffpage.m\
+
+DISBIN=$PKG/dis/lib
+
+<$PKG/mkfiles/mkdis

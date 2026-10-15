@@ -1,0 +1,18 @@
+<$ROOT/mkconfig
+
+TARG=\
+	book2tex.dis\
+	mkindex.dis\
+
+SYSMODULES=\
+	bufio.m\
+	draw.m\
+	sh.m\
+	sys.m\
+
+PKGMODULES=
+
+DISBIN=$PKG/dis
+
+<$PKG/mkfiles/mkdis
+

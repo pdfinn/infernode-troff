@@ -1,0 +1,96 @@
+#!/dis/sh
+# book - a book written with troff's macros -mbook, as PDF
+#
+#	book [-f] [-p works.bib] [-S style] [-o book.pdf] book.ms
+#
+# Citations are set by refer(1) from the database, in the style
+# (chicago); pictures, tables and equations by pic(1), tbl(1) and eqn(1),
+# if there are any (eqn with its settings for the fonts,
+# /lib/troff/eqnrc); the book by troff(1) -mbook, as
+# often as its table of contents and references need to be set again
+# (they come from the pass before, through book.aux); then the PDF by
+# tr2pdf(1). troff's output is kept as book.out, for the document views.
+# -f sets it as it goes to press (the register book-final): with
+# microtypography, its punctuation hanging into the margins; without
+# it, a draft, set as before and sooner.
+# A book with an index (.printindex) has it made by mkindex(1) from each
+# pass's output, into book.ind, and is set again until that settles too.
+load std
+
+bib=()
+style=chicago
+out=()
+final=0
+args=$*
+while {~ $#args 2 3 4 5 6 7 8 && ~ ${hd $args} -*} {
+	o=${hd $args}
+	args=${tl $args}
+	if {~ $o -p} {bib=${hd $args}; args=${tl $args}}
+	if {~ $o -S} {style=${hd $args}; args=${tl $args}}
+	if {~ $o -o} {out=${hd $args}; args=${tl $args}}
+	if {~ $o -f} {final=1}
+}
+~ $#args 1 || {echo 'usage: book [-f] [-p works.bib] [-S style] [-o book.pdf] book.ms' >[1=2]; raise usage}
+src=$args
+stem=`{echo $src | sed 's/\.[^.\/]*$//'}
+aux=$stem.aux
+~ $#out 0 && out=$stem.pdf
+tr=$stem.out	# troff's output, kept for viewing it
+err=$stem.log
+new=$stem.aux.new
+ind=$stem.ind
+indnew=$stem.ind.new
+
+# pictures, tables and equations: pic, tbl, eqn (after its settings for
+# the fonts), if there are any
+pics=0
+grep -s '^\.PS' $src && pics=1
+tbls=0
+grep -s '^\.TS' $src && tbls=1
+math=0
+grep -s '^\.EQ' $src && math=1
+index=0
+grep -s '^\.printindex' $src && index=1
+
+fn input {
+	if {~ $math 1} {cat /lib/troff/eqnrc $src} {cat $src}
+}
+fn cite {
+	if {~ $#bib 0} {cat} {refer -p $bib -S $style}
+}
+fn pics {
+	if {~ $pics 1} {pic} {cat}
+}
+fn tbls {
+	if {~ $tbls 1} {tbl} {cat}
+}
+fn eqns {
+	if {~ $math 1} {eqn} {cat}
+}
+fn pass {
+	input | cite | pics | tbls | eqns | troff -mbook '-rbook-final='^$final '-dbook-aux='^$aux '-dbook-ind='^$ind >$tr >[2]$err
+	grep '^aux:' $err | sed 's/^aux://' >$new
+	if {~ $index 1} {mkindex -l $tr >$indnew} {cp $ind $indnew}
+}
+
+ftest -f $aux || echo -n >$aux
+ftest -f $ind || echo -n >$ind
+done=0
+for n in 1 2 3 4 {
+	if {~ $done 0} {
+		pass
+		same=0
+		if {cmp -s $aux $new >/dev/null >[2]/dev/null} {
+			if {cmp -s $ind $indnew >/dev/null >[2]/dev/null} {same=1}
+		}
+		if {~ $same 1} {
+			done=1
+		} {
+			cp $new $aux
+			cp $indnew $ind
+		}
+	}
+}
+grep -v '^aux:' $err >[1=2]
+tr2pdf $tr >$out
+rm -f $err $new $indnew
