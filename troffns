@@ -1,16 +1,30 @@
-#!/dis/sh
-# troffns dir: put the troff package, at dir, into this name space,
-# each of its directories after InferNode's own (bind -a): its commands
-# in /dis, its macros and fonts in /lib and /fonts, its pages in /man.
-# Nothing of InferNode is changed or hidden.
+#!/dis/sh.dis
+# troffns [dir] - put the troff package into this name space.
 #
-#	bind '#U*/home/me/troffpkg' /n/troff
-#	/n/troff/troffns /n/troff
+# Run it with run, so that its binds are made in the calling shell's
+# name space:
+#	run /n/local/home/you/src/troffpkg/troffns
+# dir is the package as Inferno sees it; without it, the directory
+# this script is in.  Each of the package's directories is bound after
+# InferNode's own (bind -a): its commands in /dis, its macros and
+# device descriptions in /lib/tmac and /lib/troff, its fonts in
+# /fonts/libertinus, its pages in /man.  Nothing of InferNode's is
+# hidden and nothing is copied: delete the line that runs this to
+# remove it.
 load std
-if {! ~ $#* 1} {echo 'usage: troffns dir' >[1=2]; raise usage}
-p=$1
+# $0 inside a `{} block is the block, so name the script first
+self=$0
+p=`{echo $self | sed 's,/[^/]*$,,'}
+if {! ~ $#* 0} {
+	p=$1
+}
+if {! ftest -f $p^/dis/troff.dis} {
+	echo 'troffns: no '^$p^'/dis/troff.dis: build it first (mk install on the host)' >[1=2]
+	raise 'fail:not built'
+}
 dirs=(dis dis/lib dis/xenith dis/xenith/doc dis/refer lib lib/tmac lib/tmac/me lib/troff lib/troff/devutf lib/troff/hyph fonts fonts/libertinus man man/1 man/6)
-# the directories InferNode has, found before any is bound
+# the directories InferNode has, found before any is bound: one it
+# lacks is reached through its parent's bind, or not at all
 have=()
 for d in $dirs {
 	if {ftest -d /$d} {have=($have $d)}
@@ -18,3 +32,7 @@ for d in $dirs {
 for d in $have {
 	if {ftest -d $p/$d} {bind -a $p/$d /$d}
 }
+if {! ftest -d /man} {
+	echo 'troffns: this InferNode has no /man; the manual is in '^$p^'/man' >[1=2]
+}
+status ''
