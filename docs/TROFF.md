@@ -428,7 +428,7 @@ points and scriptscripts 6.6 (`set scaled_sizes 1`: the device's
 `sizescale 100` keeps sizes in hundredths of a point, as groff's scaled
 points). The 23 displays take 0.6 seconds, eqn, troff and tr2pdf, emu's
 start included; one XeLaTeX pass over 22 of them, its font cache warm,
-takes 0.8 (cold, 2).
+takes 0.8 (cold, 2). At a book's length XeLaTeX is faster (see Speed).
 `tests/host/maths_test.sh` checks each against TeX's placement;
 `tests/host/sizescale_test.sh` checks troff's scaled sizes.
 
@@ -606,6 +606,29 @@ The profile is flat now: no function takes more than 4 per cent. What
 remains is Dis's: reference counting on every pointer copied, frames
 made and returned from (together a fifth of the time), allocation and
 freeing (an eighth), and calls.
+
+Mathematics at length is where LaTeX is still faster. A generated
+(`tools/mathbook.py`)
+245-page book, 30 chapters of text with 1,440 inline equations and the
+23 hard displays set 360 times (numbered), takes `book` 14.7 seconds
+from nothing (two passes of eqn and troff, then tr2pdf); its LaTeX
+from `book2tex` takes XeLaTeX 2.4 seconds a pass and LuaLaTeX 5.8,
+their font caches warm (LuaLaTeX's first run, building its cache, 30
+more). A pass of ours: eqn 1.0 seconds, troff 5.6 (the same text
+without its mathematics 1.9 for its 186 pages), tr2pdf 1.8. Where it
+goes:
+- eqn's output is 7.4 MB of requests for 447 KB of source (125 lines
+  and 25 `\w` an equation): troff measures a box by setting it (`\w`),
+  so each level of an equation sets again what is in it, where TeX adds
+  up dimensions it has. Measuring boxes is 1.6 seconds of troff's 5.6.
+- tr2pdf's deflate, in Limbo, is two thirds of its time; level 1 for
+  6 saves a fifth of it for a file a sixth larger.
+- book ran the preprocessors (refer, pic, tbl, eqn) again for every
+  pass of troff; they now run once (17.2 seconds to 14.7).
+
+The 23 displays alone (`tests/eqn/hard.ms`) take 0.6 seconds, emu's
+start included, where XeLaTeX's start is most of its 0.8: the
+difference is the start, not the setting.
 
 Profiling compiled code: `prof` counts the interpreter's instructions,
 and is no guide to where compiled code spends its time. Sample the
