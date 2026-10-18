@@ -169,15 +169,17 @@ truth tables and countermodels by tbl, and proof trees by pic. The
 trees here are written by `tableau` in
 [infernode-wwb](https://github.com/pdfinn/infernode-wwb), from the
 proofs its `prove -P` finds: each line numbered, with the line it came
-from beside it, a closed branch marked ×, an open one ↑, followed by
-the countermodel it describes. Each tree is a figure described in
-words in the tagged PDF.
+from beside it, a closed branch marked ×, an open one ↑, and the
+countermodel an open branch describes. Each tree is a figure,
+described in words in the tagged PDF.
 
-![Two pages of a chapter on proof by tableau: the tableau for axiom K in modal logic, an open tableau with its countermodel as a table, and a closed tableau in deontic logic](docs/images/logic.png)
+![Two pages of a chapter on proof by tableau: the tableau for axiom K in modal logic, an open tableau with its countermodel beside it, and a closed tableau in deontic logic](docs/images/logic.png)
 
 *Pages 3 and 4 of [`examples/logic.ms`](examples/logic.ms) (`book
-logic.ms`; [the PDF](examples/logic.pdf)): modus ponens, axiom K, why
-□p does not give ◇p in K, and why O p gives P p in KD.*
+logic.ms`; [the PDF](examples/logic.pdf)): axiom K, why □p does not
+give ◇p in K, and why O p gives P p in KD. The chapter also has a truth
+table, modus ponens, Ross's paradox, and an argument in English that
+`prove` finds does not follow.*
 
 ## Chess
 
