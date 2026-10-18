@@ -1,0 +1,6 @@
+# what book makes of the examples, but their PDFs
+*.aux
+*.ind
+*.out
+*.pre
+*.log

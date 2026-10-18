@@ -1144,7 +1144,7 @@ eqn_box(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			break;
 		choose := tok_get() == "choose";
 		numst := ts_num(style);
-		if(e_texfrac && first && TS_SZ(numst) != TS_SZ(style)){
+		if(e_texfrac && first && (TS_SZ(numst) != TS_SZ(style) || TS_DX(numst) != TS_DX(style))){
 			tok_rewind(m);
 			eqn_nolim = nolim0;
 			eqn_opic = opic0;

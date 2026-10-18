@@ -398,8 +398,24 @@ tagalt(src: string): string
 	}
 	# said in words (set speech 1), as a screen reader would say it: from
 	# the source, its troff names whole
-	if(e_speech)
-		r = speak(s);
+	if(e_speech){
+		# one line: a newline in it (tbl's requests inside an
+		# equation split in a numeric column) would end the request
+		# that carries it, and the rest be set as text
+		w := speak(s);
+		r = "";
+		sp = 0;
+		for(i = 0; i < len w; i++){
+			if(w[i] <= ' '){
+				sp = r != "";
+				continue;
+			}
+			if(sp)
+				r[len r] = ' ';
+			sp = 0;
+			r[len r] = w[i];
+		}
+	}
 	# as eqn's strings are, its bytes (printf writes each as one)
 	b = array of byte r;
 	r = "";

@@ -15,12 +15,13 @@ to read in InferNode's document views.
 | `tbl` | Tables | Plan 9's tbl, translated (byte-identical output) |
 | `pic` | Pictures | Plan 9's pic, translated (byte-identical output; its grammar through Inferno's yacc) |
 | `refer` | Citations by key from BibTeX's and refer's databases; with `-S chicago`, the *Chicago Manual of Style*'s notes and bibliography (18th edition) | Neatrefer, translated, with a BibTeX reader and styles of its own |
+| `chess` | Chess diagrams from Forsyth–Edwards notation, as pictures, described in words for a tagged PDF | |
 | `tr2pdf` | Troff's output as PDF: OpenType fonts embedded, subset to the glyphs used, compressed, with ToUnicode maps (text can be searched and copied) | Neatpost's PDF writer, translated |
 | `mkfn` | Font descriptions for troff from OpenType, TrueType and AFM fonts, with each glyph's bounding box (CFF's too) | Neatmkfn, translated |
 | `tr2img` | A page of troff's output painted as the document views paint them (its fonts, drawings and images), as a PPM image | |
 | `mkindex` | A book's index from troff's output: makeindex's entries, sorted word by word as the *Chicago Manual* sorts, Greek and accents included | |
 | `book2tex` | A book written with `-mbook` as LaTeX, for LuaLaTeX, for a publisher who wants it | |
-| `book` | Runs them: refer, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
+| `book` | Runs them: refer, chess, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
 
 `troff`, `eqn`, `tbl`, `pic`, and `refer` without a style, write what
 the C programs they came from write, byte for byte, but where those
@@ -479,6 +480,45 @@ thickness come from the glyph's bounding box: the character's own, or
 the one its `.char` gives it (eqnrc's rules are Libertinus Math's).
 eqn and tbl place the rules by those boxes, so each lands where its
 glyphs would have.
+
+## Chess: `chess`
+
+`chess` sets each board between `.CB` and `.CE`; `book` runs it before
+pic when a book has one. The position is given in Forsyth–Edwards
+notation (`fen`, with `w` or `b` for the side to move). `size` sets the
+board's side in inches (2 by default), `flip` turns it so that Black
+is at the foot, and `nocoords` leaves out the files and ranks named
+along its edges.
+
+A board is written the way pic writes a picture: `.PS` with its height
+and width, the drawing, `.PE`. `-mbook` places it as it places a
+picture: centred, kept on one page, tagged as a Figure. The drawing is
+troff's: each dark square a filled polygon in grey (`\D'P'`), the edge
+a polygon, each piece a glyph centred on its square. Nothing is left
+for a later program, so tr2pdf, tr2img and the document views show the
+same board.
+
+The pieces are the Unicode chess figures (U+2654 to U+265F) in `CH`, a
+special font `-mbook` mounts: a 14 KB subset of Noto Sans Symbols 2,
+under the OFL, renamed to mark it as modified
+(`fonts/chess/NOTICE`). DejaVu Sans was tried first. Its white king and
+bishop have their heads filled, so they read as black pieces on a dark
+square. A white piece is two glyphs: the black figure in white, then
+the outline over it. Without the white fill, a dark square's grey shows
+through the outline and the piece is hard to read.
+
+A Figure in a tagged PDF must be described. Unless `.alt` gives a
+description, `chess` writes one from the position, each side's pieces
+by kind, then the side to move: "Chess diagram. White: King d6, Queen
+h1. Black: King d8, Rook c2. White to move." A screen reader then says
+what a sighted reader sees.
+
+A position that is not eight ranks of eight squares, a letter that is
+not a piece, an unknown setting and a board with no `.CE` are reported
+with the file and line, and `chess` fails. Lines are kept in step for
+troff (`.lf`), so troff's own messages name the right line.
+`tests/host/chess_test.sh` checks all of it, and that tr2img paints
+the board.
 
 ## A thesis: the page, the notes, lists and images
 

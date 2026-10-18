@@ -269,7 +269,9 @@ keeps sizes in the device's scaled points
 so that a script is TeX's 8.8 points, not 9;
 .B "set tex_fractions 1"
 sets a fraction's numerator and denominator in TeX's styles for them
-(in text style in script size, in a script in scriptscript size);
+(in a display in text style, so that a sum in a numerator has its
+limits beside it; in text in script size, in a script in scriptscript
+size);
 .B "set script_kern"
 .I n
 is the kern before scripts (Neateqn's 5);

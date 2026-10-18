@@ -1,0 +1,101 @@
+.TH CHESS 1
+.SH NAME
+chess \- chess diagrams for troff
+.SH SYNOPSIS
+.B chess
+[
+.I file ...
+]
+.SH DESCRIPTION
+.I Chess
+is a preprocessor for
+.IR troff (1),
+as
+.IR pic (1)
+is: it copies the
+.IR file s,
+or its standard input, to its standard output, setting each board
+between
+.B .CB
+and
+.B .CE
+as a diagram.
+A board is a position in Forsyth-Edwards notation and, if wanted, how
+it is to be set, a setting a line:
+.TP
+.BI fen " position " \fR[\fPw \fR|\fP b\fR]\fP
+The position: its ranks from the eighth, separated by
+.BR / ,
+in each its pieces from the a-file
+.RB ( KQRBNP
+White's,
+.B kqrbnp
+Black's), a digit for empty squares; then who is to move.
+.TP
+.BI size " n"
+The board's side, in inches (2).
+.TP
+.B flip
+Black at the foot.
+.TP
+.B nocoords
+The files and ranks not named.
+.PP
+Its dark squares are grey, its pieces the Unicode chess figures of
+the font
+.B CH
+(Noto Sans Symbols 2's), a white piece filled white, and the files and
+ranks named along its edges.
+A board is written as
+.I pic
+writes a picture
+.RB ( .PS
+.I "height width" ,
+its drawing,
+.BR .PE ),
+so that the macros place it as one:
+.B -mbook
+centres it, keeps it on one page and, in a tagged PDF, makes it a
+.BR Figure ,
+described by
+.B .alt
+or, with none, by the position read out
+(\(lqChess diagram. White: King e1, ...\(rq).
+.PP
+Moves in the text are set in figurine notation as written,
+.B ♘f3
+or
+.BR ♕xb7 :
+.B -mbook
+mounts
+.B CH
+as a special font, so its figures are found from any font.
+.SH EXAMPLES
+.IP
+.EX
+\&.CB
+fen 1n1Rkb1r/p4ppp/4q3/4p1B1/4P3/8/PPP2PPP/2K5 b
+\&.CE
+.EE
+.PP
+Morphy's mate of 1858, in a book:
+.B book
+runs
+.I chess
+when the book has a
+.BR .CB .
+.SH SOURCE
+.B /appl/cmd/chess.b
+.SH DIAGNOSTICS
+A position that is not eight ranks of eight squares, an unknown
+piece or setting, or a board with no
+.B fen
+or no
+.BR .CE ,
+is said with its file and line, and
+.I chess
+fails at the end.
+.SH SEE ALSO
+.IR book (1),
+.IR pic (1),
+.IR troff (1)

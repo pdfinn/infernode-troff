@@ -467,6 +467,11 @@ readdesc(path: string, uwid: int): ref Fdesc
 					f.codes[f.n] = int code;
 				(f.wids[f.n], nil) = num(array of byte wid, 0);
 				addname(f, name, f.n);
+				# troff names a glyph by its id where it has no
+				# name of its own (GID=u1D465, a maths italic x;
+				# GID=radical.size2), as tr2pdf finds it
+				if(id != nil)
+					addname(f, "GID=" + id, f.n);
 				last = f.n++;
 			}
 		"gsec" or "ggrp" or "kern" =>

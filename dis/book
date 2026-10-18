@@ -4,7 +4,8 @@
 #	book [-f] [-p works.bib] [-S style] [-o book.pdf] book.ms
 #
 # Citations are set by refer(1) from the database, in the style
-# (chicago); pictures, tables and equations by pic(1), tbl(1) and eqn(1),
+# (chicago); chess diagrams, pictures, tables and equations by chess(1),
+# pic(1), tbl(1) and eqn(1),
 # if there are any (eqn with its settings for the fonts,
 # /lib/troff/eqnrc); the book by troff(1) -mbook, as
 # often as its table of contents and references need to be set again
@@ -42,8 +43,10 @@ new=$stem.aux.new
 ind=$stem.ind
 indnew=$stem.ind.new
 
-# pictures, tables and equations: pic, tbl, eqn (after its settings for
-# the fonts), if there are any
+# chess diagrams, pictures, tables and equations: chess, pic, tbl, eqn
+# (after its settings for the fonts), if there are any
+boards=0
+grep -s '^\.CB' $src && boards=1
 pics=0
 grep -s '^\.PS' $src && pics=1
 tbls=0
@@ -59,6 +62,9 @@ fn input {
 fn cite {
 	if {~ $#bib 0} {cat} {refer -p $bib -S $style}
 }
+fn boards {
+	if {~ $boards 1} {chess} {cat}
+}
 fn pics {
 	if {~ $pics 1} {pic} {cat}
 }
@@ -71,7 +77,7 @@ fn eqns {
 # the preprocessors once (what they make depends on no pass), then troff
 # as often as the book needs
 pre=$stem.pre
-input | cite | pics | tbls | eqns >$pre
+input | cite | boards | pics | tbls | eqns >$pre
 fn pass {
 	troff -mbook '-rbook-final='^$final '-dbook-aux='^$aux '-dbook-ind='^$ind $pre >$tr >[2]$err
 	grep '^aux:' $err | sed 's/^aux://' >$new
