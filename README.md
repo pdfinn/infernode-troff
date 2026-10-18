@@ -1,7 +1,7 @@
 # troff for InferNode
 
 A typesetting system for books, for [InferNode](https://github.com/infernode-os/infernode):
-troff and its preprocessors (eqn, tbl, pic, refer), PDF output (tr2pdf),
+troff and its preprocessors (eqn, tbl, pic, refer, chess), PDF output (tr2pdf),
 macro packages for books (`-mbook`), papers (`-ms`) and manual pages
 (`-man`), an index maker, a LaTeX converter, and the Libertinus fonts.
 
@@ -47,6 +47,8 @@ gained `pinned` and `viewing` then.
   screen reader would speak it ("x equals the fraction with numerator
   minus b plus or minus the square root of b squared minus 4 a c, end
   root, and denominator 2 a").
+- **Chess.** Diagrams from a position in Forsyth–Edwards notation, and
+  moves in figurine notation (♘f3) in the text, by `chess`.
 - **LaTeX for a publisher.** `book2tex` writes the same book as LaTeX,
   for a publisher who wants it.
 
@@ -155,6 +157,31 @@ Zoom+, Zoom−, Fit, PrevPage and NextPage move about the document, and
 its text can be searched. The screenshot is in Xenith's Glenda theme
 (`xenith -t glenda`). Setting Xenith up for it is under
 [Xenith](#xenith) below.
+
+## Chess
+
+`chess` sets a board between `.CB` and `.CE` from its position in
+Forsyth–Edwards notation, the notation databases and engines write:
+
+    .CB
+    fen rn2kb1r/ppp1qppp/5n2/4p3/2B1P3/1Q6/PPP2PPP/RNB1K2R w
+    .CE
+
+The board is a picture, so `-mbook` centres it, keeps it on one page and
+tags it as a Figure in the PDF. Its description is the position read
+out ("Chess diagram. White: King e1, Queen b3, Rooks a1 and h1, …
+White to move."), unless `.alt` gives another. `size`, `flip` and
+`nocoords` change a board's size, turn it for Black, and leave its
+squares unnamed. The pieces are the Unicode chess figures, from a subset
+of Noto Sans Symbols 2 (`fonts/chess`, under the OFL). The same figures
+set moves in the text: `\fB7.♕b3 ♕e7\fP`. `book` runs `chess` when a
+book has a board.
+
+![Two pages of a chapter on chess at Bell Labs: a queen-against-rook endgame, then Morphy's Opera Game with its moves in figurine notation and three diagrams](docs/images/chess.png)
+
+*Pages 2 and 3 of [`examples/chess.ms`](examples/chess.ms) (`book
+chess.ms`; [the PDF](examples/chess.pdf)): Belle and Thompson's
+endgame databases, then Morphy's Opera Game of 1858.*
 
 ## Benchmarks
 

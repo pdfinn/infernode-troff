@@ -2,6 +2,7 @@
 
 TARG=\
 	book2tex.dis\
+	chess.dis\
 	mkindex.dis\
 	tr2img.dis\
 

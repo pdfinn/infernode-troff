@@ -20,3 +20,7 @@ mkfn $o -s -tS -f$l/LibertinusMath-Regular.otf $l/LibertinusMath-Regular.otf >$d
 # the fallback for characters Libertinus lacks (✓, ☐ ...): DejaVu Sans, special
 v=/fonts/ttf/dejavu
 mkfn -b -l -o -r7200 -s -tDF -f$v/DejaVuSans.ttf $v/DejaVuSans.ttf >$d/DF
+# the chess figures (chess(1)'s diagrams, ♘f3 in the text): Noto Sans
+# Symbols 2's, special, searched before DejaVu Sans
+c=/fonts/chess
+mkfn -b -l -o -r7200 -s -tCH -f$c/NotoSansSymbols2Chess-Regular.ttf $c/NotoSansSymbols2Chess-Regular.ttf >$d/CH

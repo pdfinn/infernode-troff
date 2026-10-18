@@ -1,0 +1,18 @@
+name CH
+fontpath /fonts/chess/NotoSansSymbols2Chess-Regular.ttf
+spacewidth 260
+special
+char ---	600	3	.notdef	
+char ---	260	0	space	32
+char ♔	1000,203,-34,797,753	3	uni2654	
+char ♕	1000,125,-34,875,767	3	uni2655	
+char ♖	1000,176,0,825,719	3	uni2656	
+char ♗	1000,153,-49,847,741	3	uni2657	
+char ♘	1000,160,0,840,767	3	uni2658	
+char ♙	1000,186,0,814,755	3	uni2659	
+char ♚	1000,203,-34,797,753	3	uni265A	
+char ♛	1000,125,-34,875,767	3	uni265B	
+char ♜	1000,176,0,825,719	3	uni265C	
+char ♝	1000,153,-49,847,741	3	uni265D	
+char ♞	1000,160,0,840,767	3	uni265E	
+char ♟	1000,186,0,814,755	3	uni265F	

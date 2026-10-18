@@ -108,8 +108,10 @@
 .fp 11 SC R
 .ff SC +smcp
 .\" the fallback: a character none of Libertinus's fonts has is DejaVu
-.\" Sans's (a special font, searched when the font set in lacks a glyph)
-.fp 12 DF
+.\" Sans's (a special font, searched when the font set in lacks a glyph),
+.\" but the chess figures (♘f3), Noto Sans Symbols 2's
+.fp 12 CH
+.fp 13 DF
 .\" and a character none has is said, not dropped without a word
 .mg 1
 .\"

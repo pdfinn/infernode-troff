@@ -44,6 +44,7 @@ with the database
 by default, with its options:
 .B "-S chicago,british,nodoi"
 as a British thesis has them),
+.IR chess (1),
 .IR pic (1),
 .IR tbl (1)
 and
@@ -120,6 +121,7 @@ book2tex -p works.bib -o thesis.tex thesis.ms
 .br
 .B /appl/cmd/mkindex.b
 .SH SEE ALSO
+.IR chess (1),
 .IR eqn (1),
 .IR pic (1),
 .IR refer (1),
