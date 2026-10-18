@@ -526,8 +526,8 @@ A doctoral dissertation written for XeLaTeX (A4, 12 points double
 spaced, notes in Chicago's style by biblatex, figures, 230 pages) was
 set with `-mbook` from its LaTeX, on the same page in the same face, to
 find what a real manuscript asks. Its chapters came out page for page
-as XeLaTeX sets them, in 12 seconds against XeLaTeX's 40 (three passes
-and biber). What it asked for:
+as XeLaTeX sets them, in 12 seconds against XeLaTeX's 43 and LuaLaTeX's
+63 (each three passes and biber; README, Benchmarks). What it asked for:
 
     .papersize a4                \" or a5, b5, letter; a size no page could be is refused
     .nr book-recto 0             \" one-sided: a chapter on the next page
@@ -680,11 +680,12 @@ freeing (an eighth), and calls.
 Mathematics at length is where LaTeX is still faster. A generated
 (`tools/mathbook.py`)
 245-page book, 30 chapters of text with 1,440 inline equations and the
-23 hard displays set 360 times (numbered), takes `book` 14.7 seconds
-from nothing (two passes of eqn and troff, then tr2pdf); its LaTeX
-from `book2tex` takes XeLaTeX 2.4 seconds a pass and LuaLaTeX 5.8,
-their font caches warm (LuaLaTeX's first run, building its cache, 30
-more). A pass of ours: eqn 1.0 seconds, troff 5.6 (the same text
+23 hard displays set 360 times (numbered), takes `book` 13.0 seconds
+from nothing (two passes of eqn and troff, then tr2pdf; `book -f`
+13.9); its LaTeX from `book2tex` takes XeLaTeX 4.6 seconds and
+LuaLaTeX 11.0, two passes each, their font caches warm (LuaLaTeX's
+first run, building its cache, 30 more). The README's Benchmarks has
+these beside the other documents, all on one machine. A pass of ours: eqn 1.0 seconds, troff 5.6 (the same text
 without its mathematics 1.9 for its 186 pages), tr2pdf 1.8. Where it
 goes:
 - eqn's output is 7.4 MB of requests for 447 KB of source (125 lines
