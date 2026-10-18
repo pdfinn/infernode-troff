@@ -1624,8 +1624,6 @@ eleft(flg: int): string
 	if(froms != nil || tos != nil){
 		case core {
 		"\\sum" or "\\prod" or "\\bigcup" or "\\bigcap" or "\\lim" or "\\max" or "\\min" or "\\int" or "\\coprod" =>
-			if(core == "\\int")
-				core += "\\limits";
 			if(froms != nil)
 				core += "_{" + froms + "}";
 			if(tos != nil)

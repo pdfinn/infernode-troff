@@ -38,7 +38,8 @@ unnumbered.
 .BI ".section " "title " \fR[ label \fR]
 .TP
 .BI ".subsection " "title " \fR[ label \fR]
-Headings; chapters open on right-hand pages.
+Headings; chapters open on right-hand pages, a numbered chapter's
+sections numbered in it (1.1, 1.1.1), as the contents give them.
 .TP
 .B ".p"
 A paragraph (or a blank line).
@@ -95,6 +96,13 @@ the type (11 on 14 points); the string
 its language
 .RB ( en ).
 .PP
+A paragraph's lines are broken all at once, as TeX breaks them
+.RB ( ".ad pb" ),
+its spaces able to shrink by a third
+.RB ( .ssh ),
+hyphens costing as loose lines do
+.RB ( .hycost ),
+one space after a sentence.
 Notes are set at the foot of their marks' pages, in order, a long one
 split between pages; widows and orphans are kept from pages' edges; the
 PDF's contents, references, notes' marks and index are links, its

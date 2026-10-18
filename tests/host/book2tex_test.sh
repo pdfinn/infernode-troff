@@ -72,7 +72,7 @@ want book.tex '\title{A Study of Virtue\\[1ex]\large Justice and the Soul in Pla
     pass "endnotes' headings, one a chapter" || failed "endnotes' headings: $(grep -c addtoendnotes "$tmp/book.tex")"
 
 want latex.tex 'Inline $x^{2} + y_{i}^{2}$ and $\frac{\alpha}{\beta}$ and $\sqrt{{a+b}}$.\index{mathematics!inline}Here.\index{aretē@\emph{ἀρετή}|textbf}' \
-    '\sum_{i=1}^{n} x_{i} = \int\limits_{0}^{\infty} e^{{{-x}^{2}}} dx \tag{1.1}' \
+    '\sum_{i=1}^{n} x_{i} = \int_{0}^{\infty} e^{{{-x}^{2}}} dx \tag{1.1}' \
     '\left( \begin{array}{cr}a & c \\ b & d\end{array} \right) \ \ \lim_{{x \to 0}} \frac{{\sin x}}{x} = 1' \
     '\overline{x} + \vec{y} + {\textrm{max}} - \symbf{X} + \left[ \begin{array}{c}1 \\ 2\end{array} \right] + a \le b \ne c' \
     '\begin{tabular}{|lr|}' '\multicolumn{2}{|c|}{Heading} \\' 'Plato & 347 \\' \

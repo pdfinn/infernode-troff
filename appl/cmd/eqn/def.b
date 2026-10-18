@@ -319,6 +319,12 @@ e_baselinesep := 140;
 e_bodyheight := 70;
 e_bodydepth := 25;
 e_textlimits := 0;	# limits as scripts in text, as TeX sets them (not Neateqn's)
+# scripts' sizes, as percentages of the text's, as an OpenType math font
+# gives them (its MATH table's ScriptPercentScaleDown and
+# ScriptScriptPercentScaleDown); 0, Neateqn's: each 7/10 of the one
+# above (not Neateqn's)
+e_scriptpct := 0;
+e_scriptscriptpct := 0;
 
 S_S1(): int	{ return e_thinspace; }
 S_S2(): int	{ return e_mediumspace; }
@@ -358,6 +364,8 @@ def_set(name: string, val: int)
 	"body_height" =>	e_bodyheight = val;
 	"body_depth" =>	e_bodydepth = val;
 	"text_limits" =>	e_textlimits = val;
+	"script_percent_scale_down" =>	e_scriptpct = val;
+	"script_script_percent_scale_down" =>	e_scriptscriptpct = val;
 	}
 }
 

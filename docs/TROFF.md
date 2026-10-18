@@ -79,8 +79,11 @@ change it before the first text:
 
 Chapters open on right-hand pages, with no running head and their folio
 at the foot; the running heads are the book's title on the left, the
-chapter's on the right. Footnotes are numbered in each chapter. Endnotes
-are gathered under their chapters' names for `.notes`.
+chapter's on the right. A numbered chapter's sections are numbered in
+it (1.1, 1.1.1), in their headings as in the contents and references,
+as LaTeX's book class numbers them; those of the front matter and of an
+unnumbered chapter are not. Footnotes are numbered in each chapter.
+Endnotes are gathered under their chapters' names for `.notes`.
 
 Footnotes are set at the foot of their marks' pages, in order:
 - A note too long for the room left is begun there if three of its
@@ -127,6 +130,35 @@ pdfTeX's), the glyphs' share rounded to a step. troff scales the glyphs'
 advances, and says by how much (`x X mtx 15`, thousandths) for tr2pdf,
 which draws their shapes as scaled (`Tz`), each where troff put it.
 With `.mtp 0` and `.mte 0`, the defaults, troff sets as C Neatroff does.
+
+## Lines: a paragraph broken whole
+
+`-mbook` breaks a paragraph into lines as TeX does, choosing all its
+breaks at once, and lets a line's spaces shrink as well as stretch, so a
+line need not be broken short and stretched to the margin:
+
+    .ad pb                       \" justified, each paragraph's breaks chosen whole
+    .ssh 33                      \" a space may shrink by a third, as TeX's may
+    .hycost 300 3000             \" a hyphen costs as a loose line; a second in a row, ten times
+    .hlm 3                       \" never four in a row
+    .ss 12 0                     \" one space after a sentence, not two
+
+Each environment has its own (the text, the notes, quotations), so
+`book-fill` sets them in each. Measured on 180 pages of this tree's
+prose (`docs/*.md`), set as `book -f` sets it and by LuaLaTeX with
+microtype:
+
+| | mean space | 95th percentile | lines looser than 0.5 em | lines hyphenated | two in a row |
+|---|---|---|---|---|---|
+| line by line (`.ad b`), as before | 0.34 em | 0.48 em | 137 | 30% | 333 |
+| as now | 0.27 em | 0.38 em | 21 | 10% | 32 |
+| LuaLaTeX, microtype | 0.28 em | 0.35 em | 25 | 8% | 28 |
+
+Line by line, troff could break only where the words fitted, never
+shrink, so its spaces stretched by half on average and nearly a third
+of its lines ended in a hyphen. Whole paragraphs cost little time: a
+book of 444 pages with notes on every page took 3% longer, and came to
+431 pages.
 
 ## Widows and orphans: `.wo`
 
@@ -256,7 +288,10 @@ refer's. The first citation of a work in a chapter is its full note,
 later ones the short note; up to three authors are named in a note (the
 first and *et al.* past that), up to six in the bibliography (three and
 *et al.* past that); page ranges are abbreviated as the Manual
-abbreviates them (101–8, 321–28, 1496–1504). Kinds of work: books
+abbreviates them (101–8, 321–28, 1496–1504). The bibliography is in the
+Manual's order: by the first author's name; a work by that author alone
+before those written with others, and those by the others' names, in
+order; then by title. Kinds of work: books
 (author, editor or both, translator, edition, volume, series), chapters
 in edited books, articles (with DOIs), theses, other works, and
 classical works cited by their parts (`entrysubtype = {classical}`:
@@ -286,6 +321,18 @@ pieces; radicals likewise; a displayed sum, product or integral is the
 font's display size, an inline one the text size with its limits beside
 it (`ifdisplay` and `set text_limits 1`, which eqn has beyond Neateqn).
 A display is centred, its label at the right on its baseline.
+
+eqnrc gives eqn Libertinus Math's own parameters, from the font's MATH
+table, where TeX's for Computer Modern were: scripts 80% of the text's
+size and their scripts 60% (`set script_percent_scale_down`, beyond
+Neateqn: it made each 7/10 of the one above, a superscript of 11 points
+7), the shifts of superscripts and subscripts, fractions' numerators and
+denominators, the axis, rules and the gaps about a sum's limits. The
+names of functions (`sin`, `cos`, `log`, `lim` ...) are operators, as
+TeX's: `a cos theta` is set with a thin space between `a` and `cos`, not
+as `acos`. An integral's limits are beside it, as TeX sets them
+(`nolimits`, beyond Neateqn), and `book2tex` writes `\int_0^\infty`, not
+`\int\limits`.
 
 Glyphs' heights and depths come from the fonts' descriptions: `mkfn`
 reads each glyph's bounding box from its outline, CFF's (Libertinus's)

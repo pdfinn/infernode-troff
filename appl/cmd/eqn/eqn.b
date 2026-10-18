@@ -293,10 +293,29 @@ eqn_boxuntil(box: ref Box, sz0: int, fn0: string, delim: string): int
 	return 0;
 }
 
+# a style's size, as a percentage of the text's (the font's, if set)
+scriptpct(sz: int): int
+{
+	if(sz == 0)
+		return 100;
+	if(sz == 1)
+		return e_scriptpct;
+	if(e_scriptscriptpct)
+		return e_scriptscriptpct;
+	return e_scriptpct * e_scriptpct / 100;
+}
+
 # a subscript's size
 sizesub(dst, src, style, src_style: int)
 {
-	if(TS_SZ(style) > TS_SZ(src_style)){
+	if(TS_SZ(style) > TS_SZ(src_style) && e_scriptpct){
+		# the font's percentages of the text's size, rounded
+		d := scriptpct(TS_SZ(style));
+		s := scriptpct(TS_SZ(src_style));
+		printf(".nr " + nregname(dst) + " (" + nreg(src) + "*" + string d + "+" + string (s / 2) + ")/" + string s + "\n");
+		printf(".if " + nreg(dst) + "<" + string e_minimumsize + " .nr " +
+			nregname(dst) + " " + string e_minimumsize + "\n");
+	}else if(TS_SZ(style) > TS_SZ(src_style)){
 		printf(".nr " + nregname(dst) + " " + nreg(src) + "*7/10\n");
 		printf(".if " + nreg(dst) + "<" + string e_minimumsize + " .nr " +
 			nregname(dst) + " " + string e_minimumsize + "\n");
@@ -636,6 +655,16 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 		box_merge(box, inner, 1);
 		box_free(inner);
 		box.tcur = typ;
+	}else if(!tok_jmp("nolimits")){
+		# its from and to as scripts, as TeX's \nolimits (not Neateqn's):
+		# read where they are, within what follows
+		nolim0 := eqn_nolim;
+		eqn_nolim = 1;
+		inner := eqn_left(flg, pre, sz, fnt);
+		eqn_nolim = nolim0;
+		box_merge(box, inner, 1);
+		box.tcur = inner.tcur;
+		box_free(inner);
 	}else if(!tok_jmp("pile") || !tok_jmp("cpile")){
 		eqn_pile(box, sz, fnt, 'c');
 	}else if(!tok_jmp("lpile")){
@@ -735,7 +764,10 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 		sizesub(subsz, sz0, ts_sup(style), style);
 		sub_to = eqn_left(ts_sup(style), nil, subsz, fn0);
 	}
-	if((sub_from != nil || sub_to != nil) && e_textlimits && !TS_DX(style) && box.tcur == T_BIGOP){
+	nolim := eqn_nolim && (sub_from != nil || sub_to != nil);
+	if(nolim)
+		eqn_nolim = 0;	# the operator's own, not those of what follows it
+	if((sub_from != nil || sub_to != nil) && (nolim || e_textlimits && !TS_DX(style)) && box.tcur == T_BIGOP){
 		box_sub(box, sub_from, sub_to);
 	}else if(sub_from != nil || sub_to != nil){
 		inner := box_alloc(sz0, 0, style);
@@ -754,6 +786,8 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 		box_free(sub_to);
 	return box;
 }
+
+eqn_nolim := 0;		# a nolimits operator's from and to still to come
 
 # a box
 eqn_box(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box

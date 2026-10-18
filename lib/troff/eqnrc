@@ -8,8 +8,34 @@
 .\" rules: fractions' and radicals' bars, as one line however long
 .char \(ru \f[S]\N'uni23AF'
 .char \(rn \f[S]\N'uni23AF'
+.\" Libertinus Math's own parameters (its MATH table's), for TeX's from
+.\" Computer Modern: hundredths of an em, as LuaTeX maps them;
+.\" the names of functions operators, as TeX's: a thin space each side
+.\" (none before a parenthesis), limits under lim and max in a display;
+.\" an integral's limits beside it, as TeX's
 .EQ
 set text_limits 1
+set script_percent_scale_down 80
+set script_script_percent_scale_down 60
+set axis_height 26
+set x_height 43
+set default_rule_thickness 7
+set num1 58
+set num2 48
+set denom1 70
+set denom2 48
+set sup1 38
+set sup2 38
+set sup3 31
+set sub1 21
+set sub2 21
+set sup_drop 23
+set sub_drop 5
+set big_op_spacing1 15
+set big_op_spacing2 15
+set big_op_spacing3 25
+set big_op_spacing4 62
+set script_space 4
 bracketsizes ( 13 "(" "\N'parenleft.size1'" "\N'parenleft.size2'" "\N'parenleft.size3'" "\N'parenleft.size4'" "\N'parenleft.size5'" "\N'parenleft.size6'" "\N'parenleft.size7'" "\N'parenleft.size8'" "\N'parenleft.size9'" "\N'parenleft.size10'" "\N'parenleft.size11'" "\N'parenleft.size12'"
 bracketsizes ) 13 ")" "\N'parenright.size1'" "\N'parenright.size2'" "\N'parenright.size3'" "\N'parenright.size4'" "\N'parenright.size5'" "\N'parenright.size6'" "\N'parenright.size7'" "\N'parenright.size8'" "\N'parenright.size9'" "\N'parenright.size10'" "\N'parenright.size11'" "\N'parenright.size12'"
 bracketsizes [ 13 "[" "\N'bracketleft.size1'" "\N'bracketleft.size2'" "\N'bracketleft.size3'" "\N'bracketleft.size4'" "\N'bracketleft.size5'" "\N'bracketleft.size6'" "\N'bracketleft.size7'" "\N'bracketleft.size8'" "\N'bracketleft.size9'" "\N'bracketleft.size10'" "\N'bracketleft.size11'" "\N'bracketleft.size12'"
@@ -38,10 +64,38 @@ bracketpieces \(sr "\N'radical.tp'" "\N'radical.md'" "\N'radical.bt'" ""
 define sum @ifdisplay {type op vcenter roman "\N'summation.size1'"} {type op vcenter roman "\N'summation'"}@
 define prod @ifdisplay {type op vcenter roman "\N'product.size1'"} {type op vcenter roman "\N'product'"}@
 define coprod @ifdisplay {type op vcenter roman "\N'uni2210.size1'"} {type op vcenter roman "\N'uni2210'"}@
-define int @ifdisplay {type op vcenter roman "\N'integral.size1'"} {type op vcenter roman "\N'integral'"}@
-define iint @ifdisplay {type op vcenter roman "\N'uni222C.size1'"} {type op vcenter roman "\N'uni222C'"}@
-define oint @ifdisplay {type op vcenter roman "\N'uni222E.size1'"} {type op vcenter roman "\N'uni222E'"}@
+define int @nolimits ifdisplay {type op vcenter roman "\N'integral.size1'"} {type op vcenter roman "\N'integral'"}@
+define iint @nolimits ifdisplay {type op vcenter roman "\N'uni222C.size1'"} {type op vcenter roman "\N'uni222C'"}@
+define oint @nolimits ifdisplay {type op vcenter roman "\N'uni222E.size1'"} {type op vcenter roman "\N'uni222E'"}@
 define bigcup @ifdisplay {type op vcenter roman "\N'uni22C3.size1'"} {type op vcenter roman "\N'uni22C3'"}@
 define bigcap @ifdisplay {type op vcenter roman "\N'uni22C2.size1'"} {type op vcenter roman "\N'uni22C2'"}@
+define sin @type op roman "sin"@
+define cos @type op roman "cos"@
+define tan @type op roman "tan"@
+define cot @type op roman "cot"@
+define sec @type op roman "sec"@
+define csc @type op roman "csc"@
+define sinh @type op roman "sinh"@
+define cosh @type op roman "cosh"@
+define tanh @type op roman "tanh"@
+define coth @type op roman "coth"@
+define arcsin @type op roman "arcsin"@
+define arccos @type op roman "arccos"@
+define arctan @type op roman "arctan"@
+define exp @type op roman "exp"@
+define log @type op roman "log"@
+define ln @type op roman "ln"@
+define lg @type op roman "lg"@
+define lim @type op roman "lim"@
+define max @type op roman "max"@
+define min @type op roman "min"@
+define det @type op roman "det"@
+define gcd @type op roman "gcd"@
+define arg @type op roman "arg"@
+define deg @type op roman "deg"@
+define dim @type op roman "dim"@
+define hom @type op roman "hom"@
+define ker @type op roman "ker"@
+define Pr @type op roman "Pr"@
 .EN
 .lf 1

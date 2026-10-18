@@ -52,7 +52,9 @@ it sets citations as
 the first time it is cited in a chapter, shortened after; a book, a
 chapter of one, an article, a thesis, a classical work; et al.,
 translators and editors; inclusive pages (315\(en16); the bibliography
-sorted.
+sorted as the Manual sorts it: by the first author, a work by that
+author alone before those written with others, those by the others'
+names, then by title.
 .IR Book (1)
 runs it so.
 .TP

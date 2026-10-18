@@ -49,9 +49,31 @@ is a translation; for the same input its output is, byte for byte,
 Neateqn's.
 .B /lib/troff/eqnrc
 gives it Libertinus Math: its brackets, radicals and operators in the
-sizes the font has for them;
+sizes the font has for them, its own parameters (its MATH table's: the
+sizes of scripts, the shifts of scripts, numerators and denominators,
+the axis, the rules), the names of functions as operators, an
+integral's limits beside it;
 .IR book (1)
 reads it first.
+.PP
+Beyond Neateqn:
+.B "set script_percent_scale_down"
+.I n
+and
+.B "set script_script_percent_scale_down"
+.I n
+make scripts, and their scripts,
+.I n
+per cent of the text's size (not each 7/10 of the one above);
+.BI nolimits " x"
+sets the
+.B from
+and
+.B to
+of the operator
+.I x
+as its scripts, beside it, as TeX's
+.BR \enolimits .
 .TP
 .BI -c " chars"
 The characters an equation within a line may be broken after.

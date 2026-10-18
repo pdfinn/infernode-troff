@@ -146,8 +146,25 @@ check(len(refs) >= 6 and pr and not wrong, 'references link to their labels, on 
 
 # the index: each page a link to it
 ix = [l for l in links if l[1].startswith('pg-')]
-wrong = [(l[1], l[2], labels[dests[l[1]][0]]) for l in ix if not l[2] or l[2][0].rstrip(',') != l[1][3:] or labels[dests[l[1]][0]] != l[1][3:]]
-check(len(ix) >= 8 and not wrong, 'each page in the index a link to it (%d)' % len(ix), wrong[:3])
+# a page, or an end of a range of them (3–5; its end abbreviated, 101–8):
+# the word the link is on, its start or end, so the words it overlaps
+def onpage(word, pg):
+    ends = word.rstrip(',').split('–')
+    return ends[0] == pg or (len(ends) == 2 and pg.endswith(ends[1]))
+ixw = []
+for i, p in enumerate(r.pages):
+    h, ws = pages[i]
+    for a in p.get('/Annots') or []:
+        a = a.get_object()
+        d = str(a['/A'].get('/D', '')).lstrip('/')
+        if a['/A']['/S'] != '/GoTo' or not d.startswith('pg-'):
+            continue
+        x0, y0, x1, y1 = [float(v) for v in a['/Rect']]
+        top, bot = h - max(y0, y1), h - min(y0, y1)
+        on = [w[4] for w in ws if w[0] < max(x0, x1) - 0.5 and w[2] > min(x0, x1) + 0.5 and top <= (w[1] + w[3]) / 2 <= bot]
+        ixw.append((d, on))
+wrong = [(d, on, labels[dests[d][0]]) for d, on in ixw if len(on) != 1 or not onpage(on[0], d[3:]) or labels[dests[d][0]] != d[3:]]
+check(len(ix) >= 8 and len(ixw) == len(ix) and not wrong, 'each page in the index a link to it (%d)' % len(ix), wrong[:3])
 
 # the information
 info = r.metadata

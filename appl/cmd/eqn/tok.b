@@ -17,6 +17,7 @@ kwds := array[] of {
 	"delim", "define",
 	"gfont", "grfont", "gbfont", "gsize", "set", "chartype",
 	"mark", "lineup", "bracketsizes", "bracketpieces", "breakcost",
+	"nolimits",
 };
 
 tok_eqen := 0;		# within .EQ and .EN

@@ -128,6 +128,22 @@
 .book-mtpc BI
 .\"
 .\" ---------------------------------------------------------------
+.\" lines: a paragraph's breaks chosen for the whole paragraph at once
+.\" (.ad p, as TeX chooses them), not line by line; a space may shrink
+.\" by a third (.ssh), as TeX's may, so a line need not be broken short
+.\" and stretched; a hyphen costs as a loose line does (.hycost), a
+.\" second in a row ten times as much, a fourth not allowed (.hlm); one
+.\" space after a sentence, not two (.ss).  Measured on a book's prose
+.\" against LuaLaTeX's with microtype: its spaces as even, as few lines
+.\" loose, about as many hyphens.  Each environment has its own.
+.de book-fill
+.ad pb
+.ssh 33
+.hycost 300 3000
+.hlm 3
+.ss 12 0
+..
+.\" ---------------------------------------------------------------
 .\" begin: the page set, once, before the first text
 .\"
 .nr book-begun 0
@@ -144,7 +160,7 @@
 .vs \\n[book-vs]u
 .nr book-ll \\n[.l]
 .fi
-.ad b
+.book-fill
 .mtp \\n[book-final]
 .if \\n[book-final] .mte 20 20 5
 .\" no paragraph's first line alone at a page's foot, nor its last alone
@@ -158,6 +174,7 @@
 .ev
 .ev quote
 .ft R
+.book-fill
 .wo 1
 .mtp \\n[book-final]
 .if \\n[book-final] .mte 20 20 5
@@ -184,7 +201,7 @@
 .vs \\n[book-vs]u-2p
 .ll \\n[book-ll]u
 .fi
-.ad b
+.book-fill
 .in 0
 .ti 0
 .mtp \\n[book-final]
@@ -353,6 +370,7 @@
 .nr book-section 0 1
 .nr book-subsection 0 1
 .nr book-numbered 1	\" chapters numbered (main matter)
+.nr book-chnum 0	\" this chapter numbered, so its sections
 .ds book-cur
 .de frontmatter
 .book-begin
@@ -410,7 +428,8 @@
 .nr book-hn +1
 .ds book-hx \X^dest book-h\\n[book-hn]^
 .if !'\\$3'' .as book-hx \X^dest lab-\\$3^
-.ie \\$1&\\n[book-numbered] \{\
+.nr book-chnum \\$1&\\n[book-numbered]
+.ie \\n[book-chnum] \{\
 .	nr book-chapter +1
 .	ds book-cur \\n[book-chapter]
 .	as book-hx \X^outline 1 \\n[book-chapter] \\$2^
@@ -451,16 +470,27 @@
 .nr book-hn +1
 .ds book-hx \X^dest book-h\\n[book-hn]^\X^outline 2 \\*[book-cur] \\$1^
 .if !'\\$2'' .as book-hx \X^dest lab-\\$2^
+.book-sectno
 .book-tag H2
-\\*[book-hx]\f[B]\\$1\fP
+\\*[book-hx]\f[B]\\*[book-sn]\\$1\fP
 .br
 .book-tag end
-.ad b
+.ad pb
 .sp 0.5v
-.tm aux:.book-tocent section "\\*[book-cur]" "\\$1" \\n% book-h\\n[book-hn]
+.tm aux:.book-tocent section "\\*[book-snt]" "\\$1" \\n% book-h\\n[book-hn]
 .if !'\\$2'' .book-label \\$2
 .nr book-noindent 1
 .ns
+..
+.\" a section's number, before its title and in the contents, where its
+.\" chapter's is (the main matter's), as its references give it
+.de book-sectno
+.ds book-sn
+.ds book-snt
+.if \\n[book-chnum] \{\
+.	ds book-sn \\*[book-cur]\h'0.75m'
+.	ds book-snt \\*[book-cur]
+.\}
 ..
 .de subsection
 .book-begin
@@ -473,13 +503,14 @@
 .nr book-hn +1
 .ds book-hx \X^dest book-h\\n[book-hn]^\X^outline 3 \\*[book-cur] \\$1^
 .if !'\\$2'' .as book-hx \X^dest lab-\\$2^
+.book-sectno
 .book-tag H3
-\\*[book-hx]\f[I]\\$1\fP
+\\*[book-hx]\f[I]\\*[book-sn]\\$1\fP
 .br
 .book-tag end
-.ad b
+.ad pb
 .sp 0.25v
-.tm aux:.book-tocent subsection "\\*[book-cur]" "\\$1" \\n% book-h\\n[book-hn]
+.tm aux:.book-tocent subsection "\\*[book-snt]" "\\$1" \\n% book-h\\n[book-hn]
 .if !'\\$2'' .book-label \\$2
 .nr book-noindent 1
 .ns
@@ -919,7 +950,7 @@
 .br
 .book-tag end
 .in 0
-.ad b
+.ad pb
 .hy \\n[book-hy0]
 ..
 .\"
@@ -1059,7 +1090,8 @@
 .el \{\
 .	in 2m
 .	ta \\n[book-ll]u-2m-2m \\n[book-ll]u-2mR
-\\*[book-tl \\$5]\\$2\ \ \\$3\a\t\\$4
+.	ie !'\\$2'' \\*[book-tl \\$5]\\$2\ \ \\$3\a\t\\$4
+.	el \\*[book-tl \\$5]\\$3\a\t\\$4
 .\}
 .br
 .lc .
@@ -1074,7 +1106,7 @@
 .	toc-calls
 .	book-tag pop
 .	in 0
-.	ad b
+.	ad pb
 .\}
 ..
 .\" the first pass's knowledge

@@ -88,24 +88,36 @@ bib(r: ref Ref): string
 	return clean(s);
 }
 
+# the bibliography's order, the Manual's: by the first author's name; a
+# work by that author alone before those by that author with others;
+# those by the names of the others, in order; then by title (an article
+# aside). An editor stands for an author where there is none.
 sortkey(r: ref Ref): string
 {
+	SEP: con "\u0001";	# before any letter: a name before a longer one it begins
+	names := r.author;
+	if(len names == 0)
+		names = r.editor;
 	k := "";
-	if(len r.author > 0)
-		k = r.author[0].last + " " + r.author[0].first;
-	else if(len r.editor > 0)
-		k = r.editor[0].last + " " + r.editor[0].first;
+	if(len names > 0){
+		k = fold(names[0].last + " " + names[0].first) + SEP;
+		if(len names == 1)
+			k += "0" + SEP;
+		else{
+			k += "1" + SEP;
+			for(i := 1; i < len names; i++)
+				k += fold(names[i].last + " " + names[i].first) + SEP;
+		}
+	}
 	t := get(r, "title");
 	for(a := array[] of {"The ", "A ", "An "}; len a > 0; a = a[1:])
 		if(len t > len a[0] && t[0:len a[0]] == a[0]){
 			t = t[len a[0]:];
 			break;
 		}
-	if(k == "")
-		k = t;
-	else
-		k += " " + t;
-	return fold(k);
+	if(k == "")	# by its title, among the names
+		return fold(t);
+	return k + SEP + fold(t);
 }
 
 #
