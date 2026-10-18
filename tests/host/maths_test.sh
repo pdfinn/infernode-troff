@@ -111,6 +111,16 @@ for line in tr.split('\n'):
         lam.append(cur)
 check(lam and all(f in ('R', 'S') for f in lam), 'capital Greek upright', lam)
 
+# digits from the math font, as unicode-math's (math_upright)
+cur = None
+dig = []
+for line in tr.split('\n'):
+    if re.match(r'^f\d+$', line):
+        cur = fonts.get(line[1:])
+    else:
+        dig += [cur for c in re.findall(r'c([0-9])', line)]
+check(dig and all(f == 'S' for f in dig), 'digits from the math font', sorted(set(dig)))
+
 # 16: the Gaussian's exponent: a fraction in a superscript, its parts in
 # scriptscript size (60%)
 p = pg(16)

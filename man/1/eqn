@@ -245,6 +245,10 @@ are the braces' sizes and pieces; all as
 .IR mkfn (1)'s
 .B -M
 writes them from a font's MATH table;
+.B "set math_upright 1"
+takes digits and upright capital Greek from the math font
+.RB ( gsfont ),
+as unicode-math does;
 .B "set scaled_sizes 1"
 keeps sizes in the device's scaled points
 .RI ( troff (1)'s

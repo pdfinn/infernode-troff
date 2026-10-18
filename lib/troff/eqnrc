@@ -26,6 +26,7 @@ set tex_greek 1
 gsfont S
 set fraction_ord 1
 set math_italic 1
+set math_upright 1
 set tex_accents 1
 set tex_fractions 1
 set scaled_sizes 1

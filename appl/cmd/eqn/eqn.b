@@ -638,6 +638,9 @@ tok_font(t: int, fnt: string): string
 		return fnt;
 	if(t == T_LETTER || t == T_STRING)
 		return gfont;
+	# digits from the math font, as unicode-math's (math_upright)
+	if(t == T_NUMBER && e_mathupright && gsfont != "")
+		return gsfont;
 	# a symbol from the math font, as TeX's: an operator, a relation,
 	# punctuation (not a bracket: troff's \\(lf and its kind name the
 	# pieces of tall ones in a math font, not the floor and ceiling)
@@ -1005,8 +1008,11 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 		box_putf(box, "\\s" + escarg(nreg(sz) + SZU()));
 		do{
 			cfn := tok_font(tok_type(), fnt);
-			if(e_texgreek && fnt == nil && ucgreek(tok_get()))
+			if(e_texgreek && fnt == nil && ucgreek(tok_get())){
 				cfn = grfont;
+				if(e_mathupright && gsfont != "")	# the math font's, as unicode-math's
+					cfn = gsfont;
+			}
 			txt := tok_improve(tok_get());
 			mathital_last = nil;
 			if(e_mathitalic && fnt == nil && cfn == gfont)
