@@ -126,7 +126,9 @@ box_beforeput(box: ref Box, typ, breakable: int)
 {
 	if(box.atoms){
 		autogaps := box_gaps(box, T_ATOM(typ));
-		if(!(typ & T_ITALIC))
+		# TeX's: a maths italic letter's italic correction after it
+		# whatever follows (but its scripts)
+		if(!(typ & T_ITALIC) || e_mathitalic)
 			box_italiccorrection(box);
 		if(autogaps && typ != T_GAP && box.tcur != T_GAP){
 			box_italiccorrection(box);
@@ -1340,4 +1342,105 @@ box_brace(box, sub: ref Box, over: int)
 	nregrm(rise);
 	nregrm(allwd);
 	nregrm(fnd);
+}
+
+# whether a box is one glyph (TeX's character), and the glyph's name if
+# it is drawn by name (\N'u1D465'): its sizes, fonts and corrections
+# aside, one character
+box_glyph(box: ref Box): (int, string)
+{
+	if(!box_ischar(box))
+		return (0, nil);
+	s := box.raw;
+	n := 0;
+	gl: string;
+	for(i := 0; i < len s; ){
+		if(s[i] != '\\'){
+			n++;
+			i++;
+			continue;
+		}
+		if(i + 1 >= len s)
+			return (0, nil);
+		c := s[i + 1];
+		case c {
+		's' or 'f' =>
+			i += 2;
+			if(i < len s && s[i] == '['){
+				while(i < len s && s[i] != ']')
+					i++;
+				i++;
+			}else if(i < len s && s[i] == '(')
+				i += 3;
+			else if(c == 's' && i < len s && (s[i] == '+' || s[i] == '-'))
+				i += 2;
+			else
+				i++;
+		',' or '/' or '&' =>
+			i += 2;
+		'N' =>
+			e := i + 3;
+			while(e < len s && s[e] != '\'')
+				e++;
+			gl = s[i + 3:e];
+			n++;
+			i = e + 1;
+		'(' =>
+			n++;
+			i += 4;
+		* =>
+			return (0, nil);
+		}
+	}
+	if(n != 1)
+		return (0, nil);
+	return (1, gl);
+}
+
+m1000(n: int): string
+{
+	return "(" + string n + "m/1000u)";
+}
+
+# an accent as TeX sets it (e_texaccents): its attachment on the base
+# glyph's (the box's middle, if it is not one glyph or has none),
+# raised by what the base passes AccentBaseHeight; over more than one
+# glyph the widest of its variants not wider than the box
+box_texaccent(box: ref Box, vars: array of Accvar, one: int, gl: string)
+{
+	box_wd := nregmk();
+	box_ht := nregmk();
+	ac_rise := nregmk();
+	ac_x := nregmk();
+	ac_pos := nregmk();
+	ac_gl := sregmk();
+	box_italiccorrection(box);
+	printf(".ps " + nreg(box.szreg) + "\n");
+	tok_dim(box_toreg(box), box_wd, box_ht, 0);
+	(ok, pos) := def_accentpos(gl);
+	if(one && ok)
+		printf(".nr " + nregname(ac_x) + " 0+" + m1000(pos) + "\n");
+	else
+		printf(".nr " + nregname(ac_x) + " 0" + nreg(box_wd) + "/2\n");
+	printf(".ds " + sregname(ac_gl) + " \"\\N'" + vars[0].gl + "'\n");
+	printf(".nr " + nregname(ac_pos) + " 0+" + m1000(vars[0].pos) + "\n");
+	for(i := 1; !one && i < len vars; i++){
+		cond := ".if " + nreg(box_wd) + ">=" + m1000(vars[i].wd) + " ";
+		printf(cond + ".ds " + sregname(ac_gl) + " \"\\N'" + vars[i].gl + "'\n");
+		printf(cond + ".nr " + nregname(ac_pos) + " 0+" + m1000(vars[i].pos) + "\n");
+	}
+	printf(".nr " + nregname(ac_rise) + " 0" + nreg(box_ht) + "-" + m100(e_accentbase) + "\n");
+	printf(".if " + nreg(ac_rise) + "<0 .nr " + nregname(ac_rise) + " 0\n");
+	fnt := gsfont;
+	if(fnt == nil)
+		fnt = grfont;
+	# (\Z's argument does not nest its delimiter)
+	box_putf(box, "\\Z|\\v'-" + nreg(ac_rise) + "u'\\h'" + nreg(ac_x) + "u-" + nreg(box_wd) + "u-" +
+		nreg(ac_pos) + "u'\\s" + escarg(nreg(box.szreg)) + "\\f" + escarg(fnt) + sreg(ac_gl) + "|");
+	nregrm(box_wd);
+	nregrm(box_ht);
+	nregrm(ac_rise);
+	nregrm(ac_x);
+	nregrm(ac_pos);
+	sregrm(ac_gl);
 }

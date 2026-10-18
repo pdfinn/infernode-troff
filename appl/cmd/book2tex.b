@@ -1642,7 +1642,10 @@ eleft(flg: int): string
 		a := "";
 		case epk() {
 		"dyad" =>	a = "\\overleftrightarrow";
-		"bar" =>	a = "\\overline";
+		"bar" =>	# (over one glyph an accent, as eqnrc sets it)
+			a = "\\overline";
+			if(esingle(core))
+				a = "\\bar";
 		"under" =>	a = "\\underline";
 		"vec" =>
 			a = "\\vec";

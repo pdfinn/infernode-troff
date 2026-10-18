@@ -92,7 +92,7 @@ sys.exit(fail)
 PY
 
 # the bars drawn, where the glyphs would be
-{ cat lib/troff/eqnrc; printf '.ps 24\n.vs 40p\n.EQ\n{a + b} over {c + d} = sqrt {x sup 2 + 1} + x bar + y under + left ( {1 over 2} right )\n.EN\n'; } >"$tmp/bars.tr"
+{ cat lib/troff/eqnrc; printf '.ps 24\n.vs 40p\n.EQ\n{a + b} over {c + d} = sqrt {x sup 2 + 1} + {x + 1} bar + y under + left ( {1 over 2} right )\n.EN\n'; } >"$tmp/bars.tr"
 with_timeout 120 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; eqn < bars.tr | troff -mbook > bars.out; eqn < bars.tr | troff -mbook | tr2pdf > bars.pdf; { echo .rules 0; eqn < bars.tr } | troff -mbook | tr2pdf > glyphs.pdf" </dev/null >/dev/null 2>&1
 if [ "$(grep -c '^DP' "$tmp/bars.out")" -ge 5 ] && ! grep -q 'uni23AF\|⎯\|^c_\|^Cul' "$tmp/bars.out"; then
     echo "PASS: eqn's bars drawn, not set as glyphs"

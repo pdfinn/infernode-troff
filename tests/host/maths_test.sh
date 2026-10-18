@@ -13,6 +13,7 @@
 #	a relation after {} spaced as one (TeX's {} an ordinary atom);
 #	capital Greek upright, as TeX's;
 #	the letters maths italic, and f's italic correction before (;
+#	an accent the math font's (f hat);
 #	a fraction in an exponent in scriptscript size (TeX's styles for a
 #	fraction's parts);
 #	braces over and under, of the font's sizes and pieces;
@@ -123,6 +124,9 @@ check('GID=u1D465' in tr and '𝑥' in raw and 'GID=uniFFFD' not in tr, 'letters
       sorted(set(re.findall(r'GID=u1D4[0-9A-F]+', tr)))[:5])
 ic = re.findall(r'CGID=u1D453\nf\d+\nh(\d+)h(\d+)', tr)
 check(ic and all(int(b) >= 0.34 * int(a) for a, b in ic), "f's italic correction before (", ic[:3])
+
+# 7: f hat, the font's accent (U+0302), not troff's ^
+check('GID=uni0302' in tr, "an accent the math font's", sorted(set(re.findall(r'GID=uni03[0-9A-F]+[.a-z0-9]*', tr))))
 
 # book2tex: the same in LaTeX's
 tex = open(d + '/hard.tex', encoding='utf-8').read() if __import__('os').path.exists(d + '/hard.tex') else ''

@@ -168,7 +168,33 @@ makes a fraction an ordinary atom, as LaTeX's
 .B "set math_italic 1"
 sets letters in roman italic as the math font's maths italic
 (a to U+1D44E, A to U+1D434, h to U+210E, Greek to U+1D6FC on), as TeX's
-.BR unicode-math ;
+.BR unicode-math ,
+each letter's italic correction after it (but before its scripts);
+.B "set tex_accents 1"
+sets
+.BR hat ,
+.BR tilde ,
+.BR bar ,
+.BR dot ,
+.BR dotdot ,
+.B vec
+and
+.B dyad
+as TeX's, from the math font's glyphs that
+.B accent
+.I "name n glyph pos width"
+\&... gives (the first the accent's, the rest its wider variants), its
+attachment on the base glyph's that
+.B accentpos
+.I "n glyph pos"
+\&... gives (or the middle of what is under it), raised by what that
+passes
+.B "set accent_base_height"
+.IR n ,
+in thousandths of an em but the height; over more than one glyph the
+widest variant not wider than it, and
+.B bar
+an overline;
 .B "set tex_fractions 1"
 sets a fraction's numerator and denominator in TeX's styles for them
 (in text style in script size, in a script in scriptscript size);

@@ -52,6 +52,35 @@ set tex_greek 1
 gsfont S
 set fraction_ord 1
 set math_italic 1
+.EN
+.\" Accents as TeX sets them (tex_accents), from Libertinus Math's MATH
+.\" table: each base glyph's top accent attachment, in thousandths of an
+.\" em (the italic letters'); each accent's glyph and its wider variants,
+.\" each glyph's attachment and width; AccentBaseHeight 440
+.EQ
+set tex_accents 1
+set accent_base_height 44
+accentpos 8 u1D434 492 u1D435 365 u1D436 401 u1D437 370 u1D438 392 u1D439 384 u1D43A 419 u1D43B 452
+accentpos 8 u1D43C 287 u1D43D 419 u1D43E 437 u1D43F 359 u1D440 531 u1D441 454 u1D442 418 u1D443 400
+accentpos 8 u1D444 401 u1D445 393 u1D446 341 u1D447 336 u1D448 354 u1D449 361 u1D44A 465 u1D44B 469
+accentpos 8 u1D44C 303 u1D44D 399 u1D44E 252 u1D44F 161 u1D450 250 u1D451 263 u1D452 239 u1D453 473
+accentpos 8 u1D454 290 u1D456 166 u1D457 267 u1D458 198 u1D459 179 u1D45A 400 u1D45B 295 u1D45C 271
+accentpos 8 u1D45D 420 u1D45E 278 u1D45F 213 u1D460 218 u1D461 176 u1D462 291 u1D463 285 u1D464 397
+accentpos 8 u1D465 321 u1D466 308 u1D467 296 u1D6E2 492 u1D6E3 421 u1D6E4 423 u1D6E5 433 u1D6E6 392
+accentpos 8 u1D6E7 399 u1D6E8 452 u1D6E9 388 u1D6EA 287 u1D6EB 437 u1D6EC 449 u1D6ED 531 u1D6EE 454
+accentpos 8 u1D6EF 389 u1D6F0 418 u1D6F1 468 u1D6F2 400 u1D6F3 399 u1D6F4 413 u1D6F5 336 u1D6F6 303
+accentpos 8 u1D6F7 383 u1D6F8 469 u1D6F9 355 u1D6FA 439 u1D6FB 285 u1D6FC 287 u1D6FD 427 u1D6FE 254
+accentpos 8 u1D6FF 297 u1D700 260 u1D701 294 u1D702 270 u1D703 315 u1D704 141 u1D705 273 u1D706 286
+accentpos 8 u1D707 338 u1D708 245 u1D709 288 u1D70A 271 u1D70B 326 u1D70C 377 u1D70D 262 u1D70E 264
+accentpos 8 u1D70F 225 u1D710 241 u1D711 324 u1D712 394 u1D713 383 u1D714 379 u1D715 307 u1D716 287
+accentpos 5 u1D717 313 u1D718 305 u1D719 385 u1D71A 297 u1D71B 371
+accent hat 6 uni0302 "-138" 253 uni0302.size1 286 574 uni0302.size2 501 1003 uni0302.size3 748 1496 uni0302.size4 966 1932 uni0302.size5 1192 2385
+accent tilde 6 tildecomb "-138" 279 tildecomb.size1 286 574 tildecomb.size2 501 1003 tildecomb.size3 747 1496 tildecomb.size4 965 1932 tildecomb.size5 1192 2385
+accent bar 1 uni0304 "-206" 0
+accent dot 1 uni0307 "-180" 0
+accent dotdot 1 uni0308 "-210" 0
+accent vec 1 uni20D7 210 421
+accent dyad 1 uni20E1 320 641
 set tex_fractions 1
 set radical_vertical_gap 9
 set radical_display_vertical_gap 17

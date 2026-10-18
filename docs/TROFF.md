@@ -409,7 +409,10 @@ exponent is in scriptscript size, `displaystyle` for `\dfrac` and
 `\cfrac`; `{}` an ordinary atom, as TeX's (`set tex_atoms 1`); capital
 Greek upright; letters in the font's maths italic, 𝑥 not *x*, with
 their italic correction before a parenthesis (`set math_italic 1`);
-delimiters' first sizes the math font's, as TeX's; operators and relations from the math font (`gsfont S`);
+accents the font's glyphs on each letter's top accent attachment, wider
+variants over more (`set tex_accents 1`, `accent`, `accentpos`), `bar`
+over one letter a macron, as `\bar`; delimiters' first sizes the math
+font's, as TeX's; operators and relations from the math font (`gsfont S`);
 radicals by the font's gaps, and `root n x` for an indexed one;
 `overbrace` and `underbrace`, the font's sizes or pieces; delimiters as
 TeX sizes them (`set delimiter_factor 901`). Its scripts are 9 points

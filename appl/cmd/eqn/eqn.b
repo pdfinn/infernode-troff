@@ -365,6 +365,31 @@ eqn_bracketsizes()
 	def_sizesput(sign, sizes);
 }
 
+# accentpos n glyph pos ...: glyphs' top accent attachments
+eqn_accentpos()
+{
+	n := atoi(tok_poptext(1));
+	for(i := 0; i < n; i++){
+		gl := tok_quotes(tok_poptext(1));
+		def_accentposput(gl, atoi(tok_quotes(tok_poptext(1))));
+	}
+}
+
+# accent name n glyph pos width ...: an accent's glyph, then its wider
+# variants
+eqn_accent()
+{
+	name := tok_quotes(tok_poptext(1));
+	n := atoi(tok_poptext(1));
+	vars := array[n] of Accvar;
+	for(i := 0; i < n; i++){
+		vars[i].gl = tok_quotes(tok_poptext(1));
+		vars[i].pos = atoi(tok_quotes(tok_poptext(1)));
+		vars[i].wd = atoi(tok_quotes(tok_poptext(1)));
+	}
+	def_accentput(name, vars);
+}
+
 eqn_bracketpieces()
 {
 	sign := cut(tok_quotes(tok_poptext(1)), BRLEN);
@@ -467,6 +492,14 @@ eqn_commands(): int
 	}
 	if(!tok_jmp("chartype")){
 		eqn_chartype();
+		return 0;
+	}
+	if(!tok_jmp("accentpos")){
+		eqn_accentpos();
+		return 0;
+	}
+	if(!tok_jmp("accent")){
+		eqn_accent();
 		return 0;
 	}
 	if(!tok_jmp("breakcost")){
@@ -588,6 +621,24 @@ eqn_matrix(box: ref Box, sz0: int, fn0: string)
 				box_free(cols[i][j]);
 }
 
+# an accent as TeX sets it, from the font's glyphs (accent), if the
+# next is one eqnrc gives; bar over more than one glyph is an overline
+texaccent(box: ref Box): int
+{
+	tok_blanks();
+	name := tok_get();
+	vars := def_accent(name);
+	if(vars == nil || tok_type() != T_KEYWORD)
+		return 0;
+	(one, gl) := box_glyph(box);
+	if(name == "bar" && !one)
+		return 0;
+	tok_pop();
+	printf(".ft " + grfont + "\n");
+	box_texaccent(box, vars, one, gl);
+	return 1;
+}
+
 # a word's letters in Mathematical Italic (U+1D434 on): Latin, and
 # lower-case Greek (as troff's \\(*a or as UTF-8, a byte a character);
 # h is U+210E, Planck's constant, outside the block
@@ -596,6 +647,7 @@ GREEKNM: con "abgdezyhiklmncoprstufxqw";	# troff's \\(*a to \\(*w, in order
 mathital(s: string): string
 {
 	r := "";
+	prevu := 0;
 	for(i := 0; i < len s; ){
 		c := s[i];
 		u := 0;
@@ -630,12 +682,15 @@ mathital(s: string): string
 			u = 16r1D6FC + 15 + s[i+1] - 16r80;
 			n = 2;
 		}
+		if(u && r != nil && prevu)	# (TeX's: the letter before's italic correction)
+			r += "\\/";
 		if(u == 16r1D455)	# h
 			r += "\\N'uni210E'";
 		else if(u)
 			r += sys->sprint("\\N'u%X'", u);
 		else
 			r += s[i:i+n];
+		prevu = u;
 		i += n;
 	}
 	return r;
@@ -837,6 +892,8 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			box_move(box, -dy, -dx);
 	}
 	while(tok_get() != nil){
+		if(e_texaccents && texaccent(box))
+			continue;
 		if(!tok_jmp("dyad")){
 			printf(".ft " + grfont + "\n");
 			box_accent(box, "\\(ab");

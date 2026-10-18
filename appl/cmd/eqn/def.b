@@ -393,6 +393,13 @@ e_raddegka := -30;
 # Mathematical Italic (U+1D434 on, as TeX's and unicode-math's), not the
 # text's italic; 0, Neateqn's: in gfont
 e_mathitalic := 0;
+# accents as TeX sets them from the math font's MATH table: its glyph
+# for each (accent), aligned on the base glyph's top accent attachment
+# (accentpos), raised by what the base passes AccentBaseHeight (in
+# hundredths of an em), a wider variant over more than one glyph, bar
+# over one glyph a macron; 0, Neateqn's: troff's characters, centred
+e_texaccents := 0;
+e_accentbase := 45;
 # the kern before a base's scripts, in hundredths of an em (Neateqn's
 # 5; TeX's none)
 e_scriptkern := 5;
@@ -448,6 +455,8 @@ def_set(name: string, val: int)
 	"tex_greek" =>	e_texgreek = val;
 	"fraction_ord" =>	e_fracord = val;
 	"math_italic" =>	e_mathitalic = val;
+	"tex_accents" =>	e_texaccents = val;
+	"accent_base_height" =>	e_accentbase = val;
 	"tex_fractions" =>	e_texfrac = val;
 	"stretch_stack_gap" =>	e_stretchgap = val;
 	"delimiter_factor" =>	e_delimfactor = val;
@@ -545,4 +554,50 @@ def_chopped(c: int): int
 def_choppedset(c: string)
 {
 	chopped = c;
+}
+
+# glyphs' top accent attachments, in thousandths of an em (accentpos)
+accpos_gl: list of string;
+accpos_val: list of int;
+
+def_accentposput(gl: string, val: int)
+{
+	accpos_gl = gl :: accpos_gl;
+	accpos_val = val :: accpos_val;
+}
+
+# a glyph's top accent attachment; ok 0 if it has none
+def_accentpos(gl: string): (int, int)
+{
+	v := accpos_val;
+	for(g := accpos_gl; g != nil; g = tl g){
+		if(hd g == gl)
+			return (1, hd v);
+		v = tl v;
+	}
+	return (0, 0);
+}
+
+# an accent's glyph and its wider variants, each with its attachment and
+# width (accent), in thousandths of an em
+Accvar: adt {
+	gl:	string;
+	pos:	int;
+	wd:	int;
+};
+accents: list of (string, array of Accvar);
+
+def_accentput(name: string, vars: array of Accvar)
+{
+	accents = (name, vars) :: accents;
+}
+
+def_accent(name: string): array of Accvar
+{
+	for(a := accents; a != nil; a = tl a){
+		(n, vars) := hd a;
+		if(n == name)
+			return vars;
+	}
+	return nil;
 }
