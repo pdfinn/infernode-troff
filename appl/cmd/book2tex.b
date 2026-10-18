@@ -7,8 +7,8 @@ implement Book2tex;
 #
 # Each of -mbook's macros is one of LaTeX's (docs/TROFF.md has the
 # table), and is written as that: chapters, sections, quotations,
-# epigraphs, footnotes and endnotes, labels and references, the
-# contents, citations (biblatex-chicago's \autocite, its notes style
+# epigraphs, footnotes and endnotes, labels and references, figures
+# and tables with their captions, the contents and lists, citations (biblatex-chicago's \autocite, its notes style
 # the Chicago Manual's, as refer's -S chicago), the bibliography and the
 # index (makeindex's entries, as .index has them).  Troff's escapes
 # become LaTeX's: fonts, characters by name, strings.  An equation
@@ -93,6 +93,8 @@ numbered := 1;	# chapters numbered (\mainmatter's)
 chapnum := 0;
 enhead := "";	# the heading of the chapter's endnotes, until its first
 npics := 0;
+infloat := "";	# the float open (figure, table): its pictures and tables centred by it
+floatlabel := "";
 
 # strings (.ds), and the characters troff names
 strs: list of (string, string);
@@ -956,6 +958,24 @@ request(s: string)
 	"label" =>
 		closefont(cur);
 		attach(cur, "\\label{" + arg(a, 0) + "}");
+	"figure" or "table" =>
+		blankline();
+		infloat = name;
+		floatlabel = arg(a, 0);
+		block("\\begin{" + name + "}[tbp]");
+		emit(cur, "\\centering");
+	"caption" =>
+		block("\\caption{" + textarg(join(a, " ")) + "}");
+		if(floatlabel != "")
+			emit(cur, "\\label{" + floatlabel + "}");
+	"endfigure" or "endtable" =>
+		block("\\end{" + infloat + "}");
+		infloat = "";
+		floatlabel = "";
+	"listoffigures" =>
+		block("\\listoffigures");
+	"listoftables" =>
+		block("\\listoftables");
 	"contents" =>
 		block("\\tableofcontents");
 	"cite" =>
@@ -2139,7 +2159,9 @@ table()
 		spec += bars(box + allbox);
 	else if(first != nil && len first > 0)
 		spec += bars(first[len first - 1].after);
-	if(centred)
+	if(infloat != "")
+		;
+	else if(centred)
 		emit(cur, "\\begin{center}");
 	else
 		emit(cur, "\\par\\noindent");
@@ -2211,7 +2233,9 @@ table()
 	if(box || allbox)
 		emit(cur, hline(box + allbox));
 	emit(cur, "\\end{tabular}");
-	if(centred)
+	if(infloat != "")
+		;
+	else if(centred)
 		emit(cur, "\\end{center}");
 	else
 		emit(cur, "\\par");
@@ -2448,15 +2472,22 @@ picture(first: string)
 				base = base[i + 1:];
 				break;
 			}
-		emit(cur, "\\begin{center}");
-		emit(cur, "\\includegraphics{" + base + "}");
-		emit(cur, "\\end{center}");
-	}else{
-		emit(cur, "\\begin{center}");
-		emit(cur, "\\fbox{\\textit{a picture (pic)}}");
-		emit(cur, "\\end{center}");
-	}
+		centrein("\\includegraphics{" + base + "}");
+	}else
+		centrein("\\fbox{\\textit{a picture (pic)}}");
 	cur.noindent = 1;
+}
+
+# a line centred: by the float it is in (\\centering), else by itself
+centrein(s: string)
+{
+	if(infloat != ""){
+		emit(cur, s);
+		return;
+	}
+	emit(cur, "\\begin{center}");
+	emit(cur, s);
+	emit(cur, "\\end{center}");
 }
 
 # a picture as a PDF of its own: pic's .PS line gives its height and

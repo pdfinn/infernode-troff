@@ -253,6 +253,7 @@
 .nr book-nofill 0
 .if \\n[book-balance] .book-colbal
 .book-fnplan
+.if !\\n[book-flbusy] .book-flput
 ..
 .\" the foot of a column: the next column, or the page's foot
 .de book-fo
@@ -376,6 +377,7 @@
 .\" and book-recto, with no running head if $2
 .de book-newpage
 .br
+.book-flflush
 .nr book-nofill 1
 .bp
 .if \\$1 .if \\n[book-recto] .if e \{\
@@ -383,6 +385,9 @@
 .	rs
 .	bp
 .\}
+.\" this page's text flush at its foot (the page before's was not: a
+.\" page still empty is not broken, so its head has not cleared this)
+.nr book-nofill 0
 .nr book-nohead \\$2
 ..
 .\"
@@ -455,6 +460,8 @@
 .ie \\n[book-chnum] \{\
 .	nr book-chapter +1
 .	ds book-cur \\n[book-chapter]
+.	nr book-fig 0
+.	nr book-tab 0
 .	as book-hx \X^outline 1 \\n[book-chapter] \\$2^
 .	ce 1
 \\*[book-hx]\f[SC]Chapter \\n[book-chapter]\fP
@@ -465,7 +472,7 @@
 .\}
 .el \{\
 .	as book-hx \X^outline 1 \\$2^
-.	if !'\\$2'Contents' .tm aux:.book-tocent chapter "" "\\$2" \\n% book-h\\n[book-hn]
+.	if !'\\$2'Contents' .if !\\n[book-notoc] .tm aux:.book-tocent chapter "" "\\$2" \\n% book-h\\n[book-hn]
 .	ds book-en-chapter \\$2
 .\}
 .ce 1
@@ -794,6 +801,7 @@
 .nr book-endn 0
 .de book-end
 .br
+.book-flflush
 .nr book-nofill 1
 .nr book-endn +1
 .if \\n[book-endn]>1000 \{\
@@ -957,6 +965,179 @@
 .in
 .if \\n[book-pich] .sp 0.65v
 .nr book-noindent 1
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" floats: a figure or a table with its caption, diverted in its own
+.\" environment (a paragraph it is in goes on unbroken); set where it is
+.\" if nothing waits and it fits there, between paragraphs; else at the
+.\" top of the next page, as many waiting as take 7/10 of it, the first
+.\" whatever its size; any still waiting when a chapter ends, before it
+.\" ends.  Its number the chapter's and its own (1.2), in the lists of
+.\" figures and tables; its label's \*[ref] the number, \*[pageref] the
+.\" page it is set on.
+.\"
+.nr book-flnext 1	\" the next float's diversion, book-fl<n>
+.nr book-flfirst 1	\" the first waiting
+.nr book-flbusy 0	\" floats being set: the head sets none
+.nr book-fig 0 1
+.nr book-tab 0 1
+.nr lof-fig-set 0
+.nr book-notoc 0
+.nr lof-tab-set 0
+.de figure
+.book-float fig Figure "\\$1"
+..
+.de table
+.book-float tab Table "\\$1"
+..
+.de endfigure
+.book-flend
+..
+.de endtable
+.book-flend
+..
+.de book-float
+.book-begin
+.ds book-flk \\$1
+.ds book-flname \\$2
+.ds book-fllab \\$3
+.ev fl
+.evc 0
+.in 0
+.ti 0
+.di book-fl\\n[book-flnext]
+.book-tag push Div
+..
+.\" its caption, numbered; above what it is captioning (nothing set yet)
+.\" or below it
+.de caption
+.br
+.nr book-\\*[book-flk] +1
+.ie \\n[book-chnum] .ds book-flno \\n[book-chapter].\\n[book-\\*[book-flk]]
+.el .ds book-flno \\n[book-\\*[book-flk]]
+.nr book-flabove \\n[.d]=0
+.if !\\n[book-flabove] .sp 0.5v
+.book-tag Caption
+.ps \\n[book-ps]-1
+.vs \\n[book-vs]u-1p
+.ds book-flcap \f[B]\\*[book-flname]\~\\*[book-flno].\fP\~\\$*
+.ds book-flx \X^dest book-fl\\*[book-flk]\\*[book-flno]^
+.if !'\\*[book-fllab]'' .as book-flx \X^dest lab-\\*[book-fllab]^
+.\" a line centred, more filled
+.ie \w'\\*[book-flcap]'<=\\n[.l] \{\
+.	ce 1
+\\*[book-flx]\\*[book-flcap]
+.\}
+.el \\*[book-flx]\\*[book-flcap]
+.br
+.book-tag end
+\\!.book-flmark \\*[book-flk] \\*[book-flno] "\\*[book-fllab]" "\\$*"
+.ps
+.vs
+.if \\n[book-flabove] .sp 0.5v
+..
+.\" a caption gone out: its page, for the lists and its label
+.de book-flmark
+.tm aux:.book-lofent \\$1 "\\$2" "\\$4" \\n% book-fl\\$1\\$2
+.if !'\\$3'' \{\
+.	tm aux:.ds ref-\\$3 \\$2
+.	tm aux:.ds pageref-\\$3 \\n%
+.\}
+..
+.de book-flend
+.br
+.book-tag pop
+.di
+.ev
+.nr book-flh\\n[book-flnext] \\n[dn]
+.nr book-flnext +1
+.\" here: nothing waits, between paragraphs, and room for it and a line
+.if (\\n[book-flfirst]=(\\n[book-flnext]-1))&(\\n[.k]=0)&((\\n[dn]+2v)<\\n[.t]) \{\
+.	book-vstretch 3p
+.	sp 0.75v
+.	book-flout
+.	book-vstretch 3p
+.	sp 0.75v
+.\}
+..
+.\" the first waiting float set here
+.de book-flout
+.nr book-flk \\n[book-flfirst]
+.ev fl
+.nf
+.book-fl\\n[book-flk]
+.ev
+.rm book-fl\\n[book-flk]
+.nr book-flfirst +1
+..
+.\" at a page's top (the head's): those waiting that fit
+.\" (in the head, perhaps sprung in a paragraph: no breaks)
+.de book-flput
+.if \\n[book-ncol]<2 .if \\n[book-flfirst]<\\n[book-flnext] \{\
+.	nr book-flbusy 1
+.	rs
+.	nr book-flroom \\n[.t]*7/10
+.	book-flput1 1
+.	book-vstretch 4p
+'	sp 1v
+.	ns
+.	nr book-flbusy 0
+.\}
+..
+.de book-flput1
+.nr book-flk \\n[book-flfirst]
+.if \\$1+(\\n[book-flh\\n[book-flk]]<=\\n[book-flroom]) \{\
+.	nr book-flroom -\\n[book-flh\\n[book-flk]]+1v
+.	if !\\$1 \{\
+.		book-vstretch 3p
+'		sp 1v
+.	\}
+.	book-flout
+.	if \\n[book-flfirst]<\\n[book-flnext] .book-flput1 0
+.\}
+..
+.\" a chapter's end: those still waiting, each where it fits
+.de book-flflush
+.if \\n[book-flfirst]<\\n[book-flnext] \{\
+.	br
+.	nr book-flbusy 1
+.	nr book-nofill 1
+.	sp 1v
+.	ne \\n[book-flh\\n[book-flfirst]]u
+.	nr book-nofill 1
+.	book-flout
+.	nr book-flbusy 0
+.	book-flflush
+.\}
+..
+.\" the lists of figures and tables
+.de book-lofent
+.nr lof-\\$1-set 1
+.am lof-\\$1-calls book-x
+.book-tocline figure "\\$2" "\\$3" \\$4 \\$5
+.book-x
+..
+.de listoffigures
+.book-lof fig "List of Figures"
+..
+.de listoftables
+.book-lof tab "List of Tables"
+..
+.\" (as the contents, not in them)
+.de book-lof
+.book-begin
+.nr book-notoc 1
+.book-chapterhead 0 "\\$2"
+.nr book-notoc 0
+.if \\n[lof-\\$1-set] \{\
+.	ad l
+.	book-tag push TOC
+.	lof-\\$1-calls
+.	book-tag pop
+.	in 0
+.	ad pb
+.\}
 ..
 .\"
 .\" ---------------------------------------------------------------
@@ -1125,6 +1306,30 @@
 .	ta \\n[book-ll]u-2m \\n[book-ll]uR
 .	ie !'\\$2'' \\*[book-tl \\$5]\\$2.\ \ \\$3\a\t\\$4
 .	el \\*[book-tl \\$5]\\$3\a\t\\$4
+.\}
+.el .ie '\\$1'figure' \{\
+.\"	a figure's or table's: its number before its caption, a long one
+.\"	filled short of the page's column, hung after the number, the
+.\"	leaders from its last line
+.	in 2m
+.	ta \\n[book-ll]u-2m-2m \\n[book-ll]u-2mR
+.	ie \w'\\$2\h'3m-\w'\\$2'u'\\$3'<(\\n[book-ll]-7m) \\*[book-tl \\$5]\\$2\h'3m-\w'\\$2'u'\\$3\a\t\\$4
+.	el \{\
+.		in 5m
+.		ti 2m
+.		ll \\n[book-ll]u-4m
+.		fi
+.		ad l
+\\*[book-tl \\$5]\\$2\h'3m-\w'\\$2'u'\\$3
+.		br
+.		nf
+.		ll \\n[book-ll]u
+.		nr book-tlw \\n[.n]
+.		sp -1v
+.		ta \\n[book-ll]u-5m-2m \\n[book-ll]u-5mR
+\h'\\n[book-tlw]u'\a\t\\$4
+.		ad pb
+.	\}
 .\}
 .el \{\
 .	in 2m

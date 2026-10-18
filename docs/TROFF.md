@@ -61,6 +61,9 @@ LaTeX without being LaTeX.
 | `.EQ` ... `.EN`; `.EQ (1.1)` | `\[...\]`; `equation` with `\tag{1.1}` |
 | `.TS` ... `.TE` | `tabular` (in a `table`) |
 | `.PS` ... `.PE` | `picture` (or TikZ) |
+| `.figure [label]` ... `.caption "Text"` `.endfigure` | `figure` with `\caption` and `\label` |
+| `.table [label]` ... `.caption "Text"` `.endtable` | `table` with `\caption` and `\label` |
+| `.listoffigures`, `.listoftables` | `\listoffigures`, `\listoftables` |
 | `\fI...\fP`, `\fB...\fP` | `\emph{...}`, `\textbf{...}` |
 
 A footnote's mark follows the text before it: end that line with `\c`
@@ -386,6 +389,40 @@ thickness come from the glyph's bounding box: the character's own, or
 the one its `.char` gives it (eqnrc's rules are Libertinus Math's).
 eqn and tbl place the rules by those boxes, so each lands where its
 glyphs would have.
+
+## Figures and tables that float
+
+A picture or table may be put in a figure or a table, with a caption,
+to be set where it fits, as LaTeX's environments are:
+
+    .figure flow                 \" a figure, labelled flow
+    .alt "Three boxes joined by arrows"
+    .PS
+    box "read"; arrow; box "parse"; arrow; box "set"
+    .PE
+    .caption "How a document flows."
+    .endfigure
+
+The caption is numbered in its chapter (Figure 3.2, Table 3.1; in the
+order written), and set below what it follows or above what it
+precedes: a table's usually first. `\*[ref flow]` is its number,
+`\*[pageref flow]` the page it is set on. `.listoffigures` and
+`.listoftables` list them, each entry a link to its caption.
+
+What is between `.figure` and `.endfigure` is set in an environment of
+its own, so a figure written in a paragraph leaves the paragraph whole.
+It is set where it is written if nothing is waiting and it fits there,
+between paragraphs; otherwise it waits for the top of the next page,
+where as many as take seven tenths of the page are set, the first
+whatever its size, in their order. Any still waiting when a chapter
+ends are set before it ends. On a test of four figures and a table,
+LaTeX set each on the same page but one, which troff set a page later.
+
+Tagged, each is a `Div` of its `Caption` and its `Figure` or `Table`.
+`book2tex` writes `figure` and `table` (`[tbp]`, `\centering`) with
+their `\caption` and `\label`.
+`tests/host/floats_test.sh` checks each of these, and the LaTeX set by
+LuaLaTeX where it is installed.
 
 ## Fonts
 

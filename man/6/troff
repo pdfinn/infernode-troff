@@ -60,7 +60,7 @@ Endnotes, set under their chapters' names by
 .BR .notes .
 .TP
 .BR ".label " \fIname\fP,  " \e*[ref " \fIname\fP],  " \e*[pageref " \fIname\fP]
-A cross-reference: the chapter or section, and the page.
+A cross-reference: the chapter, section, figure or table, and the page.
 .TP
 .B ".contents"
 The table of contents.
@@ -80,6 +80,17 @@ The index, its entries makeindex's
 .BR |see{...} ,
 .BR |( ...
 .BR |) ).
+.TP
+.BI ".figure " \fR[\fPlabel\fR]\fP " ... .caption " "text " .endfigure
+.TP
+.BI ".table " \fR[\fPlabel\fR]\fP " ... .caption " "text " .endtable
+A figure or a table, numbered in its chapter (1.2), its caption below
+or above what it captions as it is written; set where it is if
+nothing waits and it fits, between paragraphs, else at the next
+page's top; any waiting when a chapter ends set in it.
+.TP
+.B ".listoffigures  .listoftables"
+Their lists.
 .TP
 .BI ".alt " text
 The next picture's description, for those who cannot see it.
