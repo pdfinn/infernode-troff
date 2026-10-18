@@ -23,7 +23,12 @@ to read in InferNode's document views.
 
 `troff`, `eqn`, `tbl`, `pic`, and `refer` without a style, write what
 the C programs they came from write, byte for byte, but where those
-loop for ever or crash; `tr2pdf -c` and `mkfn -c` do too.
+loop for ever or crash; `tr2pdf -c` and `mkfn -c` do too. Troff's, on
+a device with no `sizescale`: `devutf`'s `sizescale 100` keeps sizes in
+hundredths of a point (groff's scaled points), so its output's sizes are
+`s1100` for 11 points, and a size an expression makes (eqn's spaces) is
+not rounded to a whole point; with only whole sizes, its pages are
+otherwise Neatroff's.
 Without `-c` those two differ where troff and its readers are better
 served (their commits list how).
 
@@ -418,10 +423,14 @@ radicals by the font's gaps, and `root n x` for an indexed one;
 as `\binom` (the font's stack shifts, parentheses of TeX's delim1 and
 delim2); `strut` as `\strut`, so that a continued fraction written with
 one in each numerator is spaced as `\cfrac`'s; delimiters as
-TeX sizes them (`set delimiter_factor 901`). Its scripts are 9 points
-where TeX's are 8.8 (troff's sizes are whole points). 22 of the displays
-take 0.75 seconds, emu's start included; one XeLaTeX pass takes 2.
-`tests/host/maths_test.sh` checks each against TeX's placement.
+TeX sizes them (`set delimiter_factor 901`). Its scripts are TeX's 8.8
+points and scriptscripts 6.6 (`set scaled_sizes 1`: the device's
+`sizescale 100` keeps sizes in hundredths of a point, as groff's scaled
+points). The 23 displays take 0.6 seconds, eqn, troff and tr2pdf, emu's
+start included; one XeLaTeX pass over 22 of them, its font cache warm,
+takes 0.8 (cold, 2).
+`tests/host/maths_test.sh` checks each against TeX's placement;
+`tests/host/sizescale_test.sh` checks troff's scaled sizes.
 
 Glyphs' heights and depths come from the fonts' descriptions: `mkfn`
 reads each glyph's bounding box from its outline, CFF's (Libertinus's)

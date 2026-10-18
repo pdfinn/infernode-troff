@@ -45,7 +45,9 @@ setsize(s: int)
 {
 	if(s < 0)
 		return;
-	if(s <= 99)
+	if(dev_szscale > 1)	# (scaled points)
+		dir_append(sys->sprint("%ss[%dz]", ecs(), s));
+	else if(s <= 99)
 		dir_append(sys->sprint("%ss(%.2d", ecs(), s));
 	else
 		dir_append(sys->sprint("%ss[%d]", ecs(), s));

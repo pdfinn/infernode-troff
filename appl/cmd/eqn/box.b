@@ -66,7 +66,7 @@ box_strut(box: ref Box)
 {
 	ht := nregmk();
 	dp := nregmk();
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	printf(".nr " + nregname(ht) + " \\n(.v*7/10\n");
 	printf(".nr " + nregname(dp) + " \\n(.v*3/10\n");
 	box_strutput(box, ht, dp);
@@ -105,18 +105,25 @@ box_size(box: ref Box, val: string): int
 		box.szreg = nregmk();
 	}
 	if(val[0] == '-' || val[0] == '+')
-		printf(".nr " + nregname(box.szreg) + " " + nreg(szreg) + val + "\n");
-	else
-		printf(".nr " + nregname(box.szreg) + " " + val + "\n");
+		printf(".nr " + nregname(box.szreg) + " " + nreg(szreg) + val[0:1] + ptsz(val[1:]) + "\n");
+	else{
+		# (gsize's +n after the size around)
+		for(i := len val - 1; i > 0 && val[i] != ']'; i--)
+			if(val[i] == '+' || val[i] == '-'){
+				val = val[0:i + 1] + ptsz(val[i + 1:]);
+				break;
+			}
+		printf(".nr " + nregname(box.szreg) + " " + ptsz(val) + "\n");
+	}
 	return box.szreg;
 }
 
 box_move(box: ref Box, dy, dx: int)
 {
 	if(dy)
-		box_putf(box, "\\v'" + string dy + "u*" + nreg(box.szreg) + "p/100u'");
+		box_putf(box, "\\v'" + string dy + "u*" + nreg(box.szreg) + SZP() + "/100u'");
 	if(dx)
-		box_putf(box, "\\h'" + string dx + "u*" + nreg(box.szreg) + "p/100u'");
+		box_putf(box, "\\h'" + string dx + "u*" + nreg(box.szreg) + SZP() + "/100u'");
 }
 
 # T_ORD, T_BIGOP, T_BINOP, T_RELOP, T_LEFT, T_RIGHT, T_PUNC, T_INNER
@@ -177,10 +184,10 @@ box_beforeput(box: ref Box, typ, breakable: int)
 		if(autogaps && typ != T_GAP && box.tcur != T_GAP){
 			box_italiccorrection(box);
 			if(breakable)	# a space as wide as the gap
-				box_putf(box, "\\s[\\En(.s*" + string autogaps + "u*" + nreg(box.szreg) +
-					"p/100u/\\w' 'u]\\j'" + string def_brcost(T_ATOM(box.tcur)) + "' \\s0");
+				box_putf(box, "\\s[" + ECURSZ() + "*" + string autogaps + "u*" + nreg(box.szreg) + SZP() +
+					"/100u/\\w' 'u]\\j'" + string def_brcost(T_ATOM(box.tcur)) + "' \\s0");
 			else
-				box_putf(box, "\\h'" + string autogaps + "u*" + nreg(box.szreg) + "p/100u'");
+				box_putf(box, "\\h'" + string autogaps + "u*" + nreg(box.szreg) + SZP() + "/100u'");
 		}
 	}
 	if(box.tomark != nil){
@@ -322,7 +329,7 @@ box_sub(box, sub, sup: ref Box)
 	if(sub != nil)
 		tok_dim(box_toreg(box), box_wdnoic, 0, 0);
 	box_italiccorrection(box);
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	tok_dim(box_toreg(box), box_wd, box_ht, box_dp);
 	if(e_scriptkern)
 		box_putf(box, "\\h'" + string e_scriptkern + "m/100u'");
@@ -435,7 +442,7 @@ box_from(box, lim, llim, ulim: ref Box)
 	box_italiccorrection(lim);
 	box_beforeput(box, T_BIGOP, 0);
 	tok_dim(box_toreg(lim), lim_wd, lim_ht, lim_dp);
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	if(ulim != nil)
 		tok_dim(box_toreg(ulim), ulim_wd, 0, ulim_dp);
 	if(llim != nil)
@@ -541,7 +548,7 @@ box_over(box, num, den: ref Box)
 	tok_dim(box_toreg(den), den_wd, den_ht, 0);
 	box_strutdim(den, den_ht, 0);
 	roff_max(all_wd, num_wd, den_wd);
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	tok_len("\\(ru", bar_wd, 0, bar_ht, bar_dp);
 	# 15b
 	n1 := e_num2;
@@ -567,9 +574,9 @@ box_over(box, num, den: ref Box)
 	# a longer bar
 	printf(".nr " + nregname(all_wd) + " +2*(" + string e_overhang + "m/100u)\n");
 	# the null delimiter's space
-	box_putf(box, "\\h'" + nreg(box.szreg) + "p*" + string e_nulldelim + "u/100u'");
+	box_putf(box, "\\h'" + nreg(box.szreg) + SZP() + "*" + string e_nulldelim + "u/100u'");
 	# the bar
-	box_putf(box, "\\v'" + nreg(bar_fall) + "u'\\f[\\n(.f]\\s[" + nreg(box.szreg) + "]\\l'" + nreg(all_wd) +
+	box_putf(box, "\\v'" + nreg(bar_fall) + "u'\\f[\\n(.f]\\s[" + nreg(box.szreg) + SZU() + "]\\l'" + nreg(all_wd) +
 		"u'\\v'-" + nreg(bar_fall) + "u'\\h'-" + nreg(all_wd) + "u/2u'");
 	# the numerator
 	box_putf(box, "\\h'-" + nreg(num_wd) + "u/2u'");
@@ -579,7 +586,7 @@ box_over(box, num, den: ref Box)
 	box_putf(box, "\\h'-" + nreg(den_wd) + "u/2u'");
 	box_putf(box, "\\v'" + nreg(den_fall) + "u'" + box_toreg(den) + "\\v'-" + nreg(den_fall) + "u'");
 	box_putf(box, "\\h'(-" + nreg(den_wd) + "u+" + nreg(all_wd) + "u)/2u'");
-	box_putf(box, "\\h'" + nreg(box.szreg) + "p*" + string e_nulldelim + "u/100u'");
+	box_putf(box, "\\h'" + nreg(box.szreg) + SZP() + "*" + string e_nulldelim + "u/100u'");
 	box_afterput(box, ftyp);
 	box_toreg(box);
 	# the struts in its parts, where they are now
@@ -757,9 +764,9 @@ box_bracket(box: ref Box, brac: string, ht, dp: int)
 	# its length
 	parlen := blen_mk(sreg(dst));
 	# how far down it goes
-	printf(".nr " + nregname(fall) + " 0-" + nreg(parlen[3]) + "+" + nreg(parlen[2]) + "/2-(" + nreg(box.szreg) +
-		"p*" + string e_axisheight + "u/100u)\n");
-	box_putf(box, "\\f[\\n(.f]\\s[\\n(.s]\\v'" + nreg(fall) + "u'" + sreg(dst) + "\\v'-" + nreg(fall) + "u'");
+	printf(".nr " + nregname(fall) + " 0-" + nreg(parlen[3]) + "+" + nreg(parlen[2]) + "/2-(" + nreg(box.szreg) + SZP() +
+		"*" + string e_axisheight + "u/100u)\n");
+	box_putf(box, "\\f[\\n(.f]\\s[" + CURSZ() + SZU() + "]\\v'" + nreg(fall) + "u'" + sreg(dst) + "\\v'-" + nreg(fall) + "u'");
 	box_toreg(box);
 	blen_rm(parlen);
 	sregrm(dst);
@@ -808,7 +815,7 @@ box_wrap(box, sub: ref Box, left, right: string)
 box_wrap1(box, sub: ref Box, left, right: string)
 {
 	sublen := blen_mk(box_toreg(sub));
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	if(left != nil){
 		box_beforeput(box, T_LEFT, 0);
 		box_bracket(box, bracsign(left, 1), sublen[2], sublen[3]);
@@ -851,10 +858,10 @@ sqrt_rad(dst, ln, wd: int)
 	# \(sr enlarged if none was found
 	printf(".if '" + sreg(rad) + "'' \\{\\\n");
 	srlen := blen_mk("\\(sr");
-	printf(".ie " + nreg(ln) + "<(" + nreg(srlen[2]) + "+" + nreg(srlen[3]) + ") .nr " + nregname(sr_sz) + " 0\\n(.s\n");
-	printf(".el .nr " + nregname(sr_sz) + " 0" + nreg(ln) + "*\\n(.s/(" + nreg(srlen[2]) + "+" + nreg(srlen[3]) +
+	printf(".ie " + nreg(ln) + "<(" + nreg(srlen[2]) + "+" + nreg(srlen[3]) + ") .nr " + nregname(sr_sz) + " 0" + CURSZ() + "\n");
+	printf(".el .nr " + nregname(sr_sz) + " 0" + nreg(ln) + "*" + CURSZ() + "/(" + nreg(srlen[2]) + "+" + nreg(srlen[3]) +
 		"-(" + string e_rulethickness + "m/100u))+1\n");
-	printf(".ps " + nreg(sr_sz) + "\n");
+	printf(".ps " + nreg(sr_sz) + SZU() + "\n");
 	printf(".ds " + sregname(rad) + " \"\\(sr\n");
 	blen_rm(srlen);
 	printf(".  \\}\n");
@@ -866,7 +873,7 @@ sqrt_rad(dst, ln, wd: int)
 	printf(".nr " + nregname(wd_diff) + " 0\n");
 	printf(".if " + nreg(wd) + "<" + nreg(rnlen[0]) + " .nr " + nregname(wd_diff) + " 0" + nreg(rnlen[0]) + "-" + nreg(wd) + "\n");
 	# the radical; its top at the baseline
-	printf(".ds " + nregname(dst) + " \"\\s[\\n(.s]\\f[\\n(.f]" +
+	printf(".ds " + nregname(dst) + " \"\\s[" + CURSZ() + SZU() + "]\\f[\\n(.f]" +
 		"\\v'" + nreg(rnlen[2]) + "u'\\h'" + nreg(rn_dx) + "u'\\l'" + nreg(wd) + "u+" + nreg(wd_diff) + "u\\(rn'\\h'-" +
 		nreg(rn_dx) + "u'\\v'-" + nreg(rnlen[2]) + "u'" +
 		"\\h'-" + nreg(wd) + "u-" + nreg(wd_diff) + "u'\\v'" + nreg(srlen[2]) + "u'" + sreg(rad) + "\\v'-" +
@@ -895,7 +902,7 @@ box_root(box, deg, sub: ref Box)
 	box_italiccorrection(sub);
 	box_beforeput(box, T_ORD, 0);
 	sublen := blen_mk(box_toreg(sub));
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	xh := e_rulethickness;
 	if(TS_DX(box.style))
 		xh = e_xheight;
@@ -968,14 +975,14 @@ box_bar(box: ref Box)
 	bar_dp := nregmk();
 	bar_rise := nregmk();
 	box_italiccorrection(box);
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	tok_len("\\(ru", bar_wd, 0, 0, bar_dp);
 	tok_dim(box_toreg(box), box_wd, box_ht, 0);
 	printf(".if " + nreg(box_ht) + "u<(" + string e_xheight + "m/100u) .nr " + nregname(box_ht) + " 0" +
 		string e_xheight + "m/100u\n");
 	printf(".nr " + nregname(bar_rise) + " 0" + nreg(box_ht) + "u+" + nreg(bar_dp) + "u+(3*" +
 		string e_rulethickness + "m/100u)\n");
-	box_putf(box, "\\v'-" + nreg(bar_rise) + "u'\\s" + escarg(nreg(box.szreg)) + "\\f[\\n(.f]\\l'-" +
+	box_putf(box, "\\v'-" + nreg(bar_rise) + "u'\\s" + escarg(nreg(box.szreg) + SZU()) + "\\f[\\n(.f]\\l'-" +
 		nreg(box_wd) + "u\\(ru'\\v'" + nreg(bar_rise) + "u'");
 	nregrm(box_wd);
 	nregrm(box_ht);
@@ -992,13 +999,13 @@ box_accent(box: ref Box, c: string)
 	ac_wd := nregmk();
 	ac_dp := nregmk();
 	box_italiccorrection(box);
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	tok_len(c, ac_wd, 0, 0, ac_dp);
 	tok_dim(box_toreg(box), box_wd, box_ht, 0);
 	printf(".if " + nreg(box_ht) + "u<(" + string e_xheight + "m/100u) .nr " + nregname(box_ht) + " 0" +
 		string e_xheight + "m/100u\n");
-	printf(".nr " + nregname(ac_rise) + " 0" + nreg(box_ht) + "u+" + nreg(ac_dp) + "u+(" + nreg(box.szreg) +
-		"p*10u/100u)\n");
+	printf(".nr " + nregname(ac_rise) + " 0" + nreg(box_ht) + "u+" + nreg(ac_dp) + "u+(" + nreg(box.szreg) + SZP() +
+		"*10u/100u)\n");
 	box_putf(box, "\\v'-" + nreg(ac_rise) + "u'\\h'-" + nreg(box_wd) + "u-" + nreg(ac_wd) + "u/2u'\\s" +
 		escarg(nreg(box.szreg)) + "\\f[\\n(.f]" + c + "\\h'" + nreg(box_wd) + "u-" + nreg(ac_wd) + "u/2u'\\v'" +
 		nreg(ac_rise) + "u'");
@@ -1017,13 +1024,13 @@ box_under(box: ref Box)
 	bar_ht := nregmk();
 	bar_fall := nregmk();
 	box_italiccorrection(box);
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	tok_len("\\(ul", bar_wd, 0, bar_ht, 0);
 	tok_dim(box_toreg(box), box_wd, 0, box_dp);
 	printf(".if " + nreg(box_dp) + "<0 .nr " + nregname(box_dp) + " 0\n");
 	printf(".nr " + nregname(bar_fall) + " 0" + nreg(box_dp) + "u+" + nreg(bar_ht) + "u+(3*" +
 		string e_rulethickness + "m/100u)\n");
-	box_putf(box, "\\v'" + nreg(bar_fall) + "u'\\s" + escarg(nreg(box.szreg)) + "\\f[\\n(.f]\\l'-" +
+	box_putf(box, "\\v'" + nreg(bar_fall) + "u'\\s" + escarg(nreg(box.szreg) + SZU()) + "\\f[\\n(.f]\\l'-" +
 		nreg(box_wd) + "u\\(ul'\\v'-" + nreg(bar_fall) + "u'");
 	nregrm(box_wd);
 	nregrm(box_dp);
@@ -1054,7 +1061,7 @@ box_vcenter(box, sub: ref Box)
 	fall := nregmk();
 	box_beforeput(box, sub.tbeg, 0);
 	tok_dim(box_toreg(sub), wd, ht, dp);
-	printf(".nr " + nregname(fall) + " 0-" + nreg(dp) + "+" + nreg(ht) + "/2-(" + nreg(box.szreg) + "p*" +
+	printf(".nr " + nregname(fall) + " 0-" + nreg(dp) + "+" + nreg(ht) + "/2-(" + nreg(box.szreg) + SZP() + "*" +
 		string e_axisheight + "u/100u)\n");
 	box_putf(box, "\\v'" + nreg(fall) + "u'" + box_toreg(sub) + "\\v'-" + nreg(fall) + "u'");
 	box_toreg(box);
@@ -1073,9 +1080,9 @@ box_vertspace(box: ref Box)
 	dproom := nregmk();
 	box_italiccorrection(box);
 	# the room before and after the line
-	printf(".nr " + nregname(htroom) + " 0+\\n(.vu-" + nreg(box.szreg) + "p+(" + nreg(box.szreg) + "p*" +
+	printf(".nr " + nregname(htroom) + " 0+\\n(.vu-" + nreg(box.szreg) + SZP() + "+(" + nreg(box.szreg) + SZP() + "*" +
 		string e_bodyheight + "u/100u)\n");
-	printf(".nr " + nregname(dproom) + " 0+\\n(.vu-" + nreg(box.szreg) + "p+(" + nreg(box.szreg) + "p*" +
+	printf(".nr " + nregname(dproom) + " 0+\\n(.vu-" + nreg(box.szreg) + SZP() + "+(" + nreg(box.szreg) + SZP() + "*" +
 		string e_bodydepth + "u/100u)\n");
 	# \x requests
 	tok_dim(box_toreg(box), box_wd, 0, 0);
@@ -1164,10 +1171,10 @@ box_pile(box: ref Box, pile: array of ref Box, adj, rowspace: int)
 	box_beforeput(box, T_INNER, 0);
 	box_colinit(pile, n, plen, max_wd, max_ht);
 	# space between rows
-	printf(".if " + nreg(max_ht) + "<(" + nreg(box.szreg) + "p*" + string e_baselinesep + "u/100u) .nr " +
-		nregname(max_ht) + " (" + nreg(box.szreg) + "p*" + string e_baselinesep + "u/100u)\n");
+	printf(".if " + nreg(max_ht) + "<(" + nreg(box.szreg) + SZP() + "*" + string e_baselinesep + "u/100u) .nr " +
+		nregname(max_ht) + " (" + nreg(box.szreg) + SZP() + "*" + string e_baselinesep + "u/100u)\n");
 	if(rowspace)
-		printf(".nr " + nregname(max_ht) + " +(" + nreg(box.szreg) + "p*" + string rowspace + "u/100u)\n");
+		printf(".nr " + nregname(max_ht) + " +(" + nreg(box.szreg) + SZP() + "*" + string rowspace + "u/100u)\n");
 	box_colput(pile, n, box, adj, plen, max_wd, max_ht);
 	box_coldone(n, plen);
 	box_afterput(box, T_INNER);
@@ -1209,14 +1216,14 @@ box_matrix(box: ref Box, ncols: int, cols: array of array of ref Box, adj: array
 	for(i = 1; i < ncols; i++)
 		printf(".if " + nreg(ht[i]) + ">" + nreg(max_ht) + " .nr " + nregname(max_ht) + " 0+" + nreg(ht[i]) + "\n");
 	# space between rows
-	printf(".if " + nreg(max_ht) + "<(" + nreg(box.szreg) + "p*" + string e_baselinesep + "u/100u) .nr " +
-		nregname(max_ht) + " (" + nreg(box.szreg) + "p*" + string e_baselinesep + "u/100u)\n");
+	printf(".if " + nreg(max_ht) + "<(" + nreg(box.szreg) + SZP() + "*" + string e_baselinesep + "u/100u) .nr " +
+		nregname(max_ht) + " (" + nreg(box.szreg) + SZP() + "*" + string e_baselinesep + "u/100u)\n");
 	if(rowspace)
-		printf(".nr " + nregname(max_ht) + " +(" + nreg(box.szreg) + "p*" + string rowspace + "u/100u)\n");
+		printf(".nr " + nregname(max_ht) + " +(" + nreg(box.szreg) + SZP() + "*" + string rowspace + "u/100u)\n");
 	# the columns, put
 	for(i = 0; i < ncols; i++){
 		if(i)	# space between them
-			box_putf(box, "\\h'" + nreg(box.szreg) + "p*" + string (e_columnsep + colspace) + "u/100u'");
+			box_putf(box, "\\h'" + nreg(box.szreg) + SZP() + "*" + string (e_columnsep + colspace) + "u/100u'");
 		box_colput(cols[i], nrows, box, adj[i], plen[i], max_wd, max_ht);
 	}
 	box_afterput(box, T_INNER);
@@ -1268,7 +1275,7 @@ box_array(box: ref Box, ncols: int, cols: array of array of ref Box, adj: array 
 	bs := nregmk();
 	sh := nregmk();
 	sd := nregmk();
-	printf(".nr " + nregname(bs) + " " + nreg(box.szreg) + "p*12u/10u\n");
+	printf(".nr " + nregname(bs) + " " + nreg(box.szreg) + SZP() + "*12u/10u\n");
 	printf(".if \\n[.eqnbs] .nr " + nregname(bs) + " " + nreg(bs) + "*\\n[.eqnbs]/1000\n");
 	printf(".nr " + nregname(sh) + " " + nreg(bs) + "*7/10\n");
 	printf(".nr " + nregname(sd) + " " + nreg(bs) + "*3/10\n");
@@ -1290,15 +1297,15 @@ box_array(box: ref Box, ncols: int, cols: array of array of ref Box, adj: array 
 			printf(".nr " + nregname(y[j]) + " 0\n");
 		else
 			printf(".nr " + nregname(y[j]) + " 0+" + nreg(y[j - 1]) + "+" + nreg(dp[j - 1]) + "+" + nreg(ht[j]) +
-				"+(" + nreg(box.szreg) + "p*" + string rowspace + "u/100u)\n");
+				"+(" + nreg(box.szreg) + SZP() + "*" + string rowspace + "u/100u)\n");
 	}
 	# centred on the axis: the shift from the first row's baseline
 	sft := nregmk();
-	printf(".nr " + nregname(sft) + " 0-(" + nreg(box.szreg) + "p*" + string e_axisheight + "u/100u)-((" +
+	printf(".nr " + nregname(sft) + " 0-(" + nreg(box.szreg) + SZP() + "*" + string e_axisheight + "u/100u)-((" +
 		nreg(y[nrows - 1]) + "+" + nreg(dp[nrows - 1]) + "-" + nreg(ht[0]) + ")/2)\n");
 	for(i = 0; i < ncols; i++){
 		if(i)	# space between them
-			box_putf(box, "\\h'" + nreg(box.szreg) + "p*" + string (e_columnsep + colspace) + "u/100u'");
+			box_putf(box, "\\h'" + nreg(box.szreg) + SZP() + "*" + string (e_columnsep + colspace) + "u/100u'");
 		for(j = 0; j < nrows; j++){
 			if(cols[i][j] == nil)
 				continue;
@@ -1356,7 +1363,7 @@ box_brace(box, sub: ref Box, over: int)
 	box_italiccorrection(sub);
 	box_beforeput(box, T_BIGOP, 0);
 	sublen := blen_mk(box_toreg(sub));
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	# the smallest wide enough, by a flag (a string holding \\N'...'
 	# cannot be compared with .if '...'')
 	fnd := nregmk();
@@ -1477,7 +1484,7 @@ box_texaccent(box: ref Box, vars: array of Accvar, one: int, gl: string)
 	ac_pos := nregmk();
 	ac_gl := sregmk();
 	box_italiccorrection(box);
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	tok_dim(box_toreg(box), box_wd, box_ht, 0);
 	(ok, pos) := def_accentpos(gl);
 	if(one && ok)
@@ -1498,7 +1505,7 @@ box_texaccent(box: ref Box, vars: array of Accvar, one: int, gl: string)
 		fnt = grfont;
 	# (\Z's argument does not nest its delimiter)
 	box_putf(box, "\\Z|\\v'-" + nreg(ac_rise) + "u'\\h'" + nreg(ac_x) + "u-" + nreg(box_wd) + "u-" +
-		nreg(ac_pos) + "u'\\s" + escarg(nreg(box.szreg)) + "\\f" + escarg(fnt) + sreg(ac_gl) + "|");
+		nreg(ac_pos) + "u'\\s" + escarg(nreg(box.szreg) + SZU()) + "\\f" + escarg(fnt) + sreg(ac_gl) + "|");
 	nregrm(box_wd);
 	nregrm(box_ht);
 	nregrm(ac_rise);
@@ -1527,7 +1534,7 @@ box_choose(box, num, den: ref Box)
 	tok_dim(box_toreg(num), num_wd, 0, num_dp);
 	tok_dim(box_toreg(den), den_wd, den_ht, 0);
 	roff_max(all_wd, num_wd, den_wd);
-	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".ps " + nreg(box.szreg) + SZU() + "\n");
 	# 15b: the shifts; 15c: the least gap
 	up := e_stacktop;
 	down := e_stackbot;

@@ -3,8 +3,18 @@
 #
 
 T_SOFTSEP: con "^~{}(),\"\n\t =:|.+-*/\\,()[]<>!";
-ESAVE: con "\\E*[.eqnbeg]\\R'" + EQNFN + "0 \\En(.f'\\R'" + EQNSZ + "0 \\En(.s'";
-ELOAD: con "\\f[\\En[" + EQNFN + "0]]\\s[\\En[" + EQNSZ + "0]]\\E*[.eqnend]";
+ESAVE(): string
+{
+	sz := "\\En(.s";
+	if(e_scaledsz)
+		sz = "\\En[.ps]";
+	return "\\E*[.eqnbeg]\\R'" + EQNFN + "0 \\En(.f'\\R'" + EQNSZ + "0 " + sz + "'";
+}
+
+ELOAD(): string
+{
+	return "\\f[\\En[" + EQNFN + "0]]\\s[\\En[" + EQNSZ + "0]" + SZU() + "]\\E*[.eqnend]";
+}
 
 kwds := array[] of {
 	"fwd", "down", "back", "up",
@@ -312,22 +322,22 @@ tok_eqnout(s: string)
 {
 	if(!tagging){
 		if(!tok_part){
-			printf(".ds " + EQNS + " \"" + ESAVE + s + ELOAD + "\n");
+			printf(".ds " + EQNS + " \"" + ESAVE() + s + ELOAD() + "\n");
 			printf(".lf " + string (src_lineget() - 1) + "\n");
 			printf("\\&\\*" + escarg(EQNS) + "\n");
 		}else
-			printf(".as " + EQNS + " \"" + ESAVE + s + ELOAD + "\n");
+			printf(".as " + EQNS + " \"" + ESAVE() + s + ELOAD() + "\n");
 		return;
 	}
 	desc := tagalt(src_cap);
 	if(!tok_part){
-		printf(".ds " + EQNS + " \"" + ESAVE + s + ELOAD + "\n");
+		printf(".ds " + EQNS + " \"" + ESAVE() + s + ELOAD() + "\n");
 		printf(".lf " + string (src_lineget() - 1) + "\n");
 		printf("\\&" + tagx("tag end") + tagx("tag push Formula") + tagx("tag alt " + desc) +
 			"\\*" + escarg(EQNS) + tagx("tag pop") + "\n");
 	}else
 		printf(".as " + EQNS + " \"" + tagx("tag push Formula") + tagx("tag alt " + desc) +
-			ESAVE + s + ELOAD + tagx("tag pop") + "\n");
+			ESAVE() + s + ELOAD() + tagx("tag pop") + "\n");
 }
 
 # s as troff's device control, \\X, its delimiter one s has not

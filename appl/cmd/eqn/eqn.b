@@ -55,6 +55,46 @@ NSIZES: con 16;
 
 # registers neateqn uses
 EQNSZ: con ".eqnsz";	# the point size around
+
+# sizes in points or (set scaled_sizes 1) in the device's scaled points
+# (its sizescale to a point, troff's z): a size's unit in \\s and .ps,
+# the unit of a size in an expression, the size around, as copied and as
+# read when output
+SZU(): string
+{
+	if(e_scaledsz)
+		return "z";
+	return "";
+}
+
+SZP(): string
+{
+	if(e_scaledsz)
+		return "z";
+	return "p";
+}
+
+CURSZ(): string
+{
+	if(e_scaledsz)
+		return "\\n[.ps]";
+	return "\\n(.s";
+}
+
+ECURSZ(): string
+{
+	if(e_scaledsz)
+		return "\\En[.ps]z";
+	return "\\En(.s";
+}
+
+# a size in points (a number) as a size register holds it
+ptsz(n: string): string
+{
+	if(e_scaledsz && n != nil && n[0] >= '0' && n[0] <= '9')
+		return "(" + n + "p/1z)";
+	return n;
+}
 EQNFN: con ".eqnfn";	# the font around
 EQNS: con "10";		# the line an inline equation is collected in
 EQNMK: con ".eqnmk";	# the horizontal mark
@@ -169,7 +209,7 @@ init(nil: ref Draw->Context, args: list of string)
 			eqn_mk = 0;
 			src_capreset();
 			tok_pop();
-			printf(".nr " + EQNSZ + " \\n(.s\n");
+			printf(".nr " + EQNSZ + " " + CURSZ() + "\n");
 			printf(".nr " + EQNFN + " \\n(.f\n");
 			eqn_lineupreg = nregmk();
 			style := TS_D;
@@ -179,7 +219,7 @@ init(nil: ref Draw->Context, args: list of string)
 			printf(".nr MK " + string eqn_mk + "\n");
 			if(!box_empty(box)){
 				tok_eqnout(eqn_lineup + box_toreg(box));
-				printf(".ps \\n" + escarg(EQNSZ) + "\n");
+				printf(".ps \\n" + escarg(EQNSZ) + SZU() + "\n");
 				printf(".ft \\n" + escarg(EQNFN) + "\n");
 			}
 			printf(".lf " + string src_lineget() + "\n");
@@ -317,12 +357,12 @@ sizesub(dst, src, style, src_style: int)
 		d := scriptpct(TS_SZ(style));
 		s := scriptpct(TS_SZ(src_style));
 		printf(".nr " + nregname(dst) + " (" + nreg(src) + "*" + string d + "+" + string (s / 2) + ")/" + string s + "\n");
-		printf(".if " + nreg(dst) + "<" + string e_minimumsize + " .nr " +
-			nregname(dst) + " " + string e_minimumsize + "\n");
+		printf(".if " + nreg(dst) + "<" + ptsz(string e_minimumsize) + " .nr " +
+			nregname(dst) + " " + ptsz(string e_minimumsize) + "\n");
 	}else if(TS_SZ(style) > TS_SZ(src_style)){
 		printf(".nr " + nregname(dst) + " " + nreg(src) + "*7/10\n");
-		printf(".if " + nreg(dst) + "<" + string e_minimumsize + " .nr " +
-			nregname(dst) + " " + string e_minimumsize + "\n");
+		printf(".if " + nreg(dst) + "<" + ptsz(string e_minimumsize) + " .nr " +
+			nregname(dst) + " " + ptsz(string e_minimumsize) + "\n");
 	}else
 		printf(".nr " + nregname(dst) + " " + nreg(src) + "\n");
 }
@@ -513,11 +553,11 @@ eqn_commands(): int
 eqn_gaps(box: ref Box, szreg: int): int
 {
 	if(!tok_jmp("~")){
-		box_puttext(box, T_GAP, "\\h'" + string S_S3() + "u*" + nreg(szreg) + "p/100u'");
+		box_puttext(box, T_GAP, "\\h'" + string S_S3() + "u*" + nreg(szreg) + SZP() + "/100u'");
 		return 0;
 	}
 	if(!tok_jmp("^")){
-		box_puttext(box, T_GAP, "\\h'" + string S_S1() + "u*" + nreg(szreg) + "p/100u'");
+		box_puttext(box, T_GAP, "\\h'" + string S_S1() + "u*" + nreg(szreg) + SZP() + "/100u'");
 		return 0;
 	}
 	if(!tok_jmp("\t")){
@@ -877,7 +917,7 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 	}else if(tok_get() != nil && tok_type() != T_KEYWORD){
 		if(dx || dy)
 			box_move(box, dy, dx);
-		box_putf(box, "\\s" + escarg(nreg(sz)));
+		box_putf(box, "\\s" + escarg(nreg(sz) + SZU()));
 		do{
 			cfn := tok_font(tok_type(), fnt);
 			if(e_texgreek && fnt == nil && ucgreek(tok_get()))

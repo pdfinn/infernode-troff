@@ -566,12 +566,13 @@ tr_pn(args: array of string)
 ren_ps(s: string)
 {
 	ps: int;
+	# (sizes in scaled points, the device's sizescale to a point)
 	if(s == nil || s == "0")
-		ps = nr(R_s0) * SC_PT();
+		ps = nr(R_s0) * SC_PT() / dev_szscale;
 	else
-		ps = eval_re(s, nr(R_s) * SC_PT(), 'p');
+		ps = eval_re(s, nr(R_s) * SC_PT() / dev_szscale, 'p');
 	nrset(R_s0, nr(R_s));
-	nrset(R_s, max(1, (ps + SC_PT() / 2) / SC_PT()));
+	nrset(R_s, max(1, int ((big ps * big dev_szscale + big (SC_PT() / 2)) / big SC_PT())));
 }
 
 tr_ps(args: array of string)

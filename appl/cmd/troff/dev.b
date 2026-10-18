@@ -6,6 +6,7 @@ dev_dir: string;	# device directory
 dev_dev: string;	# output device name
 dev_res := 0;		# device resolution
 dev_uwid := 0;		# device unitwidth
+dev_szscale := 1;	# sizes in 1/sizescale points (groff's scaled points)
 dev_hor := 0;		# minimum horizontal movement
 dev_vert := 0;		# minimum vertical movement
 
@@ -166,6 +167,11 @@ dev_open(dir, dev: string): int
 			continue;
 		"unitwidth" =>
 			(dev_uwid, nil) = desc.num();
+			continue;
+		"sizescale" =>
+			(dev_szscale, nil) = desc.num();
+			if(dev_szscale < 1)
+				dev_szscale = 1;
 			continue;
 		"hor" =>
 			(dev_hor, nil) = desc.num();

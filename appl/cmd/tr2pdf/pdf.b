@@ -754,9 +754,26 @@ pdfpos(uh, uv: int): string
 }
 
 # a troff length in thousandths of a unit of text space
+# a size in points, from the device's scaled points (8.8)
+pdfsize(sz: int): string
+{
+	if(dev_szscale == 1)
+		return string sz;
+	s := string (sz / dev_szscale);
+	f := sz % dev_szscale;
+	if(f == 0)
+		return s;
+	d := "";
+	for(m := dev_szscale; m > 1 && f; m /= 10){
+		d[len d] = '0' + f * 10 / dev_szscale;
+		f = f * 10 % dev_szscale;
+	}
+	return s + "." + d;
+}
+
 pdfunit(uh, sz: int): string
 {
-	h := int (big uh * big 1000 * big 72 / big sz / big devres());
+	h := int (big uh * big 1000 * big 72 * big dev_szscale / big sz / big devres());
 	return string h;
 }
 
@@ -837,9 +854,9 @@ out_fontup()
 		ps := pfonts[o_i];
 		o_flush();
 		if(ps.cid)
-			pg += "/" + ps.name + " " + string o_s + " Tf\n";
+			pg += "/" + ps.name + " " + pdfsize(o_s) + " Tf\n";
 		else
-			pg += "/" + ps.name + "." + string ps.sub + " " + string o_s + " Tf\n";
+			pg += "/" + ps.name + "." + string ps.sub + " " + pdfsize(o_s) + " Tf\n";
 		p_i = o_i;
 		p_s = o_s;
 	}
@@ -1150,7 +1167,7 @@ drawend(close, fill: int)
 		fill = 2;
 	if(l_page != page_n || l_size != o_s || l_wid != pdf_linewid ||
 			l_cap != pdf_linecap || l_join != pdf_linejoin){
-		lwid := pdf_linewid * o_s;
+		lwid := pdf_linewid * o_s / dev_szscale;
 		pg += sys->sprint("%d.%03d w\n", lwid / 1000, lwid % 1000);
 		pg += sys->sprint("%d J %d j\n", pdf_linecap, pdf_linejoin);
 		l_page = page_n;

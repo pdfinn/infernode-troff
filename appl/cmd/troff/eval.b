@@ -2,7 +2,7 @@
 # eval.c: integer expressions
 #
 
-SCHAR:	con "icpPvmnu";	# scale indicators
+SCHAR:	con "icpPvmnuz";	# scale indicators (z: groff's scaled points)
 
 defunit := 0;		# default scale indicator
 abspos := 0;		# absolute position like |1i
@@ -23,9 +23,11 @@ readunit(c: int, n: big): big
 	'v' =>
 		return n * big nr(R_v);
 	'm' =>
-		return n * big nr(R_s) * big SC_IN() / big 72;
+		return n * big nr(R_s) * big SC_IN() / big (72 * dev_szscale);
 	'n' =>
-		return n * big nr(R_s) * big SC_IN() / big 144;
+		return n * big nr(R_s) * big SC_IN() / big (144 * dev_szscale);
+	'z' =>
+		return n * big SC_IN() / big (72 * dev_szscale);
 	'u' =>
 		return n;
 	}

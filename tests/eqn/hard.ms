@@ -84,7 +84,7 @@ rho left ( {partial bold u} over {partial t} + ( bold u cdot nabla ) bold u righ
 .bp
 .\" 15. Binomial theorem
 .EQ
-( x + y ) sup n = sum from {k = 0} to n left ( pile {n above k} right ) x sup {n - k} y sup k
+( x + y ) sup n = sum from {k = 0} to n {n choose k} x sup {n - k} y sup k
 .EN
 .bp
 .\" 16. Gaussian (nested scripts)

@@ -93,7 +93,7 @@ vj_glyph()
 	vj_row(o_v);
 	if(tag_rigid())
 		return;
-	if(vj_ln > 0 && o_v < vj_lv[vj_ln - 1] + o_s * devres() / 72 / 2)
+	if(vj_ln > 0 && o_v < vj_lv[vj_ln - 1] + o_s * devres() / (72 * dev_szscale) / 2)
 		return;
 	if(vj_ln == len vj_lv){
 		vj_lv = growint(vj_lv, 2 * vj_ln);
@@ -109,7 +109,7 @@ vj_row(v: int)
 {
 	if(vj_foot)
 		return;
-	if(vj_rn > 0 && v < vj_rv[vj_rn - 1] + o_s * devres() / 72 / 2)
+	if(vj_rn > 0 && v < vj_rv[vj_rn - 1] + o_s * devres() / (72 * dev_szscale) / 2)
 		return;
 	if(vj_rn == len vj_rv)
 		vj_rv = growint(vj_rv, 2 * vj_rn);

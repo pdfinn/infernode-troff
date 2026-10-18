@@ -14,6 +14,7 @@
 #	capital Greek upright, as TeX's;
 #	the letters maths italic, and f's italic correction before (;
 #	an accent the math font's (f hat);
+#	scripts at 8.8 and 6.6 points, as TeX's;
 #	a fraction in an exponent in scriptscript size (TeX's styles for a
 #	fraction's parts);
 #	braces over and under, of the font's sizes and pieces;
@@ -144,6 +145,12 @@ p23 = tr[tr.find('\np23\n'):] if '\np23\n' in tr else ''
 check(re.search(r'GID=parenleft\.size[2-9]', p23) and re.search(r'GID=parenright\.size[2-9]', p23) and
       re.search(r'GID=uni0302\.size[1-9]', p23), "n choose k's parentheses, a wide hat",
       sorted(set(re.findall(r'GID=(?:paren|uni0302)[.a-z0-9]*', p23))))
+
+# scripts at TeX's 8.8 points and scriptscripts at 6.6 (scaled_sizes;
+# devutf's sizescale 100), not 9 and 7
+if re.search(r'(?m)^sizescale 100', open('lib/troff/devutf/DESC').read()):
+    check(re.search(r'(?m)^s880$', tr) and re.search(r'(?m)^s660$', tr), 'scripts at 8.8 and 6.6 points',
+          sorted(set(re.findall(r'(?m)^s\d+$', tr))))
 
 # book2tex: the same in LaTeX's
 tex = open(d + '/hard.tex', encoding='utf-8').read() if __import__('os').path.exists(d + '/hard.tex') else ''

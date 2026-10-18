@@ -607,7 +607,7 @@ postps()
 # where a destination here shows the page from: a line above
 here(): int
 {
-	v := o_v - o_s * devres() / 72;
+	v := o_v - o_s * devres() / (72 * dev_szscale);
 	if(v < 0)
 		v = 0;
 	return v;

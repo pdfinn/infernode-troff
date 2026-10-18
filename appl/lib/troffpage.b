@@ -60,7 +60,9 @@ Start: adt {
 State: adt {
 	data:	array of byte;
 	fontdir:	string;
-	uwid:	int;
+	uwid:	int;		# unitwidth times sizescale: sizes are in
+				# 1/sizescale points (DESC sizescale)
+	szscale:	int;
 	pages:	array of ref Start;
 	links:	array of array of Link;
 	names:	list of (string, int);	# named destinations: name, page
@@ -172,7 +174,7 @@ open(data: array of byte, fontdir: string): (ref Doc, string)
 {
 	if(!istroff(data))
 		return (nil, "not troff output");
-	st := ref State(data, fontdir, 10, nil, nil, nil);
+	st := ref State(data, fontdir, 10, 1, nil, nil, nil);
 	d := ref Doc("utf", 720, 612, 792, 0, 0);
 	mounts := array[NFONTS] of string;
 	f := 1;
@@ -239,7 +241,8 @@ open(data: array of byte, fontdir: string): (ref Doc, string)
 	st.links = array[npages] of array of Link;
 	if(st.fontdir == nil)
 		st.fontdir = "/lib/troff/dev" + d.dev;
-	st.uwid = devuwid(st.fontdir);
+	(st.uwid, st.szscale) = devuwid(st.fontdir);
+	st.uwid *= st.szscale;
 	if(pw > 0 && ph > 0){
 		d.width = pw;
 		d.height = ph;
@@ -254,24 +257,32 @@ open(data: array of byte, fontdir: string): (ref Doc, string)
 	return (d, nil);
 }
 
-# the device's unitwidth
-devuwid(dir: string): int
+# the device's unitwidth and sizescale
+devuwid(dir: string): (int, int)
 {
 	fd := sys->open(dir + "/DESC", Sys->OREAD);
 	if(fd == nil)
-		return 10;
+		return (10, 1);
 	b := array[4096] of byte;
 	n := sys->read(fd, b, len b);
 	if(n <= 0)
-		return 10;
+		return (10, 1);
 	s := string b[0:n];
-	for(i := 0; i + 9 < len s; i++)
+	uw := 10;
+	sc := 1;
+	for(i := 0; i + 9 < len s; i++){
 		if(s[i:i+9] == "unitwidth"){
 			(u, nil) := num(b, i + 9);
 			if(u > 0)
-				return u;
+				uw = u;
 		}
-	return 10;
+		if(s[i:i+9] == "sizescale"){
+			(u, nil) := num(b, i + 9);
+			if(u > 0)
+				sc = u;
+		}
+	}
+	return (uw, sc);
 }
 
 colour(s: string): int
@@ -612,7 +623,7 @@ glyph(w: ref Walk, mounts: array of string, fpos, sz: int, c: string, h, v: int,
 		fc := f.face;
 		if(g < 0 || fc == nil)
 			return adv;
-		px := real sz * real w.d.res / 72.0 * w.k;	# the size in pixels
+		px := real sz * real w.d.res / (72.0 * real w.st.szscale) * w.k;	# the size in pixels
 		x := w.ox + real h * w.k;
 		y := w.oy + real v * w.k;
 		# a glyph wholly outside the clip is not drawn
@@ -623,7 +634,7 @@ glyph(w: ref Walk, mounts: array of string, fpos, sz: int, c: string, h, v: int,
 		fc.drawglyphm(g, array[] of {k, 0.0, 0.0, -k}, w.dst, x, y, colourimage(colour));
 	Wtext =>
 		t := chartext(f, c, i);
-		em := sz * w.d.res / 72;
+		em := sz * w.d.res / (72 * w.st.szscale);
 		if(v != w.lastv || h > w.lasth + em / 5 || h < w.lasth - em){
 			flushword(w);
 			if(w.text != nil){
@@ -842,7 +853,7 @@ drawing(w: ref Walk, b: array of byte, i, e: int, h, v: int, sz: int, colour: in
 	if(w.what != Wpaint)
 		return (nh, nv);
 	src := colourimage(colour);
-	px := real sz * real w.d.res / 72.0 * w.k;
+	px := real sz * real w.d.res / (72.0 * real w.st.szscale) * w.k;
 	thick := int (px / 20.0);	# a twentieth of an em, as dpost draws
 	if(thick < 0)
 		thick = 0;

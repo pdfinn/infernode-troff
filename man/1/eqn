@@ -225,6 +225,11 @@ in thousandths of an em but the height; over more than one glyph the
 widest variant not wider than it, and
 .B bar
 an overline;
+.B "set scaled_sizes 1"
+keeps sizes in the device's scaled points
+.RI ( troff (1)'s
+.BR sizescale ),
+so that a script is TeX's 8.8 points, not 9;
 .B "set tex_fractions 1"
 sets a fraction's numerator and denominator in TeX's styles for them
 (in text style in script size, in a script in scriptscript size);

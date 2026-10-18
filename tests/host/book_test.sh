@@ -67,6 +67,11 @@ def check(ok, what):
         fail = 1
 
 # troff's output, a page at a time: the text of each line, its size and place
+# (in points: the device's sizes are in 1/sizescale points)
+scale = 1
+for l in open('lib/troff/devutf/DESC'):
+    if l.split()[:1] == ['sizescale']:
+        scale = int(l.split()[1])
 pages = []
 cur = None
 size = 0
@@ -82,7 +87,7 @@ for ln in open(out, encoding='utf-8'):
         continue
     for cmd in re.finditer(r'([sVHvh])(-?\d+)|c(.)|D(l) (-?\d+) (-?\d+)|C(\S+)', ln):
         if cmd.group(1) == 's':
-            size = int(cmd.group(2))
+            size = int(cmd.group(2)) / scale
         elif cmd.group(1) == 'V':
             v = int(cmd.group(2))
             line = None

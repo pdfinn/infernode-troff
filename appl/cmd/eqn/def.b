@@ -399,6 +399,9 @@ e_mathitalic := 0;
 # hundredths of an em), a wider variant over more than one glyph, bar
 # over one glyph a macron; 0, Neateqn's: troff's characters, centred
 e_texaccents := 0;
+# sizes in the device's scaled points (DESC sizescale, troff's z and
+# .ps), so that a script is 8.8 points, not 9
+e_scaledsz := 0;
 # TeX's \atop and \binom (choose, under tex_fractions): the shifts of a
 # stack's top and bottom and their least gap, in display style and
 # otherwise (TeX's num1, num3, denom1, denom2, 7 and 3 rule widths;
@@ -469,6 +472,7 @@ def_set(name: string, val: int)
 	"fraction_ord" =>	e_fracord = val;
 	"math_italic" =>	e_mathitalic = val;
 	"tex_accents" =>	e_texaccents = val;
+	"scaled_sizes" =>	e_scaledsz = val;
 	"stack_top_display_shift_up" =>	e_stacktopd = val;
 	"stack_top_shift_up" =>	e_stacktop = val;
 	"stack_bottom_display_shift_down" =>	e_stackbotd = val;

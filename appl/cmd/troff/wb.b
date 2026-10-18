@@ -137,7 +137,7 @@ wb_init(wb: ref Wb)
 # update wb.st and wb.sb
 wb_stsb(wb: ref Wb)
 {
-	wb.st = min(wb.st, wb.v - (wb.s * SC_IN() / 72));
+	wb.st = min(wb.st, wb.v - (wb.s * SC_IN() / (72 * dev_szscale)));
 	wb.sb = max(wb.sb, wb.v);
 }
 
@@ -172,7 +172,7 @@ wb_flushfont(wb: ref Wb)
 {
 	f := R_F(wb);
 	sz := R_S(wb);
-	if(wb.f != f && wb.s != sz && sz < 100 && !nr(R_cp) && wb.m != (m := R_M(wb))){
+	if(wb.f != f && wb.s != sz && sz < 100 && dev_szscale == 1 && !nr(R_cp) && wb.m != (m := R_M(wb))){
 		if(ffs == nil || ffs_f != f || ffs_s != sz || ffs_m != m || ffs_ec != ecc()){
 			ffs = ecs() + "f(" + d2(f) + ecs() + "s(" + d2(sz) + ecs() + "m[" + clr_str(m) + "]";
 			(ffs_f, ffs_s, ffs_m, ffs_ec) = (f, sz, m, ecc());
@@ -189,7 +189,9 @@ wb_flushfont(wb: ref Wb)
 		wb.f = R_F(wb);
 	}
 	if(wb.s != R_S(wb)){
-		if(R_S(wb) < 100)
+		if(dev_szscale > 1)	# (read again from a diversion: z, scaled points)
+			wb.sbuf += sys->sprint("%ss[%dz]", ecs(), R_S(wb));
+		else if(R_S(wb) < 100)
 			wb.sbuf += ecs() + "s(" + d2(R_S(wb));
 		else
 			wb.sbuf += sys->sprint("%ss[%d]", ecs(), R_S(wb));
@@ -355,7 +357,7 @@ wb_putbuf(wb: ref Wb, c: string)
 				ury := font_wid(gf, wb.s, g.ury);
 				wb_bbox(wb, llx, lly, urx, ury);
 			}else{	# no bounding box information
-				ht := wb.s * SC_PT();
+				ht := wb.s * SC_PT() / dev_szscale;
 				urx := font_wid(gf, wb.s, g.wid);
 				lly := 0;
 				if(g.typ & 1)

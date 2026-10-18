@@ -356,7 +356,7 @@ tag_glyph(g: ref Glyph)
 		if(o_h >= lnk_h1 || o_h < lnk_h0 - 1 || o_v < lnk_v0 || o_v > lnk_v1)
 			tpop();
 		else if(tart == 0){
-			if(lnk_endh >= 0 && o_h - lnk_endh > o_s * devres() / 72 / 5)
+			if(lnk_endh >= 0 && o_h - lnk_endh > o_s * devres() / (72 * dev_szscale) / 5)
 				lnk_text += " ";
 			lnk_text += glyphtext(g.fnt, g);
 			lnk_endh = o_h + font_wid(g.fnt, o_s, g.wid);
