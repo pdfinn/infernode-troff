@@ -351,6 +351,15 @@
 .\" paragraphs
 .\"
 .nr book-noindent 1	\" the next paragraph is not indented (after a heading)
+.\" the next paragraph not indented, unless a line of text comes before
+.\" it (a heading's or a display's first lines, with no .p): an input trap
+.de book-noindent
+.nr book-noindent 1
+.it 1 book-noindent-clear
+..
+.de book-noindent-clear
+.nr book-noindent 0
+..
 .de p
 .br
 .if \\n[book-flafter] .book-flafterput
@@ -608,7 +617,7 @@
 .\}
 .book-tag end
 .if !'\\$3'' .book-label \\$3
-.nr book-noindent 1
+.book-noindent
 .nr book-en-new 1
 ..
 .de section
@@ -635,7 +644,7 @@
 .sp 0.5v
 .tm aux:.book-tocent section "\\*[book-snt]" "\\$1" \\n% book-h\\n[book-hn]
 .if !'\\$2'' .book-label \\$2
-.nr book-noindent 1
+.book-noindent
 .ns
 ..
 .\" a section's number, before its title and in the contents, where its
@@ -671,7 +680,7 @@
 .sp 0.25v
 .tm aux:.book-tocent subsection "\\*[book-snt]" "\\$1" \\n% book-h\\n[book-hn]
 .if !'\\$2'' .book-label \\$2
-.nr book-noindent 1
+.book-noindent
 .ns
 ..
 .\" a heading below a subsection's, as LaTeX's book sets one: not
@@ -695,7 +704,7 @@
 .ad \\*[book-adj]
 .sp 0.25v
 .if !'\\$2'' .book-label \\$2
-.nr book-noindent 1
+.book-noindent
 .ns
 ..
 .\"
@@ -723,7 +732,7 @@
 .\}
 .book-tag end
 .book-tag push L
-.nr book-noindent 1
+.book-noindent
 ..
 .\" (an item an LI of its Lbl and its LBody, the LBody pushed, so that a
 .\" list within the item is in it, as PDF/UA has it)
@@ -762,7 +771,7 @@
 .	sp 0.5v
 .	in 0
 .\}
-.nr book-noindent 1
+.book-noindent
 ..
 .\"
 .\" ---------------------------------------------------------------
@@ -791,7 +800,7 @@
 .book-vstretch 3p
 .ev
 .sp 0.5v
-.nr book-noindent 1
+.book-noindent
 ..
 .de epigraph
 .book-begin
@@ -821,7 +830,7 @@
 .book-vstretch 3p
 .ev
 .sp 1v
-.nr book-noindent 1
+.book-noindent
 ..
 .\"
 .\" ---------------------------------------------------------------
@@ -1149,6 +1158,7 @@
 .\"
 .\" the equation's depth, as eqn last measured it, when it is set
 .ds .eqnbeg \R'book-eqlly \\n[bblly]'
+.nr book-eqend -1
 .de EQ
 .br
 .ds book-eqlabel \\$1
@@ -1165,11 +1175,24 @@
 .if \\n[dn] \{\
 .	book-begin
 .	nr book-eqw \\n[dl]
-.	book-vstretch 3p
-.	sp 0.5v
+.\"	lined up (eqn's lineup) with the display just before, nothing
+.\"	between: TeX's \jot apart, as align's lines, not a display's space
+.	ie (\\n[MK]==2)&(\\n[.d]==\\n[book-eqend]) \{\
+.		sp -0.5v
+.		sp 3p
+.	\}
+.	el \{\
+.		book-vstretch 3p
+.		sp 0.5v
+.	\}
 .	ne \\n[dn]u
 .	nf
-.	in (\\n[book-ll]u-\\n[book-eqw]u)/2u
+.\"	centred; one lined up (eqn's lineup) where the one with its mark
+.\"	was, so that eqn's motion to the mark puts them one above the other
+.	ie \\n[MK]==2 .nr book-eqin \\n[book-eqmkin]
+.	el .nr book-eqin (\\n[book-ll]u-\\n[book-eqw]u)/2u
+.	if \\n[MK]==1 .nr book-eqmkin \\n[book-eqin]
+.	in \\n[book-eqin]u
 .	book-eqd
 .	in 0
 .	fi
@@ -1183,7 +1206,8 @@
 .	\}
 .	book-vstretch 3p
 .	sp 0.5v
-.	nr book-noindent 1
+.	book-noindent
+.	nr book-eqend \\n[.d]
 .\}
 ..
 .\"
@@ -1200,7 +1224,7 @@
 .de TE
 .book-vstretch 3p
 .sp 0.5v
-.nr book-noindent 1
+.book-noindent
 ..
 .de PS
 .book-begin
@@ -1229,7 +1253,7 @@
 .book-vstretch 3p
 .in
 .if \\n[book-pich] .sp 0.65v
-.nr book-noindent 1
+.book-noindent
 ..
 .\"
 .\" ---------------------------------------------------------------

@@ -429,6 +429,14 @@ points and scriptscripts 6.6 (`set scaled_sizes 1`: the device's
 points). The 23 displays take 0.6 seconds, eqn, troff and tr2pdf, emu's
 start included; one XeLaTeX pass over 22 of them, its font cache warm,
 takes 0.8 (cold, 2). At a book's length XeLaTeX is faster (see Speed).
+In running text and between displays (`tests/eqn/text.ms`, set beside
+XeLaTeX's of `book2tex`'s LaTeX): an operator's limits are beside it in
+text (`lim` too: eqnrc's function names are braced, so that `from`
+finds an operator); displays lined up (eqn's `lineup`) are TeX's `\jot`
+apart, as `align`'s lines, and indented as the one with the `mark`, so
+that eqn's motion to the mark puts their signs one above the other.
+`tests/host/mathtext_test.sh` checks these.
+
 What is the font's in all this is its MATH table's: `mkfn -M` writes
 it as eqn's settings (constants, maths italic glyphs and their italic
 corrections and accent attachments, accents, delimiters' and braces'
@@ -676,6 +684,12 @@ eqn's equations become LaTeX's mathematics:
   limits), `left` and `right`, `pile`, `matrix`, accents, fonts and
   defines.
 - `.EQ (1.1)` is numbered with `\tag`.
+- A display with `mark` and those right after it with `lineup` are one
+  `align`, `&` where eqn marks and lines up, each line its `\tag` (or
+  `\notag`); a two-column `matrix` with its columns pulled together
+  (`matrix -100 { rcol ... lcol ... }`) is `aligned`.
+- `choose` is `\binom`, `strut` `\strut`; eqnrc's names (`nabla`,
+  `hbar`, `cdots`, `oint`, `oiint`, `bigoplus` and the rest) LaTeX's.
 - An equation between `delim`'s characters is inline.
 
 tbl's tables become `tabular`s, with their rules, spans and text

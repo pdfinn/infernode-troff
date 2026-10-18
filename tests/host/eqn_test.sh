@@ -82,10 +82,10 @@ check(lab and eq and abs(lab[0][3] - eq[0][3]) < 1.5 and lab[0][0] > eq[0][2] + 
 
 # the sums: displayed taller than inline; inline, its limits beside it
 sums = sorted(find('∑'), key=lambda x: x[2] - x[0])
-check(len(sums) == 2 and (sums[1][2] - sums[1][0]) > 1.5 * (sums[0][2] - sums[0][0]),
+check(len(sums) == 2 and (sums[1][2] - sums[1][0]) > 1.3 * (sums[0][2] - sums[0][0]),	# (the math font's sizes: 1.39)
       'a displayed sum larger than an inline one', str(sums))
 inl = sums[0] if sums else None
-lim = [x for x in words if inl and x[4] in ('ni=1', 'n', 'i=1') and abs(x[1] - inl[1]) < 4]
+lim = [x for x in words if inl and x[4] in ('ni=1', 'n', 'i=1') and abs(x[1] - inl[1]) < 6]	# (under it: 10 and more)
 check(inl and lim and lim[0][0] >= inl[2] - 0.5,
       "an inline sum's limits beside it", '%s %s' % (inl, lim))
 sys.exit(fail)

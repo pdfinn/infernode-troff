@@ -175,6 +175,13 @@ gn(g: int): string
 	return "\\N'" + glyph_name[g] + "'";
 }
 
+# and in the math font: a text font may have a glyph of the same name
+# (Libertinus Serif's own, smaller, summation), which troff finds first
+fgn(g: int): string
+{
+	return "\\f[" + mathfont + "]" + gn(g) + "\\f[P]";
+}
+
 # a glyph's variants in one direction, with their advances; and its
 # assembly's parts (glyph, advance, extender), in its order, with the
 # connectors' lengths at each end
@@ -371,7 +378,7 @@ math_write(otf: ref Otf)
 			for(j := 0; j < len cn.vars && n < 13; j++){
 				(vg, nil) := cn.vars[j];
 				if(vg != g){
-					s += " \"" + gn(vg) + "\"";
+					s += " \"" + fgn(vg) + "\"";
 					n++;
 				}
 			}
@@ -387,18 +394,18 @@ math_write(otf: ref Otf)
 		for(j := 0; j < len p; j++){
 			(pg, nil, isext) := p[j];
 			if(isext && ext == nil)
-				ext = gn(pg);
+				ext = fgn(pg);
 		}
 		(g0, nil, e0) := p[0];
 		(gl, nil, el) := p[len p - 1];
 		if(!e0)
-			bot = gn(g0);
+			bot = fgn(g0);
 		if(!el)
-			top = gn(gl);
+			top = fgn(gl);
 		if(len p == 5){
 			(gm, nil, em) := p[2];
 			if(!em)
-				mid = gn(gm);
+				mid = fgn(gm);
 		}
 		if(ext == nil)
 			continue;
@@ -474,7 +481,7 @@ math_write(otf: ref Otf)
 	for(i = 0; i < len symbols; i++){
 		(name, sc) := symbols[i];
 		if((g = cglyph(sc)) >= 0)
-			out("define " + name + " @roman \"" + gn(g) + "\"@\n");
+			out("define " + name + " @roman \"" + fgn(g) + "\"@\n");
 	}
 	out(".EN\n");
 }
@@ -485,7 +492,7 @@ opdef(g: int): string
 	(ok, v) := italcorr(g);
 	if(ok && hund(v))
 		s += "icorr " + string hund(v) + " ";
-	return s + "vcenter roman \"" + gn(g) + "\"";
+	return s + "vcenter roman \"" + fgn(g) + "\"";
 }
 
 # a keyword's pairs, eight a line

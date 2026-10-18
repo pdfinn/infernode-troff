@@ -1256,8 +1256,46 @@ indexentry(s: string): string
 # eqn's equations, as LaTeX's mathematics
 #
 
-# a display: .EQ [I|L|C] [label] ... .EN
+# a display: .EQ [I|L|C] [label] ... .EN; one with mark, and those
+# right after it with lineup, aligned (LaTeX's align)
 display(a: list of string)
+{
+	(m, label, al) := readdisplay(a);
+	if(m == "")
+		return;
+	closefont(cur);
+	if(al){
+		lines := m + " " + latextag(label, 1) :: nil;
+		for(;;){
+			s := readline();
+			if(s == nil || !prefix(".EQ", s) || (len s > 3 && s[3] != ' ')){
+				if(s != nil)
+					unread(s);
+				break;
+			}
+			(m2, l2, al2) := readdisplay(reqargs(s[3:]));
+			if(!al2){
+				emit(cur, "\\begin{align}");
+				emitlines(rev(lines));
+				emit(cur, "\\end{align}");
+				lines = nil;
+				onedisplay(m2, l2);
+				break;
+			}
+			lines = m2 + " " + latextag(l2, 1) :: lines;
+		}
+		if(lines != nil){
+			emit(cur, "\\begin{align}");
+			emitlines(rev(lines));
+			emit(cur, "\\end{align}");
+		}
+	}else
+		onedisplay(m, label);
+	cur.noindent = 1;
+}
+
+# a display's LaTeX, its label, and whether it marks or lines up
+readdisplay(a: list of string): (string, string, int)
 {
 	if(a != nil && (hd a == "I" || hd a == "L" || hd a == "C"))
 		a = tl a;
@@ -1265,24 +1303,47 @@ display(a: list of string)
 	src := "";
 	while((s := readline()) != nil && !prefix(".EN", s))
 		src += s + "\n";
+	ealigned = 0;
 	m := trim(eqn(src, 1));
+	return (m, label, ealigned);
+}
+
+onedisplay(m, label: string)
+{
 	if(m == "")
 		return;
-	closefont(cur);
 	if(label != ""){
-		if(len label > 2 && label[0] == '(' && label[len label - 1] == ')')
-			label = "\\tag{" + label[1:len label - 1] + "}";
-		else
-			label = "\\tag*{" + label + "}";
 		emit(cur, "\\begin{equation}");
-		emit(cur, m + " " + label);
+		emit(cur, m + " " + latextag(label, 0));
 		emit(cur, "\\end{equation}");
 	}else{
 		emit(cur, "\\[");
 		emit(cur, m);
 		emit(cur, "\\]");
 	}
-	cur.noindent = 1;
+}
+
+# a label as LaTeX's \tag; in an align, none as \notag
+latextag(label: string, inalign: int): string
+{
+	if(label == ""){
+		if(inalign)
+			return "\\notag";
+		return "";
+	}
+	if(len label > 2 && label[0] == '(' && label[len label - 1] == ')')
+		return "\\tag{" + label[1:len label - 1] + "}";
+	return "\\tag*{" + label + "}";
+}
+
+emitlines(l: list of string)
+{
+	for(; l != nil; l = tl l){
+		if(tl l != nil)
+			emit(cur, hd l + " \\\\");
+		else
+			emit(cur, hd l);
+	}
 }
 
 # what eqn reads: the equation, and a define's body before the rest
@@ -1297,6 +1358,8 @@ ecount := 0;
 edisplay := 0;
 eexpand := 0;
 edefs: list of (string, string);
+emarked := 0;		# a mark or lineup read: & next
+ealigned := 0;		# one read in this display
 
 FROM, SUB, NOLIM: con 1 << iota;	# NOLIM: no from or to of its own (a brace's)
 
@@ -1458,7 +1521,27 @@ ecommands()
 			for(k := 0; k < n && k < 100; k++)
 				elex(0);
 		"mark" or "lineup" =>
+			# where displays are aligned: LaTeX's & (display())
 			enext();
+			emarked = ealigned = 1;
+		"gsfont" =>
+			enext();
+			elex(0);
+		"accent" or "accentpos" or "mathital" or "italcorr" or "bracesizes" =>
+			# (eqnrc's, mkfn -M's: the font's, nothing for LaTeX)
+			t := enext();
+			if(t == "accent" || t == "bracesizes")
+				elex(0);
+			n := int elex(0);
+			per := 2;
+			if(t == "accent")
+				per = 3;
+			for(k := 0; k < n * per && k < 1000; k++)
+				elex(0);
+		"bracepieces" =>
+			enext();
+			for(k := 0; k < 10; k++)
+				elex(0);
 		* =>
 			return;
 		}
@@ -1471,6 +1554,10 @@ elist(stops: list of string): (string, string)
 	r := "";
 	for(;;){
 		ecommands();
+		if(emarked){
+			r += " &";
+			emarked = 0;
+		}
 		t := epk();
 		if(t == nil)
 			return (r, nil);
@@ -1700,7 +1787,9 @@ eleft(flg: int): string
 		# a big operator's limits, and a brace's label, as _ and ^
 		bigop := 0;
 		case core {
-		"\\sum" or "\\prod" or "\\bigcup" or "\\bigcap" or "\\lim" or "\\max" or "\\min" or "\\int" or "\\coprod" =>
+		"\\sum" or "\\prod" or "\\bigcup" or "\\bigcap" or "\\lim" or "\\max" or "\\min" or "\\int" or "\\coprod" or
+		"\\iint" or "\\iiint" or "\\oint" or "\\oiint" or "\\oiiint" or "\\bigvee" or "\\bigwedge" or
+		"\\bigodot" or "\\bigoplus" or "\\bigotimes" or "\\biguplus" or "\\bigsqcup" =>
 			bigop = 1;
 		}
 		if(len core > 12 && (core[0:11] == "\\overbrace{" || core[0:12] == "\\underbrace{"))
@@ -1833,6 +1922,11 @@ epile(align: string): string
 ematrix(): string
 {
 	enext();
+	# (eqn's spacing between columns, and each column's between rows:
+	# columns pulled together, rcol then lcol, are aligned equations)
+	colspace := 0;
+	if(isnum(epk()))
+		colspace = int enext();
 	if(epk() == "{")
 		enext();
 	aligns := "";
@@ -1857,6 +1951,8 @@ ematrix(): string
 			sys->fprint(stderr, "book2tex: eqn: %s out of place in a matrix (%s line %d)\n", t, inname(), inline());
 			continue;
 		}
+		if(isnum(epk()))
+			enext();
 		if(epk() == "{")
 			enext();
 		col: list of string;
@@ -1890,7 +1986,25 @@ ematrix(): string
 		}
 		rows = join(rev(cells), " & ") :: rows;
 	}
+	if(aligns == "rl" && colspace < 0)
+		return "\\begin{aligned}" + join(rev(rows), " \\\\ ") + "\\end{aligned}";
 	return "\\begin{array}{" + aligns + "}" + join(rev(rows), " \\\\ ") + "\\end{array}";
+}
+
+# whether an eqn word is a number (a matrix's spacing)
+isnum(t: string): int
+{
+	if(t == nil)
+		return 0;
+	i := 0;
+	if(t[0] == '-' || t[0] == '+')
+		i = 1;
+	if(i >= len t)
+		return 0;
+	for(; i < len t; i++)
+		if(t[i] < '0' || t[i] > '9')
+			return 0;
+	return 1;
 }
 
 # eqn's words, and the characters operators are made of
@@ -1939,6 +2053,11 @@ ekw(w: string): (string, int)
 	"prod" =>	return ("\\prod", 1);
 	"union" =>	return ("\\bigcup", 1);
 	"inter" =>	return ("\\bigcap", 1);
+	# eqnrc's, as mkfn -M defines them
+	"coprod" or "iint" or "iiint" or "oint" or "oiint" or "oiiint" or "bigcup" or
+	"bigcap" or "bigvee" or "bigwedge" or "bigodot" or "bigoplus" or "bigotimes" or
+	"biguplus" or "bigsqcup" or "cdots" or "ldots" or "vdots" or "ddots" or "nabla" or "hbar" =>
+		return ("\\" + w, 1);
 	}
 	return (nil, 0);
 }
