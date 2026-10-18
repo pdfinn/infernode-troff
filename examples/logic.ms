@@ -1,8 +1,9 @@
 .\" logic.ms — logic set with eqn, tbl and pic: formulas in the text,
-.\" a truth table, and proofs by tableau (truth trees), an argument's
-.\" countermodel as a table. The tableaux and the countermodel are
+.\" a truth table, and proofs by tableau (truth trees), with the
+.\" countermodels open branches describe. The tableaux and countermodels are
 .\" tableau(1)'s, from infernode-wwb (prove -P, then tableau), each
-.\" tree made a figure, its title a caption.
+.\" tree made a figure, its title a caption, and figure 1.3's
+.\" countermodel drawn beside its tree rather than as a table below.
 .\"
 .\"	book logic.ms		# logic.pdf
 .char → \f[S]\N'arrowright'
@@ -120,7 +121,6 @@ conditional:
 .EQ
 □ ( p → q ) , ~ □ p ~ ⊢ ~ □ q
 .EN
-.LP
 Its tableau (figure \*[ref axk]) needs one new world, $w sub 1$, and
 closes on both branches there.
 .figure axk
@@ -164,15 +164,13 @@ line from (1.101,-1.623) to (1.715,-1.943)
 .endfigure
 .section "When a branch stays open" open
 
-What is necessary, one would think, is possible: from $□ p$, $◇ p$.
-In K it does not follow, and the tableau shows why. Denying $◇ p$
-gives $□ ¬ p$, but no rule of K draws a world from two boxes, so
-nothing is left to apply and the branch stays open ($↑$). An open
-branch is a recipe for a countermodel: one world that sees no world,
-where every $□$ is true for want of anything to check and every $◇$
-is false (figure \*[ref dk], table \*[ref dk-cm]).
+What is necessary is surely possible, yet in K $◇ p$ does not follow
+from $□ p$. Denying $◇ p$ gives $□ ¬ p$, no rule of K applies to boxes
+alone, and the branch stays open ($↑$). Read off, it is a countermodel:
+one world that sees none, where every $□$ is true and every $◇$ false
+(figure \*[ref dk]).
 .figure dk
-.alt "A tableau for necessarily p, so possibly p, in K, not valid (a branch stays open): 1. □p, w0, P1. 2. ¬◇p, w0, C denied. 3. □¬p, w0, 2 ¬◇. Open: . "
+.alt "A tableau for necessarily p, so possibly p, in K, not valid (a branch stays open): 1. □p, w0, P1. 2. ¬◇p, w0, C denied. 3. □¬p, w0, 2 ¬◇. Open. Its countermodel: one world, w0, where p is false and which sees no world."
 .PS
 "\s-11.\s0" rjust at (0.095,0.000)
 "$□ p  ,  w sub 0 $" ljust at (0.165,0.000)
@@ -184,31 +182,29 @@ is false (figure \*[ref dk], table \*[ref dk-cm]).
 "$□¬ p  ,  w sub 0 $" ljust at (0.165,-0.430)
 "\s-12 ¬◇\s0" ljust at (0.966,-0.430)
 "$↑$" ljust at (0.165,-0.645)
+line from (1.750,0.130) to (2.550,0.130)
+"$ w sub 0 $" at (2.350,0.000)
+line from (1.750,-0.110) to (2.550,-0.110)
+"$ p $" ljust at (1.750,-0.250)
+"F" at (2.350,-0.250)
+"$roman R ( w )$" ljust at (1.750,-0.465)
+"$∅$" at (2.350,-0.465)
+line from (1.750,-0.590) to (2.550,-0.590)
 .PE
-.caption "From $□ p$ to $◇ p$ in K: a branch stays open, and the argument is not valid."
+.caption "From $□ p$ to $◇ p$ in K: an open branch, and its countermodel."
 .endfigure
-.table dk-cm
-.TS
-center;
-l c.
-_
-	$ w sub 0 $
-_
-.sp 0.2
-$ p $	F
-$roman R ( w )$	$∅$
-.sp 0.2
-_
-.TE
-.caption "The countermodel to $□ p ~ ⊢ ~ ◇ p$ in K: one world, $w sub 0$, where $p$ is false and which sees no world."
-.endtable
-.LP
-The cure is to require that every world see at least one world. This
-is the logic KD, and its D is the rule that draws a new world when
-none is there. Read $□$ as \(lqit ought to be that\(rq and $◇$ as
-\(lqit is permitted that\(rq, written O and P, and KD becomes the
-standard deontic logic. Its axiom is that what is obligatory is
-permitted, and now the tree closes (figure \*[ref kd]).
+.section "Obligation" obligation
+
+The cure is to require that every world see at least one world: that
+the relation be serial. This is the logic KD, and its rule D draws a
+new world where none is there. Read $□$ as \(lqit ought to be that\(rq
+and $◇$ as \(lqit is permitted that\(rq, written O and P, and KD
+becomes the standard deontic logic, the logic of obligation that von
+Wright set out in 1951. The worlds are now the ideal ones, those in
+which everything obligatory is done, and seriality says that there is
+always at least one: no code of conduct demands the impossible. Its
+axiom is that what is obligatory is permitted, and now the tree closes
+(figure \*[ref kd]).
 .figure kd
 .alt "A tableau for O p, so P p, in KD: 1. O p, w0, P1. 2. ¬P p, w0, C denied. 3. O ¬p, w0, 2 ¬P. 4. w0 R w1, D. 5. p, w1, 1 O. 6. ¬p, w1, 3 O. Closed by 5, 6. "
 .PS
@@ -233,4 +229,55 @@ permitted, and now the tree closes (figure \*[ref kd]).
 "$times$ \s-15, 6\s0" ljust at (0.165,-1.290)
 .PE
 .caption "From O $p$ to P $p$ in KD: the rule D draws $w sub 1$, and the tree closes."
+.endfigure
+.p
+The same logic proves things that sound wrong. From O $p$ it gives
+O $( p ∨ q )$: if I ought to post the letter, then I ought to post it
+or burn it. This is Ross's paradox, and it is valid in KD, because
+every ideal world in which the letter is posted is one in which it is
+posted or burnt. Whether that shows the logic wrong or the English
+misleading is still argued; the tree only shows what the logic says.
+.section "Trees by machine" machine
+
+The method is mechanical, which is its point. Beth and Hintikka gave it
+in the 1950s and Smullyan made it standard in \fIFirst-Order Logic\fP
+(1968): every rule takes a formula apart into smaller ones, so for the
+propositional logics, and with the proper care for K and KD, a tree
+always ends, and the method decides validity. For the full logic of
+quantifiers no method can, as Church and Turing showed in 1936, and a
+tree may grow without end.
+.p
+The trees in this chapter were found by a program and drawn by
+another: \f[CR]prove\fP searched for each one, and \f[CR]tableau\fP
+set it out as pic, its formulas in eqn and its countermodels as tables,
+for troff to set. Each figure is described in words in the PDF, line
+by line, for a reader who hears it rather than sees it.
+.p
+The use of such a program is in checking arguments written in prose.
+Told that the code was audited, and the audit found no bugs, so the
+code is safe to deploy, \f[CR]prove\fP finds the tree of figure
+\*[ref gap] open. Nothing in the premises speaks of safety at all, and
+the open branch, read off, is the case the writer passed over: code
+audited, no bugs found, and still not safe. The program says what
+would close the gap, a premise that what is audited is safe or that
+what has no bugs found is, and leaves the writer to say whether either
+is true.
+.figure gap
+.alt "A tableau for the argument that the audited code is safe, not valid (a branch stays open): 1. audited ∧ nobugs, P1. 2. ¬safe, C denied. 3. audited, 1 ∧. 4. nobugs, 1 ∧. Open: audited = T, nobugs = T, safe = F. "
+.PS
+"\s-11.\s0" rjust at (0.095,0.000)
+"$ roman \&audited ∧ roman \&nobugs $" ljust at (0.165,0.000)
+"\s-1P1\s0" ljust at (1.545,0.000)
+"\s-12.\s0" rjust at (0.095,-0.215)
+"$¬ roman \&safe $" ljust at (0.165,-0.215)
+"\s-1C denied\s0" ljust at (1.545,-0.215)
+"\s-13.\s0" rjust at (0.095,-0.430)
+"$ roman \&audited $" ljust at (0.165,-0.430)
+"\s-11 ∧\s0" ljust at (1.545,-0.430)
+"\s-14.\s0" rjust at (0.095,-0.645)
+"$ roman \&nobugs $" ljust at (0.165,-0.645)
+"\s-11 ∧\s0" ljust at (1.545,-0.645)
+"$↑ ~ roman \&audited  = roman T , roman \&nobugs  = roman T , roman \&safe  = roman F$" ljust at (0.165,-0.860)
+.PE
+.caption "The audited code is safe to deploy? The tree stays open, and its last line is the countermodel: audited and no bugs found, yet not safe."
 .endfigure
