@@ -151,9 +151,14 @@
 .\" the index's columns.
 .nr book-nofill 0
 .nr book-fotrap 0
+.\" book-keep set: the next such space (a display's, above it) not to
+.\" stretch, the display kept with the line before it (its title)
+.nr book-keep 0
 .de book-vstretch
 .nr book-vw (\\$1)
-.if '\\n[.z]'' .if \\n[book-ncol]<2 .dv vstretch \\n[book-vw]
+.if \\n[book-keep] .nr book-vw 0
+.nr book-keep 0
+.if \\n[book-vw] .if '\\n[.z]'' .if \\n[book-ncol]<2 .dv vstretch \\n[book-vw]
 ..
 .\" ---------------------------------------------------------------
 .\" begin: the page set, once, before the first text

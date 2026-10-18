@@ -297,6 +297,18 @@ tag_drawn(): int
 	return 0;
 }
 
+# in a figure, a formula or a table: set as a whole, its rows not to
+# be stretched apart (vjust)
+tag_rigid(): int
+{
+	for(i := tdepth - 1; i > 0; i--)
+		case selems[tstk[i]].typ {
+		"Figure" or "Formula" or "Table" =>
+			return 1;
+		}
+	return 0;
+}
+
 # what is set next (a glyph, or if draw a line) marked as its element's
 tag_content(draw: int)
 {

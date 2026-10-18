@@ -23,6 +23,8 @@ src_cap := "";		# what was read of the input file (its bytes), as written
 lineno := 1;
 esrc_depth := 0;
 
+srcnext: list of string;	# the files still to read, after srcin ("-" standard input)
+
 src_init(f: ref Iobuf)
 {
 	srcin = f;
@@ -50,9 +52,35 @@ src_pop()
 	}
 }
 
+# the input's files, in order (not Neateqn's, which reads only its
+# standard input): the first opened now, the rest when it ends
+src_files(l: list of string)
+{
+	srcnext = l;
+	srcopen();
+}
+
+srcopen(): int
+{
+	if(srcnext == nil)
+		return 0;
+	f := hd srcnext;
+	srcnext = tl srcnext;
+	if(f == "-")
+		srcin = bufio->fopen(sys->fildes(0), Bufio->OREAD);
+	else
+		srcin = bufio->open(f, Bufio->OREAD);
+	if(srcin == nil)
+		errdie(sys->sprint("eqn: cannot open %s: %r\n", f));
+	lineno = 1;
+	return 1;
+}
+
 src_stdin(): int
 {
 	c := srcin.getb();
+	while(c < 0 && srcopen())
+		c = srcin.getb();
 	if(c == '\n')
 		lineno++;
 	if(c > 0)

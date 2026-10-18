@@ -25,8 +25,10 @@ VJ1: con 16r02;
 
 vj_sv: array of int;		# the stretch points: where, and how much
 vj_sw: array of int;
+vj_sr: array of int;		# and how many rows were set before it
 vj_sn := 0;
 vj_lv: array of int;		# the lines' baselines
+vj_lr: array of int;		# and how many rows were set before the next
 vj_ln := 0;
 vj_rv: array of int;		# where anything is set: rows, a picture's too, and lines drawn
 vj_rn := 0;
@@ -38,6 +40,7 @@ vj_vs := 0;
 # the plan: each point's share, and below what nothing moves
 vj_pv: array of int;
 vj_pa: array of int;
+vj_pr: array of int;
 vj_pn := 0;
 vj_cut := -1;
 vj_annots: list of (int, string);	# the page's annotations, waiting for their places
@@ -47,7 +50,9 @@ vj_reset()
 	if(vj_sv == nil){
 		vj_sv = array[64] of int;
 		vj_sw = array[64] of int;
+		vj_sr = array[64] of int;
 		vj_lv = array[256] of int;
+		vj_lr = array[256] of int;
 		vj_rv = array[256] of int;
 	}
 	vj_sn = vj_ln = vj_rn = 0;
@@ -66,15 +71,17 @@ vj_stretch(w: int)
 	if(vj_sn == len vj_sv){
 		vj_sv = growint(vj_sv, 2 * vj_sn);
 		vj_sw = growint(vj_sw, 2 * vj_sn);
+		vj_sr = growint(vj_sr, 2 * vj_sn);
 	}
 	vj_sv[vj_sn] = o_v;
+	vj_sr[vj_sn] = vj_rn;
 	vj_sw[vj_sn++] = w;
 }
 
 # a glyph set: of the text, before x X vfoot; a line begun where it is
 # half its size or more below the line before (a script is not a line).
-# A picture's or a displayed formula's rows are not lines: it moves
-# whole, its lines drawn still meeting its text.
+# A picture's, a displayed formula's or a table's rows are not lines:
+# it moves whole, its lines drawn still meeting its text.
 vj_glyph()
 {
 	if(vj_foot)
@@ -84,13 +91,16 @@ vj_glyph()
 	if(o_v > vj_last)
 		vj_last = o_v;
 	vj_row(o_v);
-	if(tag_drawn())
+	if(tag_rigid())
 		return;
 	if(vj_ln > 0 && o_v < vj_lv[vj_ln - 1] + o_s * devres() / 72 / 2)
 		return;
-	if(vj_ln == len vj_lv)
+	if(vj_ln == len vj_lv){
 		vj_lv = growint(vj_lv, 2 * vj_ln);
-	vj_lv[vj_ln++] = o_v;
+		vj_lr = growint(vj_lr, 2 * vj_ln);
+	}
+	vj_lv[vj_ln] = o_v;
+	vj_lr[vj_ln++] = vj_rn;
 }
 
 # something set or drawn at v: a row if half the type's size or more
@@ -117,7 +127,10 @@ vj_setfoot(b, vs: int)
 }
 
 # the space the page lacks, shared: the points first, as much as each
-# may take; the rest over the lines
+# may take; then the lines, a seventh of their spacing each at most
+# (none else to take it, as much as is left); what is left still to
+# the points, beyond what they would take, in proportion, as TeX gives
+# what its glue cannot stretch to to the glue that stretches
 vj_plan()
 {
 	vj_pn = 0;
@@ -130,61 +143,81 @@ vj_plan()
 	n := vj_sn + vj_ln;
 	vj_pv = array[n] of int;
 	vj_pa = array[n] of int;
+	vj_pr = array[n] of int;
 	w := 0;
 	for(i := 0; i < vj_sn; i++)
 		if(vj_sv[i] >= vj_first && vj_sv[i] < vj_last)
 			w += vj_sw[i];
-	left := s;
-	if(w > 0){
-		share := s;
-		if(abs(s) > w)
-			share = w * (s / abs(s));
+	lines := 0;
+	for(i = 0; i < vj_ln; i++)
+		if(vj_lv[i] >= vj_first && vj_lv[i] < vj_last)
+			lines++;
+	sign := 1;
+	if(s < 0)
+		sign = -1;
+	share := 0;
+	if(w > 0)
+		share = sign * min(abs(s), w);
+	left := s - share;
+	lshare := left;
+	if(w > 0 && abs(left) > lines * vj_vs / 7)
+		lshare = sign * (lines * vj_vs / 7);
+	share += left - lshare;
+	if(w > 0)
+		vj_points(share, w);
+	if(lshare != 0 && lines > 0){
 		given := 0;
-		last := -1;
-		for(i = 0; i < vj_sn; i++)
-			if(vj_sv[i] >= vj_first && vj_sv[i] < vj_last){
-				a := int (big share * big vj_sw[i] / big w);
-				vj_pv[vj_pn] = vj_sv[i];
-				vj_pa[vj_pn] = a;
-				last = vj_pn++;
-				given += a;
-			}
-		if(last >= 0)
-			vj_pa[last] += share - given;
-		left = s - share;
-	}
-	if(left != 0){
-		lines := 0;
+		k := 0;
 		for(i = 0; i < vj_ln; i++)
-			if(vj_lv[i] >= vj_first && vj_lv[i] < vj_last)
-				lines++;
-		if(lines > 0){
-			given := 0;
-			k := 0;
-			for(i = 0; i < vj_ln; i++)
-				if(vj_lv[i] >= vj_first && vj_lv[i] < vj_last){
-					k++;
-					a := int (big left * big k / big lines) - given;
-					given += a;
-					vj_pv[vj_pn] = vj_lv[i];
-					vj_pa[vj_pn++] = a;
-				}
-		}
+			if(vj_lv[i] >= vj_first && vj_lv[i] < vj_last){
+				k++;
+				a := int (big lshare * big k / big lines) - given;
+				given += a;
+				vj_pv[vj_pn] = vj_lv[i];
+				vj_pr[vj_pn] = vj_lr[i];
+				vj_pa[vj_pn++] = a;
+			}
 	}
-	# a gap's space goes to what is set past its middle, the next row's,
-	# not to a subscript or a descender of the line above it, nor to half
-	# a picture below it
+	# a gap's space goes to what is set past its middle, the next row's
+	# (set after it), not to a subscript or a descender of the line above
+	# it, nor a table's rule under its last row, nor to half a picture
+	# below it
 	for(i = 0; i < vj_pn; i++){
+		# below all set before it (a table's rule under its last row)
+		base := vj_pv[i];
+		for(j := 0; j < vj_pr[i] && j < vj_rn; j++)
+			if(vj_rv[j] > base)
+				base = vj_rv[j];
 		next := -1;
-		for(j := 0; j < vj_rn; j++)
-			if(vj_rv[j] > vj_pv[i] && (next < 0 || vj_rv[j] < next))
+		for(j = vj_pr[i]; j < vj_rn; j++)
+			if(vj_rv[j] > base && (next < 0 || vj_rv[j] < next))
 				next = vj_rv[j];
-		if(next > 0 && next - vj_pv[i] < 3 * vj_vs)
-			vj_pv[i] = (vj_pv[i] + next) / 2;
+		if(next > 0)
+			vj_pv[i] = (base + next) / 2;
+		else
+			vj_pv[i] = base;
 	}
 	# what is set below the text's last line, as far as a script hangs
 	# below it, moves with it; nothing further (the notes, the folio)
 	vj_cut = vj_last + vj_vs * 8 / 10;
+}
+
+# share given the points, as their weights (w in all) divide it
+vj_points(share, w: int)
+{
+	given := 0;
+	last := -1;
+	for(i := 0; i < vj_sn; i++)
+		if(vj_sv[i] >= vj_first && vj_sv[i] < vj_last){
+			a := int (big share * big vj_sw[i] / big w);
+			vj_pv[vj_pn] = vj_sv[i];
+			vj_pr[vj_pn] = vj_sr[i];
+			vj_pa[vj_pn] = a;
+			last = vj_pn++;
+			given += a;
+		}
+	if(last >= 0)
+		vj_pa[last] += share - given;
 }
 
 # how far what is set at v moves

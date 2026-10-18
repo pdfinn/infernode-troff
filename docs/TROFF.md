@@ -192,10 +192,19 @@ full page's would:
 (4) and a subsection (3), after a heading (1), and about quotations,
 epigraphs, displayed equations, tables and pictures (3). A page's lack
 goes to those points first, each taking as much as its weight in
-proportion; the rest is spread over its lines, a fraction of a point
-each. What follows the text (notes, the folio, the running heads)
-stays where it was set, and links, destinations and bookmarks move with
-the text. A chapter's last page, a page broken by `.bp`, one set in
+proportion; then to its lines, a seventh of their spacing each at
+most; anything left goes to the points again, beyond their weights, as
+TeX gives what its glue cannot stretch to the glue that stretches. A
+gap's space goes to what is set below its middle, after it: not to a
+subscript of the line above, nor to a table's rule under its last row.
+A picture, a displayed equation and a table move whole: their rows are
+not lines to stretch between. What follows the text (notes, the folio,
+the running heads) stays where it was set, and links, destinations and
+bookmarks move with the text.
+
+A preprocessor that sets a title over its display keeps them together
+with the register `book-keep`: set, the next display's space above it
+does not stretch (`wwb/tableau` sets it over its countermodels' tables). A chapter's last page, a page broken by `.bp`, one set in
 columns or short by more than five lines stays as set. Of a book of 444
 pages, those ending short went from 47% to 27%, all chapters' ends, as
 LaTeX's 26%.
@@ -345,7 +354,10 @@ groff's additions), and set by TeX's rules:
     .EN
 
 `book` runs eqn when a book has equations, after
-`/lib/troff/eqnrc`: its settings for Libertinus Math. Brackets (`left (`
+`/lib/troff/eqnrc`: its settings for Libertinus Math (by hand, `eqn
+/lib/troff/eqnrc - <doc`: eqn reads the files it is given in order, `-`
+its standard input, where Neateqn read only its standard input and
+ignored a file named). Brackets (`left (`
 ... `right )`) take the font's larger sizes, then are built from its
 pieces; radicals likewise; a displayed sum, product or integral is the
 font's display size, an inline one the text size with its limits beside

@@ -147,7 +147,7 @@ init(nil: ref Draw->Context, args: list of string)
 			}
 			def_choppedset(u8(v));
 		}else{
-			sys->fprint(sys->fildes(2), "usage: eqn [options] <input >output\n\n" +
+			sys->fprint(sys->fildes(2), "usage: eqn [options] [file ...] >output\n\n" +
 				"options:\n" +
 				"  -c chars  \tcharacters that chop equations\n" +
 				"  -t        \teach equation tagged, for a tagged PDF\n");
@@ -156,6 +156,8 @@ init(nil: ref Draw->Context, args: list of string)
 	}
 	def_init();
 	src_init(bufio->fopen(sys->fildes(0), Bufio->OREAD));
+	if(args != nil)
+		src_files(args);
 	stdout = bufio->fopen(sys->fildes(1), Bufio->OWRITE);
 	{
 		for(i := 0; i < len def_macros; i += 2)

@@ -5,13 +5,25 @@ eqn \- typeset mathematics
 .B eqn
 [
 .BI -c " chars"
+] [
+.B -t
+] [
+.I file ...
 ]
 .SH DESCRIPTION
 .I Eqn
 is a preprocessor for
 .IR troff (1):
-it reads troff's input on its standard input and writes it on its
-standard output with each equation turned into what troff sets it by.
+it reads troff's input from the
+.IR file s,
+in order
+.RB ( -
+its standard input), or from its standard input if none is named, and
+writes it on its standard output with each equation turned into what
+troff sets it by
+(Neateqn reads only its standard input, and named no file;
+.B "eqn /lib/troff/eqnrc -"
+reads the settings first, then the document).
 An equation is a display, between
 .B .EQ
 and
