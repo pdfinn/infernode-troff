@@ -185,24 +185,33 @@ endgame databases, then Morphy's Opera Game of 1858.*
 
 ## Benchmarks
 
-Measured on a 2.1 GHz Xeon (Linux, amd64), InferNode's JIT (`emu -c1`),
-but for the rows marked †, measured on a 2.8 GHz Xeon (`docs/TROFF.md`).
+Each is a complete build, from a clean directory to the finished PDF,
+timed by the clock on one machine: a 4-core 2.1 GHz Xeon, Linux amd64,
+TeX Live 2023. troff for InferNode runs under InferNode's JIT
+(`emu -c1`), its start included, as `book -f` (microtypography on, as
+`microtype` is in the LaTeX). LaTeX runs as latexmk would run it: a
+pass, biber where there are citations, then passes until LaTeX stops
+asking for another; font caches warm. The LaTeX for the examples and
+the book of mathematics is `book2tex`'s, from the same source. Each
+time is the better of two runs.
 
-| | troff for InferNode | for comparison |
-|---|---|---|
-| 245-page book of mathematics (`tools/mathbook.py`: 1,440 inline equations, 360 displays), from nothing | 13.5 s (two passes) | XeLaTeX on `book2tex`'s LaTeX: 2.3 s a pass |
-| the same, rebuilt after an edit | 9.1 s (one pass) | |
-| 235-page doctoral dissertation (notes in Chicago's style, figures), `book -f` | 12.7 s | |
-| the same dissertation † | 12 s | XeLaTeX: 40 s (three passes and biber) |
-| 23 hard displays (`tests/eqn/hard.ms`), emulator start included † | 0.6 s | XeLaTeX, one pass: 0.8 s |
-| 62-page `-ms` paper, one troff pass † | 1.36 s | C Neatroff: 0.58 s |
-| PDF/UA-1 (veraPDF) | conforms | LaTeX's default output is untagged |
+| | troff for InferNode | XeLaTeX | LuaLaTeX |
+|---|---|---|---|
+| [`chapter.ms`](examples/chapter.ms): 3 pages, notes, citations, equations, a table, a picture | **0.7 s** | 5.9 s (3 passes, biber) | 9.5 s (3 passes, biber) |
+| [`maths.ms`](examples/maths.ms): a page of hard displays | **0.5 s** | 1.9 s (2 passes) | 3.8 s (2 passes) |
+| A doctoral dissertation: 235 pages, Chicago-style notes on most of them (297 works cited), figures | **12.4 s** | 42.6 s (3 passes, biber) | 62.8 s (3 passes, biber) |
+| A book of mathematics (`tools/mathbook.py`): 245 pages, 1,440 inline equations, 360 displays | 13.9 s | **4.6 s** (2 passes) | 11.0 s (2 passes) |
+| Tagged PDF, conforming to PDF/UA-1 (veraPDF) | yes | no (untagged by default) | no (untagged by default) |
 
-LaTeX is faster on a long book full of mathematics; troff for InferNode
-runs as Dis bytecode, and much of its time there is the virtual
-machine's own (reference counting, calls, allocation). On a thesis of
-prose and notes, it is faster: one run of `book` against three of
-XeLaTeX and one of biber.
+On the dissertation troff for InferNode is 3½ times as fast as
+XeLaTeX and 5 times as fast as LuaLaTeX; on the short documents, 4 to
+14 times. Where mathematics fills every page, XeLaTeX is 3 times as
+fast, and LuaLaTeX a little faster. troff runs as Dis bytecode
+here, and measures each part of an equation by setting it again, where
+TeX keeps the sizes it has (`docs/TROFF.md`, Speed). The dissertation
+was written for XeLaTeX in Minion Pro, which is not on this machine: in
+both LaTeX runs Libertinus Serif replaces it, as troff sets it, and its
+few Greek words go without babel's Greek, which is not installed either.
 
 The quality of the text, on 180 pages of this tree's prose, against
 LuaLaTeX with microtype on the same pages:
