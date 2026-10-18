@@ -429,6 +429,14 @@ points and scriptscripts 6.6 (`set scaled_sizes 1`: the device's
 points). The 23 displays take 0.6 seconds, eqn, troff and tr2pdf, emu's
 start included; one XeLaTeX pass over 22 of them, its font cache warm,
 takes 0.8 (cold, 2). At a book's length XeLaTeX is faster (see Speed).
+What is the font's in all this is its MATH table's: `mkfn -M` writes
+it as eqn's settings (constants, maths italic glyphs and their italic
+corrections and accent attachments, accents, delimiters' and braces'
+sizes and pieces, big operators), and `/lib/troff/eqnrc` holds what it
+writes for Libertinus Math after TeX's own rules. Another OpenType math
+font is the same two commands (`mkfn -M`, and its description as S):
+Latin Modern Math, set so, puts the 23 displays where XeLaTeX with
+`\setmathfont{Latin Modern Math}` puts them.
 `tests/host/maths_test.sh` checks each against TeX's placement;
 `tests/host/sizescale_test.sh` checks troff's scaled sizes.
 

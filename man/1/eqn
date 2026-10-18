@@ -225,6 +225,26 @@ in thousandths of an em but the height; over more than one glyph the
 widest variant not wider than it, and
 .B bar
 an overline;
+.B mathital
+.I "n code glyph"
+\&... names the glyph of each letter in maths italic (by its plain
+letter's code: 97 for a, 945 for \(*a), and
+.B italcorr
+.I "n glyph value"
+\&... its italic correction, in thousandths of an em, put after it where
+TeX puts it, for troff's
+.BR \e/ ;
+.B bracesizes
+.RB over | under
+.I "n glyph width"
+\&... and
+.B bracepieces
+.RB over | under
+.I "lt ltw ex exw md mdw rt rtw overlap"
+are the braces' sizes and pieces; all as
+.IR mkfn (1)'s
+.B -M
+writes them from a font's MATH table;
 .B "set scaled_sizes 1"
 keeps sizes in the device's scaled points
 .RI ( troff (1)'s

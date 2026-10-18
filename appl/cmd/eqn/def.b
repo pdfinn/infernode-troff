@@ -626,3 +626,46 @@ def_accent(name: string): array of Accvar
 	}
 	return nil;
 }
+
+# the maths italic letters' glyphs, by the plain letter's code (mathital)
+mathitals := array[16r400] of string;
+
+def_mathitalput(c: int, gl: string)
+{
+	if(c >= 0 && c < len mathitals)
+		mathitals[c] = gl;
+}
+
+# the font's italic corrections, in thousandths of an em (italcorr)
+italcorrs: list of (string, int);
+
+def_italcorr(gl: string): (int, int)
+{
+	for(l := italcorrs; l != nil; l = tl l){
+		(g, v) := hd l;
+		if(g == gl)
+			return (1, v);
+	}
+	return (0, 0);
+}
+
+# the braces over and under: the font's sizes (each a glyph and its
+# width) and pieces (left, extender, middle, right, each a glyph and its
+# width, and their overlap), in thousandths of an em (bracesizes,
+# bracepieces)
+Brace: adt {
+	sizes:	list of (string, int);
+	lt, ex, md, rt:	string;
+	ltw, exw, mdw, rtw, ov:	int;
+};
+braces := array[2] of ref Brace;
+
+def_brace(over: int): ref Brace
+{
+	i := 1;
+	if(over)
+		i = 0;
+	if(braces[i] == nil)
+		braces[i] = ref Brace(nil, nil, nil, nil, nil, 0, 0, 0, 0, 0);
+	return braces[i];
+}

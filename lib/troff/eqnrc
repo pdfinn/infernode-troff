@@ -1,48 +1,22 @@
 .\" eqnrc - eqn(1)'s settings for Libertinus Math: read before a
 .\" document's equations (book(1) puts it first when there are any)
 .\"
+.\" What is TeX's, whatever the font: its rules for atoms, styles,
+.\" fractions, arrays, accents and delimiters (set tex_...), maths italic
+.\" letters, sizes in hundredths of a point (scaled_sizes), its classes
+.\" for characters (! and ? closing, . ordinary, : a relation), and the
+.\" names of functions as operators (a thin space each side, none before a
+.\" parenthesis; limits under lim and max in a display). What is the
+.\" font's, after it: its MATH table, as mkfn -M writes it; for another
+.\" OpenType math font mounted as S, put mkfn -M's for it there instead.
+.\"
 .\" the mathematical symbols the text fonts lack, from the math font
 .fspecial R S
 .fspecial I S
 .fspecial B S
-.\" rules: fractions' and radicals' bars, as one line however long
-.char \(ru \f[S]\N'uni23AF'
-.char \(rn \f[S]\N'uni23AF'
-.\" Libertinus Math's own parameters (its MATH table's), for TeX's from
-.\" Computer Modern: hundredths of an em, as LuaTeX maps them;
-.\" characters' classes as TeX's (! and ? closing, . ordinary, : a
-.\" relation); the names of functions operators, as TeX's: a thin space each side
-.\" (none before a parenthesis), limits under lim and max in a display;
-.\" an integral's limits beside it, as TeX's, its lower limit under its
-.\" tail by its italic correction (the MATH table's); TeX's names for its dots,
-.\" nabla and h-bar (eqn's own: ..., cdot, del, grad) and its triple and
-.\" contour integrals
 .EQ
 set text_limits 1
-set script_percent_scale_down 80
-set script_script_percent_scale_down 60
-set axis_height 26
-set x_height 43
-set default_rule_thickness 7
-set num1 58
-set num2 48
-set denom1 70
-set denom2 48
-set sup1 38
-set sup2 38
-set sup3 31
-set sub1 21
-set sub2 21
-set sup_drop 23
-set sub_drop 5
-set big_op_spacing1 15
-set big_op_spacing2 15
-set big_op_spacing3 25
-set big_op_spacing4 62
-set script_space 4
 set tex_script_drop 1
-set fraction_display_gap 20
-set fraction_gap 7
 set tex_arrays 1
 set script_kern 0
 set over_hang 0
@@ -52,101 +26,15 @@ set tex_greek 1
 gsfont S
 set fraction_ord 1
 set math_italic 1
-.EN
-.\" Accents as TeX sets them (tex_accents), from Libertinus Math's MATH
-.\" table: each base glyph's top accent attachment, in thousandths of an
-.\" em (the italic letters'); each accent's glyph and its wider variants,
-.\" each glyph's attachment and width; AccentBaseHeight 440
-.EQ
 set tex_accents 1
-set accent_base_height 44
-accentpos 8 u1D434 492 u1D435 365 u1D436 401 u1D437 370 u1D438 392 u1D439 384 u1D43A 419 u1D43B 452
-accentpos 8 u1D43C 287 u1D43D 419 u1D43E 437 u1D43F 359 u1D440 531 u1D441 454 u1D442 418 u1D443 400
-accentpos 8 u1D444 401 u1D445 393 u1D446 341 u1D447 336 u1D448 354 u1D449 361 u1D44A 465 u1D44B 469
-accentpos 8 u1D44C 303 u1D44D 399 u1D44E 252 u1D44F 161 u1D450 250 u1D451 263 u1D452 239 u1D453 473
-accentpos 8 u1D454 290 u1D456 166 u1D457 267 u1D458 198 u1D459 179 u1D45A 400 u1D45B 295 u1D45C 271
-accentpos 8 u1D45D 420 u1D45E 278 u1D45F 213 u1D460 218 u1D461 176 u1D462 291 u1D463 285 u1D464 397
-accentpos 8 u1D465 321 u1D466 308 u1D467 296 u1D6E2 492 u1D6E3 421 u1D6E4 423 u1D6E5 433 u1D6E6 392
-accentpos 8 u1D6E7 399 u1D6E8 452 u1D6E9 388 u1D6EA 287 u1D6EB 437 u1D6EC 449 u1D6ED 531 u1D6EE 454
-accentpos 8 u1D6EF 389 u1D6F0 418 u1D6F1 468 u1D6F2 400 u1D6F3 399 u1D6F4 413 u1D6F5 336 u1D6F6 303
-accentpos 8 u1D6F7 383 u1D6F8 469 u1D6F9 355 u1D6FA 439 u1D6FB 285 u1D6FC 287 u1D6FD 427 u1D6FE 254
-accentpos 8 u1D6FF 297 u1D700 260 u1D701 294 u1D702 270 u1D703 315 u1D704 141 u1D705 273 u1D706 286
-accentpos 8 u1D707 338 u1D708 245 u1D709 288 u1D70A 271 u1D70B 326 u1D70C 377 u1D70D 262 u1D70E 264
-accentpos 8 u1D70F 225 u1D710 241 u1D711 324 u1D712 394 u1D713 383 u1D714 379 u1D715 307 u1D716 287
-accentpos 5 u1D717 313 u1D718 305 u1D719 385 u1D71A 297 u1D71B 371
-accent hat 6 uni0302 "-138" 253 uni0302.size1 286 574 uni0302.size2 501 1003 uni0302.size3 748 1496 uni0302.size4 966 1932 uni0302.size5 1192 2385
-accent tilde 6 tildecomb "-138" 279 tildecomb.size1 286 574 tildecomb.size2 501 1003 tildecomb.size3 747 1496 tildecomb.size4 965 1932 tildecomb.size5 1192 2385
-accent bar 1 uni0304 "-206" 0
-accent dot 1 uni0307 "-180" 0
-accent dotdot 1 uni0308 "-210" 0
-accent vec 1 uni20D7 210 421
-accent dyad 1 uni20E1 320 641
 set tex_fractions 1
 set scaled_sizes 1
-set stack_top_display_shift_up 75
-set stack_top_shift_up 47
-set stack_bottom_display_shift_down 70
-set stack_bottom_shift_down 38
-set stack_display_gap_min 33
-set stack_gap_min 20
-set radical_vertical_gap 9
-set radical_display_vertical_gap 17
-set radical_rule_thickness 4
-set radical_degree_bottom_raise_percent 50
-set radical_kern_before_degree 9
-set radical_kern_after_degree -38
 set delimiter_factor 901
 set delimiter_shortfall 45
 chartype close "!"
 chartype close "?"
 chartype ord "."
 chartype rel ":"
-set sub_superscript_gap_min 15
-set superscript_bottom_max_with_subscript 38
-set superscript_bottom_min 12
-set subscript_top_max 36
-bracketsizes ( 13 "\f[S](\f[P]" "\N'parenleft.size1'" "\N'parenleft.size2'" "\N'parenleft.size3'" "\N'parenleft.size4'" "\N'parenleft.size5'" "\N'parenleft.size6'" "\N'parenleft.size7'" "\N'parenleft.size8'" "\N'parenleft.size9'" "\N'parenleft.size10'" "\N'parenleft.size11'" "\N'parenleft.size12'"
-bracketsizes ) 13 "\f[S])\f[P]" "\N'parenright.size1'" "\N'parenright.size2'" "\N'parenright.size3'" "\N'parenright.size4'" "\N'parenright.size5'" "\N'parenright.size6'" "\N'parenright.size7'" "\N'parenright.size8'" "\N'parenright.size9'" "\N'parenright.size10'" "\N'parenright.size11'" "\N'parenright.size12'"
-bracketsizes [ 13 "\f[S][\f[P]" "\N'bracketleft.size1'" "\N'bracketleft.size2'" "\N'bracketleft.size3'" "\N'bracketleft.size4'" "\N'bracketleft.size5'" "\N'bracketleft.size6'" "\N'bracketleft.size7'" "\N'bracketleft.size8'" "\N'bracketleft.size9'" "\N'bracketleft.size10'" "\N'bracketleft.size11'" "\N'bracketleft.size12'"
-bracketsizes ] 13 "\f[S]]\f[P]" "\N'bracketright.size1'" "\N'bracketright.size2'" "\N'bracketright.size3'" "\N'bracketright.size4'" "\N'bracketright.size5'" "\N'bracketright.size6'" "\N'bracketright.size7'" "\N'bracketright.size8'" "\N'bracketright.size9'" "\N'bracketright.size10'" "\N'bracketright.size11'" "\N'bracketright.size12'"
-bracketsizes { 13 "\f[S]{\f[P]" "\N'braceleft.size1'" "\N'braceleft.size2'" "\N'braceleft.size3'" "\N'braceleft.size4'" "\N'braceleft.size5'" "\N'braceleft.size6'" "\N'braceleft.size7'" "\N'braceleft.size8'" "\N'braceleft.size9'" "\N'braceleft.size10'" "\N'braceleft.size11'" "\N'braceleft.size12'"
-bracketsizes } 13 "\f[S]}\f[P]" "\N'braceright.size1'" "\N'braceright.size2'" "\N'braceright.size3'" "\N'braceright.size4'" "\N'braceright.size5'" "\N'braceright.size6'" "\N'braceright.size7'" "\N'braceright.size8'" "\N'braceright.size9'" "\N'braceright.size10'" "\N'braceright.size11'" "\N'braceright.size12'"
-bracketsizes \(lc 13 "\f[S]\N'uni2308'\f[P]" "\N'uni2308.size1'" "\N'uni2308.size2'" "\N'uni2308.size3'" "\N'uni2308.size4'" "\N'uni2308.size5'" "\N'uni2308.size6'" "\N'uni2308.size7'" "\N'uni2308.size8'" "\N'uni2308.size9'" "\N'uni2308.size10'" "\N'uni2308.size11'" "\N'uni2308.size12'"
-bracketsizes \(rc 13 "\f[S]\N'uni2309'\f[P]" "\N'uni2309.size1'" "\N'uni2309.size2'" "\N'uni2309.size3'" "\N'uni2309.size4'" "\N'uni2309.size5'" "\N'uni2309.size6'" "\N'uni2309.size7'" "\N'uni2309.size8'" "\N'uni2309.size9'" "\N'uni2309.size10'" "\N'uni2309.size11'" "\N'uni2309.size12'"
-bracketsizes \(lf 13 "\f[S]\N'uni230A'\f[P]" "\N'uni230A.size1'" "\N'uni230A.size2'" "\N'uni230A.size3'" "\N'uni230A.size4'" "\N'uni230A.size5'" "\N'uni230A.size6'" "\N'uni230A.size7'" "\N'uni230A.size8'" "\N'uni230A.size9'" "\N'uni230A.size10'" "\N'uni230A.size11'" "\N'uni230A.size12'"
-bracketsizes \(rf 13 "\f[S]\N'uni230B'\f[P]" "\N'uni230B.size1'" "\N'uni230B.size2'" "\N'uni230B.size3'" "\N'uni230B.size4'" "\N'uni230B.size5'" "\N'uni230B.size6'" "\N'uni230B.size7'" "\N'uni230B.size8'" "\N'uni230B.size9'" "\N'uni230B.size10'" "\N'uni230B.size11'" "\N'uni230B.size12'"
-bracketsizes \(la 13 "\f[S]\N'uni27E8'\f[P]" "\N'uni27E8.size1'" "\N'uni27E8.size2'" "\N'uni27E8.size3'" "\N'uni27E8.size4'" "\N'uni27E8.size5'" "\N'uni27E8.size6'" "\N'uni27E8.size7'" "\N'uni27E8.size8'" "\N'uni27E8.size9'" "\N'uni27E8.size10'" "\N'uni27E8.size11'" "\N'uni27E8.size12'"
-bracketsizes \(ra 13 "\f[S]\N'uni27E9'\f[P]" "\N'uni27E9.size1'" "\N'uni27E9.size2'" "\N'uni27E9.size3'" "\N'uni27E9.size4'" "\N'uni27E9.size5'" "\N'uni27E9.size6'" "\N'uni27E9.size7'" "\N'uni27E9.size8'" "\N'uni27E9.size9'" "\N'uni27E9.size10'" "\N'uni27E9.size11'" "\N'uni27E9.size12'"
-bracketsizes | 13 "\f[S]|\f[P]" "\N'bar.size1'" "\N'bar.size2'" "\N'bar.size3'" "\N'bar.size4'" "\N'bar.size5'" "\N'bar.size6'" "\N'bar.size7'" "\N'bar.size8'" "\N'bar.size9'" "\N'bar.size10'" "\N'bar.size11'" "\N'bar.size12'"
-bracketsizes \(sr 8 "\f[S]\N'radical'\f[P]" "\N'radical.size1'" "\N'radical.size2'" "\N'radical.size3'" "\N'radical.size4'" "\N'radical.size5'" "\N'radical.size6'" "\N'radical.size7'"
-bracketpieces ( "⎛" "⎜" "⎝" ""
-bracketpieces ) "⎞" "⎟" "⎠" ""
-bracketpieces [ "⎡" "⎢" "⎣" ""
-bracketpieces ] "⎤" "⎥" "⎦" ""
-bracketpieces { "⎧" "⎪" "⎩" "⎨"
-bracketpieces } "⎫" "⎪" "⎭" "⎬"
-bracketpieces \(lc "⎡" "⎢" "⎢" ""
-bracketpieces \(rc "⎤" "⎥" "⎥" ""
-bracketpieces \(lf "⎢" "⎢" "⎣" ""
-bracketpieces \(rf "⎥" "⎥" "⎦" ""
-bracketpieces \(sr "\N'radical.tp'" "\N'radical.md'" "\N'radical.bt'" ""
-define sum @ifdisplay {type op vcenter roman "\N'summation.size1'"} {type op vcenter roman "\N'summation'"}@
-define prod @ifdisplay {type op vcenter roman "\N'product.size1'"} {type op vcenter roman "\N'product'"}@
-define coprod @ifdisplay {type op vcenter roman "\N'uni2210.size1'"} {type op vcenter roman "\N'uni2210'"}@
-define int @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'integral.size1'"} {type op icorr 15 vcenter roman "\N'integral'"}@
-define iint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222C.size1'"} {type op icorr 15 vcenter roman "\N'uni222C'"}@
-define oint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222E.size1'"} {type op vcenter roman "\N'uni222E'"}@
-define bigcup @ifdisplay {type op vcenter roman "\N'uni22C3.size1'"} {type op vcenter roman "\N'uni22C3'"}@
-define bigcap @ifdisplay {type op vcenter roman "\N'uni22C2.size1'"} {type op vcenter roman "\N'uni22C2'"}@
-define iiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222D.size1'"} {type op icorr 15 vcenter roman "\N'uni222D'"}@
-define oiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222F.size1'"} {type op vcenter roman "\N'uni222F'"}@
-define oiiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni2230.size1'"} {type op vcenter roman "\N'uni2230'"}@
-define cdots @roman "\N'uni22EF'"@
-define ldots @roman "\N'ellipsis'"@
-define vdots @roman "\N'uni22EE'"@
-define ddots @roman "\N'uni22F1'"@
-define nabla @roman "\N'gradient'"@
-define hbar @roman "\N'uni210F'"@
 define sin @type op roman "sin"@
 define cos @type op roman "cos"@
 define tan @type op roman "tan"@
@@ -176,4 +64,143 @@ define hom @type op roman "hom"@
 define ker @type op roman "ker"@
 define Pr @type op roman "Pr"@
 .EN
+.\" ---- mkfn -M /fonts/libertinus/LibertinusMath-Regular.otf ----
+.\" LibertinusMath-Regular's MATH table, by mkfn -M: its constants, maths italic,
+.\" accents, delimiters, braces and big operators for eqn
+.char \(ru \f[S]\N'uni23AF'
+.char \(rn \f[S]\N'uni23AF'
+.EQ
+set script_percent_scale_down 80
+set script_script_percent_scale_down 60
+set axis_height 26
+set x_height 43
+set default_rule_thickness 7
+set num1 58
+set num2 48
+set denom1 70
+set denom2 48
+set sup1 38
+set sup2 38
+set sup3 31
+set sub1 21
+set sub2 21
+set sup_drop 23
+set sub_drop 5
+set big_op_spacing1 15
+set big_op_spacing2 15
+set big_op_spacing3 25
+set big_op_spacing4 62
+set script_space 4
+set fraction_display_gap 20
+set fraction_gap 7
+set sub_superscript_gap_min 15
+set superscript_bottom_max_with_subscript 38
+set superscript_bottom_min 12
+set subscript_top_max 36
+set stack_top_display_shift_up 75
+set stack_top_shift_up 47
+set stack_bottom_display_shift_down 70
+set stack_bottom_shift_down 38
+set stack_display_gap_min 33
+set stack_gap_min 20
+set stretch_stack_gap 7
+set accent_base_height 44
+set radical_vertical_gap 9
+set radical_display_vertical_gap 17
+set radical_rule_thickness 4
+set radical_degree_bottom_raise_percent 50
+set radical_kern_before_degree 9
+set radical_kern_after_degree -38
+mathital 8 104 uni210E 969 u1D714 968 u1D713 967 u1D712 966 u1D711 965 u1D710 964 u1D70F 963 u1D70E
+mathital 8 962 u1D70D 961 u1D70C 960 u1D70B 959 u1D70A 958 u1D709 957 u1D708 956 u1D707 955 u1D706
+mathital 8 954 u1D705 953 u1D704 952 u1D703 951 u1D702 950 u1D701 949 u1D700 948 u1D6FF 947 u1D6FE
+mathital 8 946 u1D6FD 945 u1D6FC 90 u1D44D 89 u1D44C 88 u1D44B 87 u1D44A 86 u1D449 85 u1D448
+mathital 8 84 u1D447 83 u1D446 82 u1D445 81 u1D444 80 u1D443 79 u1D442 78 u1D441 77 u1D440
+mathital 8 76 u1D43F 75 u1D43E 74 u1D43D 73 u1D43C 72 u1D43B 71 u1D43A 70 u1D439 69 u1D438
+mathital 8 68 u1D437 67 u1D436 66 u1D435 65 u1D434 122 u1D467 121 u1D466 120 u1D465 119 u1D464
+mathital 8 118 u1D463 117 u1D462 116 u1D461 115 u1D460 114 u1D45F 113 u1D45E 112 u1D45D 111 u1D45C
+mathital 8 110 u1D45B 109 u1D45A 108 u1D459 107 u1D458 106 u1D457 105 u1D456 103 u1D454 102 u1D453
+mathital 5 101 u1D452 100 u1D451 99 u1D450 98 u1D44F 97 u1D44E
+italcorr 8 u1D714 42 u1D713 122 u1D712 105 u1D711 43 u1D710 47 u1D70F 108 u1D70E 100 u1D70D 71
+italcorr 8 u1D70C 44 u1D70B 94 u1D70A 38 u1D709 124 u1D708 80 u1D707 44 u1D706 25 u1D705 48
+italcorr 8 u1D704 30 u1D703 83 u1D701 141 u1D700 64 u1D6FF 87 u1D6FE 115 u1D6FD 74 u1D6FC 86
+italcorr 8 u1D44D 115 u1D44C 131 u1D44B 124 u1D44A 151 u1D449 148 u1D448 146 u1D447 132 u1D446 59
+italcorr 8 u1D445 10 u1D444 58 u1D443 95 u1D442 58 u1D441 142 u1D440 90 u1D43E 105 u1D43D 126
+italcorr 8 u1D43C 127 u1D43B 124 u1D43A 62 u1D439 116 u1D438 47 u1D437 46 u1D436 74 u1D435 24
+italcorr 8 u1D467 51 u1D466 96 u1D465 81 u1D464 97 u1D463 97 u1D462 36 u1D461 76 u1D460 44
+italcorr 8 u1D45F 92 u1D45E 36 u1D45D 40 u1D45C 38 u1D45B 22 u1D45A 23 u1D459 65 u1D458 54
+italcorr 8 u1D457 63 u1D454 59 u1D453 168 u1D452 43 u1D451 78 u1D450 54 u1D44F 34 u1D44E 26
+accentpos 8 u1D714 379 u1D713 383 u1D712 394 u1D711 324 u1D710 241 u1D70F 225 u1D70E 264 u1D70D 262
+accentpos 8 u1D70C 377 u1D70B 326 u1D70A 271 u1D709 288 u1D708 245 u1D707 338 u1D706 286 u1D705 273
+accentpos 8 u1D704 141 u1D703 315 u1D702 270 u1D701 294 u1D700 260 u1D6FF 297 u1D6FE 254 u1D6FD 427
+accentpos 8 u1D6FC 287 u1D44D 399 u1D44C 303 u1D44B 469 u1D44A 465 u1D449 361 u1D448 354 u1D447 336
+accentpos 8 u1D446 341 u1D445 393 u1D444 401 u1D443 400 u1D442 418 u1D441 454 u1D440 531 u1D43F 359
+accentpos 8 u1D43E 437 u1D43D 419 u1D43C 287 u1D43B 452 u1D43A 419 u1D439 384 u1D438 392 u1D437 370
+accentpos 8 u1D436 401 u1D435 365 u1D434 492 u1D467 296 u1D466 308 u1D465 321 u1D464 397 u1D463 285
+accentpos 8 u1D462 291 u1D461 176 u1D460 218 u1D45F 213 u1D45E 278 u1D45D 420 u1D45C 271 u1D45B 295
+accentpos 8 u1D45A 400 u1D459 179 u1D458 198 u1D457 267 u1D456 166 u1D454 290 u1D453 473 u1D452 239
+accentpos 4 u1D451 263 u1D450 250 u1D44F 161 u1D44E 252
+accent hat 6 uni0302 "-138" 253 uni0302.size1 286 574 uni0302.size2 501 1003 uni0302.size3 748 1496 uni0302.size4 966 1932 uni0302.size5 1192 2385
+accent tilde 6 tildecomb "-138" 279 tildecomb.size1 286 574 tildecomb.size2 501 1003 tildecomb.size3 747 1496 tildecomb.size4 965 1932 tildecomb.size5 1192 2385
+accent bar 1 uni0304 "-206" 0
+accent dot 1 uni0307 "-180" 0
+accent dotdot 1 uni0308 "-210" 0
+accent vec 1 uni20D7 210 421
+accent dyad 1 uni20E1 320 641
+bracketsizes ( 13 "\f[S](\f[P]" "\N'parenleft.size1'" "\N'parenleft.size2'" "\N'parenleft.size3'" "\N'parenleft.size4'" "\N'parenleft.size5'" "\N'parenleft.size6'" "\N'parenleft.size7'" "\N'parenleft.size8'" "\N'parenleft.size9'" "\N'parenleft.size10'" "\N'parenleft.size11'" "\N'parenleft.size12'"
+bracketsizes ) 13 "\f[S])\f[P]" "\N'parenright.size1'" "\N'parenright.size2'" "\N'parenright.size3'" "\N'parenright.size4'" "\N'parenright.size5'" "\N'parenright.size6'" "\N'parenright.size7'" "\N'parenright.size8'" "\N'parenright.size9'" "\N'parenright.size10'" "\N'parenright.size11'" "\N'parenright.size12'"
+bracketsizes [ 13 "\f[S][\f[P]" "\N'bracketleft.size1'" "\N'bracketleft.size2'" "\N'bracketleft.size3'" "\N'bracketleft.size4'" "\N'bracketleft.size5'" "\N'bracketleft.size6'" "\N'bracketleft.size7'" "\N'bracketleft.size8'" "\N'bracketleft.size9'" "\N'bracketleft.size10'" "\N'bracketleft.size11'" "\N'bracketleft.size12'"
+bracketsizes ] 13 "\f[S]]\f[P]" "\N'bracketright.size1'" "\N'bracketright.size2'" "\N'bracketright.size3'" "\N'bracketright.size4'" "\N'bracketright.size5'" "\N'bracketright.size6'" "\N'bracketright.size7'" "\N'bracketright.size8'" "\N'bracketright.size9'" "\N'bracketright.size10'" "\N'bracketright.size11'" "\N'bracketright.size12'"
+bracketsizes { 13 "\f[S]{\f[P]" "\N'braceleft.size1'" "\N'braceleft.size2'" "\N'braceleft.size3'" "\N'braceleft.size4'" "\N'braceleft.size5'" "\N'braceleft.size6'" "\N'braceleft.size7'" "\N'braceleft.size8'" "\N'braceleft.size9'" "\N'braceleft.size10'" "\N'braceleft.size11'" "\N'braceleft.size12'"
+bracketsizes } 13 "\f[S]}\f[P]" "\N'braceright.size1'" "\N'braceright.size2'" "\N'braceright.size3'" "\N'braceright.size4'" "\N'braceright.size5'" "\N'braceright.size6'" "\N'braceright.size7'" "\N'braceright.size8'" "\N'braceright.size9'" "\N'braceright.size10'" "\N'braceright.size11'" "\N'braceright.size12'"
+bracketsizes \(lc 13 "\f[S]\N'uni2308'\f[P]" "\N'uni2308.size1'" "\N'uni2308.size2'" "\N'uni2308.size3'" "\N'uni2308.size4'" "\N'uni2308.size5'" "\N'uni2308.size6'" "\N'uni2308.size7'" "\N'uni2308.size8'" "\N'uni2308.size9'" "\N'uni2308.size10'" "\N'uni2308.size11'" "\N'uni2308.size12'"
+bracketsizes \(rc 13 "\f[S]\N'uni2309'\f[P]" "\N'uni2309.size1'" "\N'uni2309.size2'" "\N'uni2309.size3'" "\N'uni2309.size4'" "\N'uni2309.size5'" "\N'uni2309.size6'" "\N'uni2309.size7'" "\N'uni2309.size8'" "\N'uni2309.size9'" "\N'uni2309.size10'" "\N'uni2309.size11'" "\N'uni2309.size12'"
+bracketsizes \(lf 13 "\f[S]\N'uni230A'\f[P]" "\N'uni230A.size1'" "\N'uni230A.size2'" "\N'uni230A.size3'" "\N'uni230A.size4'" "\N'uni230A.size5'" "\N'uni230A.size6'" "\N'uni230A.size7'" "\N'uni230A.size8'" "\N'uni230A.size9'" "\N'uni230A.size10'" "\N'uni230A.size11'" "\N'uni230A.size12'"
+bracketsizes \(rf 13 "\f[S]\N'uni230B'\f[P]" "\N'uni230B.size1'" "\N'uni230B.size2'" "\N'uni230B.size3'" "\N'uni230B.size4'" "\N'uni230B.size5'" "\N'uni230B.size6'" "\N'uni230B.size7'" "\N'uni230B.size8'" "\N'uni230B.size9'" "\N'uni230B.size10'" "\N'uni230B.size11'" "\N'uni230B.size12'"
+bracketsizes \(la 13 "\f[S]\N'uni27E8'\f[P]" "\N'uni27E8.size1'" "\N'uni27E8.size2'" "\N'uni27E8.size3'" "\N'uni27E8.size4'" "\N'uni27E8.size5'" "\N'uni27E8.size6'" "\N'uni27E8.size7'" "\N'uni27E8.size8'" "\N'uni27E8.size9'" "\N'uni27E8.size10'" "\N'uni27E8.size11'" "\N'uni27E8.size12'"
+bracketsizes \(ra 13 "\f[S]\N'uni27E9'\f[P]" "\N'uni27E9.size1'" "\N'uni27E9.size2'" "\N'uni27E9.size3'" "\N'uni27E9.size4'" "\N'uni27E9.size5'" "\N'uni27E9.size6'" "\N'uni27E9.size7'" "\N'uni27E9.size8'" "\N'uni27E9.size9'" "\N'uni27E9.size10'" "\N'uni27E9.size11'" "\N'uni27E9.size12'"
+bracketsizes | 13 "\f[S]|\f[P]" "\N'bar.size1'" "\N'bar.size2'" "\N'bar.size3'" "\N'bar.size4'" "\N'bar.size5'" "\N'bar.size6'" "\N'bar.size7'" "\N'bar.size8'" "\N'bar.size9'" "\N'bar.size10'" "\N'bar.size11'" "\N'bar.size12'"
+bracketsizes \(sr 8 "\f[S]\N'radical'\f[P]" "\N'radical.size1'" "\N'radical.size2'" "\N'radical.size3'" "\N'radical.size4'" "\N'radical.size5'" "\N'radical.size6'" "\N'radical.size7'"
+bracketpieces ( "\N'uni239B'" "\N'uni239C'" "\N'uni239D'" ""
+bracketpieces ) "\N'uni239E'" "\N'uni239F'" "\N'uni23A0'" ""
+bracketpieces [ "\N'uni23A1'" "\N'uni23A2'" "\N'uni23A3'" ""
+bracketpieces ] "\N'uni23A4'" "\N'uni23A5'" "\N'uni23A6'" ""
+bracketpieces { "\N'uni23A7'" "\N'uni23AA'" "\N'uni23A9'" "\N'uni23A8'"
+bracketpieces } "\N'uni23AB'" "\N'uni23AA'" "\N'uni23AD'" "\N'uni23AC'"
+bracketpieces \(lc "\N'uni23A1'" "\N'uni23A2'" "\N'uni23A2'" ""
+bracketpieces \(rc "\N'uni23A4'" "\N'uni23A5'" "\N'uni23A5'" ""
+bracketpieces \(lf "\N'uni23A2'" "\N'uni23A2'" "\N'uni23A3'" ""
+bracketpieces \(rf "\N'uni23A5'" "\N'uni23A5'" "\N'uni23A6'" ""
+bracketpieces | "\N'bar'" "\N'bar'" "\N'bar'" ""
+bracketpieces \(sr "\N'radical.tp'" "\N'radical.md'" "\N'radical.bt'" ""
+bracesizes over 6 uni23DE 621 uni23DE.size1 1001 uni23DE.size2 1501 uni23DE.size3 1771 uni23DE.size4 2181 uni23DE.size5 2601
+bracepieces over uni23DE.lt 431 uni23DE.ex 432 uni23DE.md 893 uni23DE.rt 431 144
+bracesizes under 6 uni23DF 621 uni23DF.size1 1001 uni23DF.size2 1501 uni23DF.size3 1771 uni23DF.size4 2181 uni23DF.size5 2601
+bracepieces under uni23DF.lt 431 uni23DF.ex 430 uni23DF.md 893 uni23DF.rt 431 143
+define sum @ifdisplay {type op vcenter roman "\N'summation.size1'"} {type op vcenter roman "\N'summation'"}@
+define prod @ifdisplay {type op vcenter roman "\N'product.size1'"} {type op vcenter roman "\N'product'"}@
+define coprod @ifdisplay {type op vcenter roman "\N'uni2210.size1'"} {type op vcenter roman "\N'uni2210'"}@
+define int @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'integral.size1'"} {type op icorr 15 vcenter roman "\N'integral'"}@
+define iint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222C.size1'"} {type op icorr 15 vcenter roman "\N'uni222C'"}@
+define oint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222E.size1'"} {type op vcenter roman "\N'uni222E'"}@
+define bigcup @ifdisplay {type op vcenter roman "\N'uni22C3.size1'"} {type op vcenter roman "\N'uni22C3'"}@
+define bigcap @ifdisplay {type op vcenter roman "\N'uni22C2.size1'"} {type op vcenter roman "\N'uni22C2'"}@
+define iiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222D.size1'"} {type op icorr 15 vcenter roman "\N'uni222D'"}@
+define oiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222F.size1'"} {type op vcenter roman "\N'uni222F'"}@
+define oiiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni2230.size1'"} {type op vcenter roman "\N'uni2230'"}@
+define bigvee @ifdisplay {type op vcenter roman "\N'uni22C1.size1'"} {type op vcenter roman "\N'uni22C1'"}@
+define bigwedge @ifdisplay {type op vcenter roman "\N'uni22C0.size1'"} {type op vcenter roman "\N'uni22C0'"}@
+define bigodot @ifdisplay {type op vcenter roman "\N'uni2A00.size1'"} {type op vcenter roman "\N'uni2A00'"}@
+define bigoplus @ifdisplay {type op vcenter roman "\N'uni2A01.size1'"} {type op vcenter roman "\N'uni2A01'"}@
+define bigotimes @ifdisplay {type op vcenter roman "\N'uni2A02.size1'"} {type op vcenter roman "\N'uni2A02'"}@
+define biguplus @ifdisplay {type op vcenter roman "\N'uni2A04.size1'"} {type op vcenter roman "\N'uni2A04'"}@
+define bigsqcup @ifdisplay {type op vcenter roman "\N'uni2A06.size1'"} {type op vcenter roman "\N'uni2A06'"}@
+define cdots @roman "\N'uni22EF'"@
+define ldots @roman "\N'ellipsis'"@
+define vdots @roman "\N'uni22EE'"@
+define ddots @roman "\N'uni22F1'"@
+define nabla @roman "\N'gradient'"@
+define hbar @roman "\N'uni210F'"@
+.EN
+.\" ---- end of mkfn -M ----
 .lf 1

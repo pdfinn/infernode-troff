@@ -14,11 +14,12 @@ Box: adt {
 	tomark:	string;		# a register for its width
 	sht:	int;		# registers of a strut's height and depth in
 	sdp:	int;		# it (TeX's \strut), its ink aside; 0 if none
+	lastgl:	string;		# its last glyph, if a maths italic letter (italcorr)
 };
 
 box_alloc(szreg, pre, style: int): ref Box
 {
-	box := ref Box("", szreg, 0, 0, 0, 0, 0, style, nil, 0, 0);
+	box := ref Box("", szreg, 0, 0, 0, 0, 0, style, nil, 0, 0, nil);
 	if(pre)
 		box.tcur = pre;
 	return box;
@@ -159,8 +160,21 @@ box_gaps(box: ref Box, cur: int): int
 box_italiccorrection(box: ref Box)
 {
 	if(box.atoms && (box.tcur & T_ITALIC))
-		box_put(box, "\\/");
+		box_put(box, icorr(box.lastgl));
 	box.tcur &= ~T_ITALIC;
+	box.lastgl = nil;
+}
+
+# the italic correction after a glyph: the font's (italcorr), if eqnrc
+# gives its maths italic's, else troff's (\/)
+icorr(gl: string): string
+{
+	if(gl == nil || italcorrs == nil)
+		return "\\/";
+	(ok, v) := def_italcorr(gl);
+	if(!ok || !v)
+		return "";
+	return "\\h'" + string v + "m/1000u'";
 }
 
 box_fixatom(cur, pre: int): int
@@ -233,6 +247,7 @@ box_merge(box, sub: ref Box, breakable: int)
 		box.tcur = sub.tcur;
 		box.atoms += sub.atoms;
 	}
+	box.lastgl = sub.lastgl;
 }
 
 # the larger of registers a and b in dst
@@ -1345,9 +1360,10 @@ box_array(box: ref Box, ncols: int, cols: array of array of ref Box, adj: array 
 # a brace over (or under) what is under (or over) it, as TeX's
 # \overbrace and \underbrace: the font's smallest wide enough, else one
 # made of its pieces (an OpenType math font's horizontal variants and
-# assembly: U+23DE and U+23DF, as Libertinus Math names them); a gap
-# between them (StretchStackGapBelowMin, above it); the whole a big
-# operator, its label a limit (to over it, from under it)
+# assembly of U+23DE and U+23DF: bracesizes and bracepieces, else
+# Libertinus Math's); a gap between them (StretchStackGapBelowMin,
+# above it); the whole a big operator, its label a limit (to over it,
+# from under it)
 BRACEWD := array[] of {621, 1001, 1501, 1771, 2181, 2601};
 BRACEPC := array[] of {431, 432, 893, 431, 144};	# lt, ex, md, rt, overlap
 
@@ -1356,6 +1372,18 @@ box_brace(box, sub: ref Box, over: int)
 	g := "uni23DE";
 	if(!over)
 		g = "uni23DF";
+	# the sizes and pieces
+	b := def_brace(over);
+	if(b.sizes == nil){
+		for(i := len BRACEWD - 1; i >= 0; i--){
+			v := g;
+			if(i)
+				v += ".size" + string i;
+			b.sizes = (v, BRACEWD[i]) :: b.sizes;
+		}
+		(b.lt, b.ex, b.md, b.rt) = (g + ".lt", g + ".ex", g + ".md", g + ".rt");
+		(b.ltw, b.exw, b.mdw, b.rtw, b.ov) = (BRACEPC[0], BRACEPC[1], BRACEPC[2], BRACEPC[3], BRACEPC[4]);
+	}
 	br := sregmk();
 	ex := nregmk();
 	rise := nregmk();
@@ -1368,29 +1396,27 @@ box_brace(box, sub: ref Box, over: int)
 	# cannot be compared with .if '...'')
 	fnd := nregmk();
 	printf(".nr " + nregname(fnd) + " 0\n");
-	for(i := 0; i < len BRACEWD; i++){
-		v := g;
-		if(i)
-			v += ".size" + string i;
-		printf(".if !" + nreg(fnd) + " .if " + nreg(sublen[0]) + "<=(" + string BRACEWD[i] + "m/1000u) .ds " +
+	for(l := b.sizes; l != nil; l = tl l){
+		(v, w) := hd l;
+		printf(".if !" + nreg(fnd) + " .if " + nreg(sublen[0]) + "<=(" + string w + "m/1000u) .ds " +
 			sregname(br) + " \"\\N'" + v + "'\n");
-		printf(".if !" + nreg(fnd) + " .if " + nreg(sublen[0]) + "<=(" + string BRACEWD[i] + "m/1000u) .nr " +
+		printf(".if !" + nreg(fnd) + " .if " + nreg(sublen[0]) + "<=(" + string w + "m/1000u) .nr " +
 			nregname(fnd) + " 1\n");
 	}
 	# the pieces: each extender half of what the ends and middle leave
-	(lt, exw, md, rt, ov) := (BRACEPC[0], BRACEPC[1], BRACEPC[2], BRACEPC[3], BRACEPC[4]);
+	(lt, exw, md, rt, ov) := (b.ltw, b.exw, b.mdw, b.rtw, b.ov);
 	printf(".nr " + nregname(ex) + " (" + nreg(sublen[0]) + "-(" + string (lt + md + rt - 4 * ov) + "m/1000u))/2\n");
 	printf(".if " + nreg(ex) + "<(" + string exw + "m/1000u) .nr " + nregname(ex) + " " + string exw + "m/1000u\n");
 	# (\\N for a glyph by name, which troff looks for in the special
 	# fonts; \\l takes a character, so the extender is made one)
 	o := "\\h'-" + string ov + "m/1000u'";
 	exc := "eqn" + g + "ex";
-	printf(".char \\[" + exc + "] \\N'" + g + ".ex'\n");
+	printf(".char \\[" + exc + "] \\N'" + b.ex + "'\n");
 	# (\\l leaves what is not a whole extender as space at its start:
 	# one put there first, under it)
-	exs := "\\N'" + g + ".ex'\\h'-" + string exw + "m/1000u'\\l'" + nreg(ex) + "u\\[" + exc + "]'";
-	printf(".if !" + nreg(fnd) + " .ds " + sregname(br) + " \"\\N'" + g + ".lt'" + o + exs + o +
-		"\\N'" + g + ".md'" + o + exs + o + "\\N'" + g + ".rt'\n");
+	exs := "\\N'" + b.ex + "'\\h'-" + string exw + "m/1000u'\\l'" + nreg(ex) + "u\\[" + exc + "]'";
+	printf(".if !" + nreg(fnd) + " .ds " + sregname(br) + " \"\\N'" + b.lt + "'" + o + exs + o +
+		"\\N'" + b.md + "'" + o + exs + o + "\\N'" + b.rt + "'\n");
 	brlen := blen_mk(sreg(br));
 	roff_max(allwd, sublen[0], brlen[0]);
 	# how far it is moved: its ink a gap from what it is over or under

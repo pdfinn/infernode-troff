@@ -415,6 +415,55 @@ eqn_accentpos()
 	}
 }
 
+# mathital n code glyph ...: the maths italic letters' glyphs
+eqn_mathital()
+{
+	n := atoi(tok_poptext(1));
+	for(i := 0; i < n; i++){
+		c := atoi(tok_quotes(tok_poptext(1)));
+		def_mathitalput(c, tok_quotes(tok_poptext(1)));
+	}
+}
+
+# italcorr n glyph value ...: glyphs' italic corrections
+eqn_italcorr()
+{
+	n := atoi(tok_poptext(1));
+	for(i := 0; i < n; i++){
+		gl := tok_quotes(tok_poptext(1));
+		italcorrs = (gl, atoi(tok_quotes(tok_poptext(1)))) :: italcorrs;
+	}
+}
+
+# bracesizes over|under n glyph width ...; bracepieces over|under lt ltw
+# ex exw md mdw rt rtw overlap
+eqn_bracesizes()
+{
+	b := def_brace(tok_quotes(tok_poptext(1)) == "over");
+	n := atoi(tok_poptext(1));
+	l: list of (string, int);
+	for(i := 0; i < n; i++){
+		gl := tok_quotes(tok_poptext(1));
+		l = (gl, atoi(tok_quotes(tok_poptext(1)))) :: l;
+	}
+	for(b.sizes = nil; l != nil; l = tl l)
+		b.sizes = hd l :: b.sizes;
+}
+
+eqn_bracepieces()
+{
+	b := def_brace(tok_quotes(tok_poptext(1)) == "over");
+	b.lt = tok_quotes(tok_poptext(1));
+	b.ltw = atoi(tok_quotes(tok_poptext(1)));
+	b.ex = tok_quotes(tok_poptext(1));
+	b.exw = atoi(tok_quotes(tok_poptext(1)));
+	b.md = tok_quotes(tok_poptext(1));
+	b.mdw = atoi(tok_quotes(tok_poptext(1)));
+	b.rt = tok_quotes(tok_poptext(1));
+	b.rtw = atoi(tok_quotes(tok_poptext(1)));
+	b.ov = atoi(tok_quotes(tok_poptext(1)));
+}
+
 # accent name n glyph pos width ...: an accent's glyph, then its wider
 # variants
 eqn_accent()
@@ -540,6 +589,22 @@ eqn_commands(): int
 	}
 	if(!tok_jmp("accent")){
 		eqn_accent();
+		return 0;
+	}
+	if(!tok_jmp("mathital")){
+		eqn_mathital();
+		return 0;
+	}
+	if(!tok_jmp("italcorr")){
+		eqn_italcorr();
+		return 0;
+	}
+	if(!tok_jmp("bracesizes")){
+		eqn_bracesizes();
+		return 0;
+	}
+	if(!tok_jmp("bracepieces")){
+		eqn_bracepieces();
 		return 0;
 	}
 	if(!tok_jmp("breakcost")){
@@ -684,10 +749,13 @@ texaccent(box: ref Box): int
 # h is U+210E, Planck's constant, outside the block
 GREEKNM: con "abgdezyhiklmncoprstufxqw";	# troff's \\(*a to \\(*w, in order
 
+mathital_last: string;	# the last glyph mathital() put
+
 mathital(s: string): string
 {
 	r := "";
 	prevu := 0;
+	prevgl: string;
 	for(i := 0; i < len s; ){
 		c := s[i];
 		u := 0;
@@ -723,16 +791,33 @@ mathital(s: string): string
 			n = 2;
 		}
 		if(u && r != nil && prevu)	# (TeX's: the letter before's italic correction)
-			r += "\\/";
-		if(u == 16r1D455)	# h
-			r += "\\N'uni210E'";
-		else if(u)
-			r += sys->sprint("\\N'u%X'", u);
+			r += icorr(prevgl);
+		# its glyph: the font's (mathital), else Libertinus Math's name
+		gl: string;
+		if(u){
+			pc := u - 16r1D44E + 'a';
+			if(u >= 16r1D6FC)
+				pc = u - 16r1D6FC + 16r3B1;
+			else if(u < 16r1D44E)
+				pc = u - 16r1D434 + 'A';
+			if(pc >= 0 && pc < len mathitals && mathitals[pc] != nil)
+				gl = mathitals[pc];
+			else if(pc == 'h' && mathitals['a'] != nil)
+				gl = nil;	# (the font has none)
+			else if(u == 16r1D455)	# h
+				gl = "uni210E";
+			else
+				gl = sys->sprint("u%X", u);
+		}
+		if(gl != nil)
+			r += "\\N'" + gl + "'";
 		else
 			r += s[i:i+n];
-		prevu = u;
+		prevu = gl != nil;
+		prevgl = gl;
 		i += n;
 	}
+	mathital_last = prevgl;
 	return r;
 }
 
@@ -923,9 +1008,11 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			if(e_texgreek && fnt == nil && ucgreek(tok_get()))
 				cfn = grfont;
 			txt := tok_improve(tok_get());
+			mathital_last = nil;
 			if(e_mathitalic && fnt == nil && cfn == gfont)
 				txt = mathital(txt);
 			box_puttext(box, tok_type() | italic(cfn), "\\f" + escarg(cfn) + txt);
+			box.lastgl = mathital_last;
 			chops := tok_chops(0);
 			tok_pop();
 			if(chops)	# what was read split it
