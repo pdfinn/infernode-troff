@@ -15,6 +15,8 @@
 #	LaTeX's \flushbottom): every page of a chapter's prose but its
 #	last ends where a full page's does, where troff's output without
 #	x X vfoot, not stretched, has some end short;
+#	a script where it was set on a page whose text is stretched: its
+#	space goes to the gaps, not between a line and its scripts;
 #	mathematics with Libertinus Math's parameters (eqnrc): a function's
 #	name apart from what is before it (a cos, not acos), scripts 80%
 #	of the text's size (9 points of 11), an integral's limits beside
@@ -57,8 +59,10 @@ for i in range(14):
     if i and i % 3 == 0:
         out += ['.section "Part %d"' % i, '']
     out += prose.split('\n') + ['']
-out += ['Mathematics: $a cos theta + b sin theta$ and $x sup 2$.', '.EQ', 'int from 0 to inf e sup {-x} dx = 1', '.EN',
-        '', 'Cited.\\c', '.cite solo 1', 'Again.\\c', '.cite withh 2', 'And again.\\c', '.cite witha 3',
+    # the mathematics on a page whose text is stretched
+    if i == 4:
+        out += ['Mathematics: $a cos theta + b sin theta$ and $x sup 2$ and $y sub 3$.', '.EQ', 'int from 0 to inf e sup {-x} dx = 1', '.EN', '']
+out += ['Cited.\\c', '.cite solo 1', 'Again.\\c', '.cite withh 2', 'And again.\\c', '.cite witha 3',
         '.backmatter', '.bibliography']
 open(sys.argv[1], 'w').write('\n'.join(out) + '\n')
 # the same as -mbook set it before: line by line, spaces only stretching,
@@ -163,6 +167,20 @@ new, old = bottoms('q.html'), bottoms('qn.html')
 check(len(new) >= 3 and len(old) == len(new) and max(new) - min(new) < 0.5 and max(old) - min(old) > 5,
       "its pages flush at the foot (%d pages; not stretched, %.1f points apart)" %
       (len(new), max(old) - min(old) if old else 0), (new, old))
+
+# a script where it was set, on a stretched page: a subscript, below
+# its line's baseline, kept with its line
+def drop(f):
+    w = boxes(f)
+    y = [b for b in w if b[4].startswith('y')]
+    three = [b for b in w if b[4].startswith('3') and y and abs(b[0] - min(y, key=lambda v: abs(v[2] - b[0]))[2]) < 2]
+    if not three:
+        return None, None
+    base = min(y, key=lambda v: abs(v[2] - three[0][0]))
+    return round(three[0][3] - base[3], 2), base[3]
+(r1, y1), (r0, y0) = drop('q.html'), drop('qn.html')
+check(r1 is not None and r0 is not None and abs(r1 - r0) < 0.2 and abs(y1 - y0) > 0.5,
+      "a subscript as far below its base on a stretched page", (r1, y1, r0, y0))
 
 # the mathematics
 check('cos' in ws and 'sin' in ws and 'acos' not in ws and 'bsin' not in ws,

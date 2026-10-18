@@ -28,6 +28,8 @@ vj_sw: array of int;
 vj_sn := 0;
 vj_lv: array of int;		# the lines' baselines
 vj_ln := 0;
+vj_rv: array of int;		# where anything is set: rows, a picture's too, and lines drawn
+vj_rn := 0;
 vj_first := -1;			# the text's first and last baselines
 vj_last := -1;
 vj_foot := 0;			# x X vfoot seen: the text ended
@@ -46,8 +48,9 @@ vj_reset()
 		vj_sv = array[64] of int;
 		vj_sw = array[64] of int;
 		vj_lv = array[256] of int;
+		vj_rv = array[256] of int;
 	}
-	vj_sn = vj_ln = 0;
+	vj_sn = vj_ln = vj_rn = 0;
 	vj_first = vj_last = -1;
 	vj_foot = 0;
 	vj_target = vj_vs = 0;
@@ -69,7 +72,9 @@ vj_stretch(w: int)
 }
 
 # a glyph set: of the text, before x X vfoot; a line begun where it is
-# half its size or more below the line before (a script is not a line)
+# half its size or more below the line before (a script is not a line).
+# A picture's or a displayed formula's rows are not lines: it moves
+# whole, its lines drawn still meeting its text.
 vj_glyph()
 {
 	if(vj_foot)
@@ -78,11 +83,27 @@ vj_glyph()
 		vj_first = o_v;
 	if(o_v > vj_last)
 		vj_last = o_v;
+	vj_row(o_v);
+	if(tag_drawn())
+		return;
 	if(vj_ln > 0 && o_v < vj_lv[vj_ln - 1] + o_s * devres() / 72 / 2)
 		return;
 	if(vj_ln == len vj_lv)
 		vj_lv = growint(vj_lv, 2 * vj_ln);
 	vj_lv[vj_ln++] = o_v;
+}
+
+# something set or drawn at v: a row if half the type's size or more
+# below the lowest so far (not a script, nor a rule under a line)
+vj_row(v: int)
+{
+	if(vj_foot)
+		return;
+	if(vj_rn > 0 && v < vj_rv[vj_rn - 1] + o_s * devres() / 72 / 2)
+		return;
+	if(vj_rn == len vj_rv)
+		vj_rv = growint(vj_rv, 2 * vj_rn);
+	vj_rv[vj_rn++] = v;
 }
 
 # x X vfoot b vs
@@ -149,6 +170,17 @@ vj_plan()
 					vj_pa[vj_pn++] = a;
 				}
 		}
+	}
+	# a gap's space goes to what is set past its middle, the next row's,
+	# not to a subscript or a descender of the line above it, nor to half
+	# a picture below it
+	for(i = 0; i < vj_pn; i++){
+		next := -1;
+		for(j := 0; j < vj_rn; j++)
+			if(vj_rv[j] > vj_pv[i] && (next < 0 || vj_rv[j] < next))
+				next = vj_rv[j];
+		if(next > 0 && next - vj_pv[i] < 3 * vj_vs)
+			vj_pv[i] = (vj_pv[i] + next) / 2;
 	}
 	# what is set below the text's last line, as far as a script hangs
 	# below it, moves with it; nothing further (the notes, the folio)

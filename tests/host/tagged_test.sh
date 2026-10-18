@@ -14,7 +14,8 @@
 #	the structure the book's: a heading for the title, each chapter
 #	(H1) and section (H2), the contents a TOC of entries each a link;
 #	the notes (Note), each with its own ID, a quotation (BlockQuote);
-#	the equations (Formula) described by their eqn, as written;
+#	the equations (Formula) described by their eqn, as written (its
+#	characters beyond ASCII whole, troff's \& left out);
 #	the tables (Table) in rows (TR) of the same cells (TD, a heading's
 #	TH spanning two: ColSpan, Scope), a text block in its own cell, a
 #	note at the foot of a page a table breaks across not in it; the
@@ -59,7 +60,7 @@ maths = ''.join((alt if l.startswith('.PS') else '') + l + '\n'
                 for l in open(sys.argv[2], encoding='utf-8').read().split('\n')
                 if l and not l.startswith('.printindex') and not l.startswith('Done:'))
 # a table broken across a page whose foot has a note
-long = ('.chapter "Long Tables" long\n\nA note on the table\\c\n.fn\nThe note.\n.fe\nthat follows.\n'
+long = ('.chapter "Long Tables" long\n\nIn logic, $\u2200 x ( p \u2192 roman \\&in )$.\n\nA note on the table\\c\n.fn\nThe note.\n.fe\nthat follows.\n'
         '.TS\nbox;\nl n.\nWork\tYear\n_\n' + ''.join('Row %d\t%d\n' % (i, 1900 + i) for i in range(60)) + '.TE\n')
 end = '.backmatter\n.notes\n.bibliography\n.printindex\n'
 open(sys.argv[3] + '/t.ms', 'w', encoding='utf-8').write(book + '\n' + maths + long + end)
@@ -190,7 +191,8 @@ check(types['BlockQuote'] >= 1 and types['P'] > 50 and types['Index'] == 1,
       'quotations, paragraphs and the index', types)
 forms = [e for e in elems if e['/S'] == '/Formula']
 alts = [str(e.get('/Alt')) for e in forms]
-check(len(forms) == 6 and 'x sup 2 + y sub i sup 2' in alts and 'alpha over beta' in alts and
+check(len(forms) == 7 and 'x sup 2 + y sub i sup 2' in alts and 'alpha over beta' in alts and
+      '\u2200 x ( p \u2192 roman in )' in alts and
       'sum from i=1 to n x sub i = int from 0 to inf e sup {-x sup 2} dx' in alts,
       'each equation a Formula, described by its eqn as written', alts)
 tables = [e for e in elems if e['/S'] == '/Table']

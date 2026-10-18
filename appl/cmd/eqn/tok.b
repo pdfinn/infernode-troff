@@ -370,7 +370,9 @@ tagalt(src: string): string
 					r[len r] = s[++i];
 				i++;
 				continue;
-			}else
+			}else if(s[i] == '&' || s[i] == '|' || s[i] == '^')
+				continue;	# troff's spaces of no width, or thin
+			else
 				c = s[i];
 		}
 		if(c == ' ' || c == '\t' || c == '\n'){
@@ -382,6 +384,11 @@ tagalt(src: string): string
 		sp = 0;
 		r[len r] = c;
 	}
+	# as eqn's strings are, its bytes (printf writes each as one)
+	b = array of byte r;
+	r = "";
+	for(i = 0; i < len b; i++)
+		r[len r] = int b[i];
 	return r;
 }
 

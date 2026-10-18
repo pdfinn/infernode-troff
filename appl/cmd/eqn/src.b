@@ -77,12 +77,24 @@ src_next(): int
 }
 
 # what is captured begun again: with what was read and put back, unread
+# (a token looked ahead to is put back as characters, not bytes: each
+# captured as its bytes, UTF-8's)
 src_capreset()
 {
 	src_cap = "";
 	if(esrc.prev == nil)
-		for(l := esrc.unbuf; l != nil; l = tl l)
-			src_cap[len src_cap] = hd l;
+		for(l := esrc.unbuf; l != nil; l = tl l){
+			c := hd l;
+			if(c < 16r80){
+				src_cap[len src_cap] = c;
+				continue;
+			}
+			r := "";
+			r[0] = c;
+			b := array of byte r;
+			for(i := 0; i < len b; i++)
+				src_cap[len src_cap] = int b[i];
+		}
 }
 
 src_back(c: int)

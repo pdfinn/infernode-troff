@@ -1102,6 +1102,7 @@ drawbeg()
 		tag_content(1);
 		textend();
 	}
+	vj_row(o_v);
 	pg += pdfpos(o_h, o_v) + " m\n";
 }
 
@@ -1140,6 +1141,7 @@ drawend(close, fill: int)
 drawl(h, v: int)
 {
 	outrel(h, v);
+	vj_row(o_v);
 	pg += pdfpos(o_h, o_v) + " l\n";
 }
 
