@@ -29,6 +29,10 @@ command -v pdftotext >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 ||
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/mathtext.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 cp tests/eqn/text.ms tests/eqn/hard.ms "$tmp/"
+# a maths italic letter alone: a glyph with no name of its
+# own (troff's GID=u1D465), which the document views find by
+# its id
+printf '.EQ\nx\n.EN\n' >"$tmp/ital.ms"
 cat >"$tmp/disp.ms" <<'MS'
 .chapter "Displays" d
 Thus before:
@@ -45,7 +49,7 @@ after2.
 MS
 
 with_timeout 180 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c \
-    "cd '#U*$tmp'; book text.ms >[2] book.err; book2tex -o text.tex text.ms >[2] tex.err; book2tex -o hard.tex hard.ms >[2] hard.err; book disp.ms >[2] disp.err" \
+    "cd '#U*$tmp'; book text.ms >[2] book.err; book2tex -o text.tex text.ms >[2] tex.err; book2tex -o hard.tex hard.ms >[2] hard.err; book disp.ms >[2] disp.err; cat /lib/troff/eqnrc ital.ms | eqn | troff -ms > ital.out; tr2img -r 300 ital.out > ital.ppm" \
     </dev/null >"$tmp/emu.log" 2>&1
 if [ ! -s "$tmp/text.pdf" ]; then
     echo "FAIL: no PDF: $(cat "$tmp/book.err" | head -3)"
@@ -115,6 +119,16 @@ except ValueError:
     above = below = (0, 0)
 check(above[0] and above[0] < above[1] - 4 and below[0] < below[1] - 1,
       'less space above and below a display after a short line', (above, below))
+
+# tr2img (troffpage, Xenith's view): a maths italic letter painted
+try:
+    b = open(d + '/ital.ppm', 'rb').read()
+    m = re.match(rb'P6\s+(\d+)\s+(\d+)\s+255\s', b)
+    px = b[m.end():]
+    ink = sum(1 for i in range(0, len(px), 3) if px[i] < 128)
+except Exception as e:
+    ink = str(e)
+check(isinstance(ink, int) and ink > 40, 'the document views paint a maths italic letter (a glyph by its id)', ink)
 
 # book2tex
 tex = open(d + '/text.tex', encoding='utf-8').read()
