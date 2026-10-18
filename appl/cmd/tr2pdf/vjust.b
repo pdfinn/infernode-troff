@@ -233,9 +233,15 @@ vj_off(v: int): int
 }
 
 # a vertical place, in hundredths of troff's units, as the PDF's: given
-# at the page's end
+# at the page's end; in a drawing, moved as its first point is (a rule
+# or a polygon moves whole, not stretched where a point of the page's
+# stretching falls between its edges)
+vj_anchor := -1;
+
 vj_place(uv: big): string
 {
+	if(vj_anchor >= 0)
+		return vj_char(VJ0) + string uv + ":" + string vj_anchor + vj_char(VJ1);
 	return vj_char(VJ0) + string uv + vj_char(VJ1);
 }
 
@@ -257,8 +263,18 @@ vj_resolve(s: string): string
 		j := i + 1;
 		while(j < len s && s[j] != VJ1)
 			j++;
-		uv := big s[i + 1:j];
-		uv += big vj_off(int (uv / big 100)) * big 100;
+		p := s[i + 1:j];
+		at := -1;
+		for(k := 0; k < len p; k++)
+			if(p[k] == ':'){
+				at = int p[k + 1:];
+				p = p[0:k];
+				break;
+			}
+		uv := big p;
+		if(at < 0)
+			at = int (uv / big 100);
+		uv += big vj_off(at) * big 100;
 		v := int (big pdf_height * big 100 - uv * big 72 / big devres());
 		r += s[b:i] + dec2(v);
 		i = j;

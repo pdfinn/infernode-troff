@@ -1203,12 +1203,14 @@ drawbeg()
 	}
 	vj_row(o_v);
 	pg += pdfpos(o_h, o_v) + " m\n";
+	vj_anchor = o_v;
 }
 
 l_page, l_size, l_wid, l_cap, l_join: int;	# the lines drawn with
 
 drawend(close, fill: int)
 {
+	vj_anchor = -1;
 	if(!fill)
 		fill = 2;
 	if(l_page != page_n || l_size != o_s || l_wid != pdf_linewid ||

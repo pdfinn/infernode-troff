@@ -151,6 +151,44 @@ else
     failed "inclusion: $(cat "$tmp/err")"
 fi
 
+# a page left short and its space spread (vjust.b): a rule (a radical's
+# bar) moves whole, as thick as troff drew it, though a point of the
+# stretching falls between its edges; the displays of tests/eqn/hard.ms
+# set under -mbook, a page broken before a tall one
+python3 -I - tests/eqn/hard.ms "$tmp/short.ms" <<'PY'
+import re, sys
+src = open(sys.argv[1], encoding='utf-8').read()
+eqs = re.findall(r'\.\\" (\d+)\. ([^\n]*)\n\.EQ\n(.*?)\n\.EN', src, re.S)
+out = '.chapter* "Mathematics"\n'
+for n, title, eq in eqs:
+    if int(n) in (1, 2, 3, 5, 8, 9):
+        out += '.p\n%s\n.EQ\n%s\n.EN\n' % (title, eq)
+open(sys.argv[2], 'w', encoding='utf-8').write(out)
+PY
+inferno "cd '#U*$tmp'; cat /lib/troff/eqnrc short.ms | eqn | troff -mbook > short.out; tr2pdf short.out > short.pdf"
+if python3 -I - "$tmp/short.out" "$tmp/short.pdf" <<'PY'
+import re, sys, zlib
+out = open(sys.argv[1], encoding='utf-8', errors='replace').read()
+# troff's rules' thicknesses, in points (its units 7200 an inch)
+want = set(int(m.group(1)) * 72 / 7200 for m in re.finditer(r'(?m)^DP \d+ 0 0 (\d+) ', out))
+pdf = open(sys.argv[2], 'rb').read()
+got = set()
+for m in re.finditer(rb'stream\r?\n(.*?)\r?\nendstream', pdf, re.S):
+    try:
+        c = zlib.decompress(m.group(1)).decode('latin1')
+    except Exception:
+        continue
+    for r in re.finditer(r'[\d.]+ ([\d.]+) m\n[\d.]+ [\d.]+ l\n[\d.]+ ([\d.]+) l\n', c):
+        got.add(round(abs(float(r.group(1)) - float(r.group(2))), 2))
+print(sorted(want), sorted(got))
+sys.exit(not (want and got and all(min(abs(g - w) for w in want) < 0.02 for g in got)))
+PY
+then
+    pass "a page's space spread: its rules as thick as troff drew them"
+else
+    failed "a page's space spread: a rule stretched"
+fi
+
 # -c: as Neatpost
 inferno "cd '#U*$tmp'; troff doc.tr | tr2pdf -c >compat.pdf"
 LC_ALL=C grep -aq '/FontFile2' "$tmp/compat.pdf" && LC_ALL=C grep -aq '/ASCIIHexDecode' "$tmp/compat.pdf" &&
