@@ -407,7 +407,9 @@ under its tail by its italic correction (`type op icorr`); fractions'
 parts in TeX's styles (`set tex_fractions 1`), so a fraction in an
 exponent is in scriptscript size, `displaystyle` for `\dfrac` and
 `\cfrac`; `{}` an ordinary atom, as TeX's (`set tex_atoms 1`); capital
-Greek upright; operators and relations from the math font (`gsfont S`);
+Greek upright; letters in the font's maths italic, 𝑥 not *x*, with
+their italic correction before a parenthesis (`set math_italic 1`);
+delimiters' first sizes the math font's, as TeX's; operators and relations from the math font (`gsfont S`);
 radicals by the font's gaps, and `root n x` for an indexed one;
 `overbrace` and `underbrace`, the font's sizes or pieces; delimiters as
 TeX sizes them (`set delimiter_factor 901`). Its scripts are 9 points

@@ -281,9 +281,37 @@ glyphtext(fnt: ref Font, g: ref Glyph): string
 			b := font_glyph(fnt, id[0:i]);
 			if(b != nil && !unnamed(b.name))
 				return troffchar(b.name);
+			id = id[0:i];
 			break;
 		}
-	return nil;
+	return aglchar(id);
+}
+
+# the character a glyph's name gives by the Adobe Glyph List's rules
+# (uni1D44, u1D465), for a glyph the description names none (beyond
+# U+FFFF, as the maths alphabets); nil if none
+aglchar(id: string): string
+{
+	if(len id > 3 && id[0:3] == "uni" && len id == 7)
+		id = id[3:];
+	else if(len id >= 5 && len id <= 7 && id[0] == 'u')
+		id = id[1:];
+	else
+		return nil;
+	c := 0;
+	for(i := 0; i < len id; i++){
+		d := id[i];
+		if(d >= '0' && d <= '9')
+			d -= '0';
+		else if(d >= 'A' && d <= 'F')
+			d -= 'A' - 10;
+		else
+			return nil;
+		c = c * 16 + d;
+	}
+	if(c == 0 || c > 16r10FFFF || c >= 16rD800 && c < 16rE000)
+		return nil;
+	return sys->sprint("%c", c);
 }
 
 # whether a glyph's name is one the description made up (c0012)
@@ -316,8 +344,14 @@ troffchar(s: string): string
 utf16hex(s: string): string
 {
 	r := "";
-	for(i := 0; i < len s; i++)
-		r += sys->sprint("%04X", s[i]);
+	for(i := 0; i < len s; i++){
+		c := s[i];
+		if(c > 16rFFFF){	# a surrogate pair
+			c -= 16r10000;
+			r += sys->sprint("%04X%04X", 16rD800 + (c >> 10), 16rDC00 + (c & 16r3FF));
+		}else
+			r += sys->sprint("%04X", c);
+	}
 	return r;
 }
 

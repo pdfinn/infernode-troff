@@ -36,7 +36,11 @@ or its standard input) and writes them as PDF.
 It embeds the fonts, OpenType (Libertinus's CFF) and TrueType, subset
 to the glyphs the document uses, compressed, each with a map from its
 glyphs to the characters they are, so that a reader can search and copy
-the text.
+the text; a glyph whose font description names no character (beyond
+U+FFFF, as a math font's alphabets) is the character its glyph name
+says by the Adobe Glyph List's rules
+.RB ( u1D465 ,
+.BR uni210E ).
 It is a translation of Ali Gholami Rudi's Neatpost; with
 .B -c
 it writes what Neatpost writes.

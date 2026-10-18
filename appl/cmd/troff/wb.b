@@ -13,6 +13,7 @@ Wb: adt {
 	ct, sb, st:	int;	# \w registers
 	llx, lly, urx, ury:	int;	# bounding box
 	icleft:	int;		# pending left italic correction
+	lastg:	ref Glyph;	# the glyph last put, if nothing was put since (\/)
 	sub_c:	array of string;	# the collected subword
 	sub_n:	int;
 	sub_collect:	int;	# collect subwords
@@ -102,6 +103,7 @@ wb_new(): ref Wb
 wb_init(wb: ref Wb)
 {
 	wb.sbuf = "";
+	wb.lastg = nil;
 	wb.part = 0;
 	wb.cost = 0;
 	wb.els_neg = 0;
@@ -277,6 +279,7 @@ wb_hyprot(wb: ref Wb): int
 wb_hmov(wb: ref Wb, n: int)
 {
 	wb_flushsub(wb);
+	wb.lastg = nil;
 	wb_noprot(wb);
 	wb.h += n;
 	wb.sbuf += esch(n);
@@ -329,6 +332,8 @@ wb_putbuf(wb: ref Wb, c: string)
 	if(g != nil && !zerowidth && wb.icleft && glyph_icleft(g))
 		wb_hmov(wb, font_wid(gfont(g), wb.s, glyph_icleft(g)));
 	wb.icleft = 0;
+	if(!zerowidth)
+		wb.lastg = g;
 	if(len c <= 1 || c0 == ecc() || c0 == c_ni){
 		if(c0 == c_ni && c1 == ecc())
 			wb.sbuf += ecs() + ecs();
@@ -747,6 +752,9 @@ wb_prevglyph(wb: ref Wb): ref Glyph
 wb_italiccorrection(wb: ref Wb)
 {
 	g := wb_prevglyph(wb);
+	# (one put whole, not collected: a glyph from a special font, \N's)
+	if(g == nil)
+		g = wb.lastg;
 	if(g != nil && glyph_ic(g))
 		wb_hmov(wb, font_wid(gfont(g), wb.s, glyph_ic(g)));
 }

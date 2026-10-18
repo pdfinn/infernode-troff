@@ -60,8 +60,9 @@ if ! command -v pdftotext >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&
 fi
 pdftotext -bbox "$tmp/book.pdf" "$tmp/book.html"
 python3 -I - "$tmp/book.html" <<'PY' || fail=1
-import re, sys
-words = [(float(a), float(b), float(c), float(d), w) for a, b, c, d, w in
+import re, sys, unicodedata
+# (maths italic letters, 𝑥, as the letters they are)
+words = [(float(a), float(b), float(c), float(d), unicodedata.normalize('NFKC', w)) for a, b, c, d, w in
          re.findall(r'<word xMin="([^"]*)" yMin="([^"]*)" xMax="([^"]*)" yMax="([^"]*)">([^<]*)</word>',
                     open(sys.argv[1], encoding='utf-8').read())]
 fail = 0
@@ -74,7 +75,8 @@ def find(w):
 
 # (1.1) is on the baseline of x = ..., at the right
 lab = find('(1.1)')
-eq = [x for x in find('x') if x[0] > 150]
+eq = [x for x in find('x') + find('x=') if x[0] > 150]	# (pdftotext may join x and =)
+eq = sorted(eq, key=lambda x: abs(x[3] - lab[0][3]) if lab else 0)
 check(lab and eq and abs(lab[0][3] - eq[0][3]) < 1.5 and lab[0][0] > eq[0][2] + 100,
       "a display's label on its baseline, at the right", '%s %s' % (lab, eq))
 

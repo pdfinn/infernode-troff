@@ -12,6 +12,7 @@
 #	as the widest;
 #	a relation after {} spaced as one (TeX's {} an ordinary atom);
 #	capital Greek upright, as TeX's;
+#	the letters maths italic, and f's italic correction before (;
 #	a fraction in an exponent in scriptscript size (TeX's styles for a
 #	fraction's parts);
 #	braces over and under, of the font's sizes and pieces;
@@ -40,14 +41,16 @@ fi
 pdftotext -bbox "$tmp/hard.pdf" "$tmp/hard.html" 2>/dev/null
 
 python3 -I - "$tmp" <<'PY'
-import sys, re, html
+import sys, re, html, unicodedata
 d = sys.argv[1]
 fail = 0
 def check(ok, what, why=''):
     global fail
     print(('PASS: ' if ok else 'FAIL: ') + what + ('' if ok else ': ' + str(why)[:400]))
     fail |= not ok
-pages = [[(float(a), float(b), float(c), float(e), html.unescape(w)) for a, b, c, e, w in
+raw = open(d + '/hard.html', encoding='utf-8').read()
+# (maths italic letters, 𝑥, as the letters they are)
+pages = [[(float(a), float(b), float(c), float(e), unicodedata.normalize('NFKC', html.unescape(w))) for a, b, c, e, w in
           re.findall(r'xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<', p)]
          for p in re.findall(r'<page [^>]*>(.*?)</page>', open(d + '/hard.html', encoding='utf-8').read(), re.S)]
 err = ''.join(open(d + '/' + f).read() for f in ('eqn.err', 'troff.err', 'pdf.err'))
@@ -61,7 +64,7 @@ check(len(pages) == 22 and not err, 'the 22 displays on 22 pages, nothing said',
 
 # 5: root 3 {...}: its degree small, its bottom above the base line's
 p = pg(5)
-x = [w for w in p if w[4] == 'x']
+x = [w for w in p if w[4] in ('x', 'x=')]	# (pdftotext may join x and =)
 three = [w for w in p if w[4] == '3' and x and h(w) < 0.75 * h(x[0])]	# (not p³'s)
 check(x and len(three) == 2 and all(t[3] < x[0][3] - 2 for t in three),
       "a root's degree small and raised", (x[:1], three))
@@ -113,6 +116,13 @@ check(fx and num and h(num[0]) < 0.7 * h(fx[0]), "a fraction in an exponent in s
 # 18: braces over and under, the font's (a size, or its pieces)
 check(re.search(r'GID=uni23DF', tr) and re.search(r'GID=uni23DE', tr), 'braces over and under',
       sorted(set(re.findall(r'GID=uni23D[EF][.a-z0-9]*', tr))))
+
+# the letters maths italic (U+1D44E on), as TeX's, the PDF's text saying
+# so; f's italic correction (a third of its width) before its (
+check('GID=u1D465' in tr and '𝑥' in raw and 'GID=uniFFFD' not in tr, 'letters in maths italic, their text too',
+      sorted(set(re.findall(r'GID=u1D4[0-9A-F]+', tr)))[:5])
+ic = re.findall(r'CGID=u1D453\nf\d+\nh(\d+)h(\d+)', tr)
+check(ic and all(int(b) >= 0.34 * int(a) for a, b in ic), "f's italic correction before (", ic[:3])
 
 # book2tex: the same in LaTeX's
 tex = open(d + '/hard.tex', encoding='utf-8').read() if __import__('os').path.exists(d + '/hard.tex') else ''

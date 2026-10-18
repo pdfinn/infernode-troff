@@ -87,7 +87,7 @@ for f in q o; do
 done
 
 python3 -I - "$tmp" <<'PY' || fail=1
-import sys, re, html
+import sys, re, html, unicodedata
 d = sys.argv[1]
 fail = 0
 def check(ok, what, why=''):
@@ -125,7 +125,8 @@ check(min(order) >= 0 and order == sorted(order), "the bibliography in the Manua
 
 # the words' boxes
 def boxes(f):
-    return [(float(a), float(b), float(c), float(e), html.unescape(w)) for a, b, c, e, w in
+    # (maths italic letters, 𝑥, as the letters they are)
+    return [(float(a), float(b), float(c), float(e), unicodedata.normalize('NFKC', html.unescape(w))) for a, b, c, e, w in
             re.findall(r'xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<',
                        open(d + '/' + f, encoding='utf-8').read())]
 words = boxes('q.html')

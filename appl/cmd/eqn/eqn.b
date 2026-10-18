@@ -588,6 +588,59 @@ eqn_matrix(box: ref Box, sz0: int, fn0: string)
 				box_free(cols[i][j]);
 }
 
+# a word's letters in Mathematical Italic (U+1D434 on): Latin, and
+# lower-case Greek (as troff's \\(*a or as UTF-8, a byte a character);
+# h is U+210E, Planck's constant, outside the block
+GREEKNM: con "abgdezyhiklmncoprstufxqw";	# troff's \\(*a to \\(*w, in order
+
+mathital(s: string): string
+{
+	r := "";
+	for(i := 0; i < len s; ){
+		c := s[i];
+		u := 0;
+		n := 1;
+		if(c >= 'a' && c <= 'z')
+			u = 16r1D44E + c - 'a';
+		else if(c >= 'A' && c <= 'Z')
+			u = 16r1D434 + c - 'A';
+		else if(c == '\\'){
+			# an escape whole: \\(*x Greek, mapped; others as they are
+			n = 2;
+			if(i + 1 < len s && s[i+1] == '(')
+				n = 4;
+			else if(i + 1 < len s && s[i+1] == '['){
+				for(n = 2; i + n < len s && s[i+n-1] != ']'; n++)
+					;
+			}else
+				n = len s - i;	# (one with an argument: the rest as it is)
+			if(n == 4 && i + 3 < len s && s[i+2] == '*')
+				for(k := 0; k < len GREEKNM; k++)
+					if(GREEKNM[k] == s[i+3]){
+						u = 16r1D6FC + k;
+						if(k >= 17)	# past rho: final sigma, at 03C2, comes before sigma
+							u++;
+					}
+			if(i + n > len s)
+				n = len s - i;
+		}else if(c == 16rCE && i + 1 < len s && s[i+1] >= 16rB1 && s[i+1] <= 16rBF){
+			u = 16r1D6FC + s[i+1] - 16rB1;
+			n = 2;
+		}else if(c == 16rCF && i + 1 < len s && s[i+1] >= 16r80 && s[i+1] <= 16r89){
+			u = 16r1D6FC + 15 + s[i+1] - 16r80;
+			n = 2;
+		}
+		if(u == 16r1D455)	# h
+			r += "\\N'uni210E'";
+		else if(u)
+			r += sys->sprint("\\N'u%X'", u);
+		else
+			r += s[i:i+n];
+		i += n;
+	}
+	return r;
+}
+
 # a capital Greek letter: troff's \(*A to \(*W, or U+0391 to U+03A9
 # (its UTF-8, a byte a character, as eqn reads it)
 ucgreek(s: string): int
@@ -771,7 +824,10 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			cfn := tok_font(tok_type(), fnt);
 			if(e_texgreek && fnt == nil && ucgreek(tok_get()))
 				cfn = grfont;
-			box_puttext(box, tok_type() | italic(cfn), "\\f" + escarg(cfn) + tok_improve(tok_get()));
+			txt := tok_improve(tok_get());
+			if(e_mathitalic && fnt == nil && cfn == gfont)
+				txt = mathital(txt);
+			box_puttext(box, tok_type() | italic(cfn), "\\f" + escarg(cfn) + txt);
 			chops := tok_chops(0);
 			tok_pop();
 			if(chops)	# what was read split it

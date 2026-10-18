@@ -389,6 +389,10 @@ e_radrule := 0;
 e_raddegraise := 60;
 e_raddegkb := 5;
 e_raddegka := -30;
+# a letter (in no font asked for) in the math font's italic alphabet,
+# Mathematical Italic (U+1D434 on, as TeX's and unicode-math's), not the
+# text's italic; 0, Neateqn's: in gfont
+e_mathitalic := 0;
 # the kern before a base's scripts, in hundredths of an em (Neateqn's
 # 5; TeX's none)
 e_scriptkern := 5;
@@ -443,6 +447,7 @@ def_set(name: string, val: int)
 	"tex_atoms" =>	e_texatoms = val;
 	"tex_greek" =>	e_texgreek = val;
 	"fraction_ord" =>	e_fracord = val;
+	"math_italic" =>	e_mathitalic = val;
 	"tex_fractions" =>	e_texfrac = val;
 	"stretch_stack_gap" =>	e_stretchgap = val;
 	"delimiter_factor" =>	e_delimfactor = val;

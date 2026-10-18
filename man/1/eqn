@@ -165,6 +165,10 @@ sets capital Greek upright;
 makes a fraction an ordinary atom, as LaTeX's
 .B \efrac
 (braced) is, no thin space beside it;
+.B "set math_italic 1"
+sets letters in roman italic as the math font's maths italic
+(a to U+1D44E, A to U+1D434, h to U+210E, Greek to U+1D6FC on), as TeX's
+.BR unicode-math ;
 .B "set tex_fractions 1"
 sets a fraction's numerator and denominator in TeX's styles for them
 (in text style in script size, in a script in scriptscript size);
