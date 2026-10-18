@@ -325,6 +325,16 @@ e_textlimits := 0;	# limits as scripts in text, as TeX sets them (not Neateqn's)
 # above (not Neateqn's)
 e_scriptpct := 0;
 e_scriptscriptpct := 0;
+# TeX's rule 18a whole: a script's shift from its base's top or bottom
+# only for a base not a single character, in the script's size; 0,
+# Neateqn's: for every base, in the base's (not Neateqn's)
+e_texdrop := 0;
+# the least gaps between a fraction's bar and its numerator or
+# denominator, displayed and in text (FractionNumDisplayStyleGapMin,
+# FractionNumeratorGapMin); 0, Neateqn's: 7/2 and 3/2 of the rule's
+# thickness (not Neateqn's)
+e_fracgapd := 0;
+e_fracgapt := 0;
 
 S_S1(): int	{ return e_thinspace; }
 S_S2(): int	{ return e_mediumspace; }
@@ -366,6 +376,9 @@ def_set(name: string, val: int)
 	"text_limits" =>	e_textlimits = val;
 	"script_percent_scale_down" =>	e_scriptpct = val;
 	"script_script_percent_scale_down" =>	e_scriptscriptpct = val;
+	"tex_script_drop" =>	e_texdrop = val;
+	"fraction_display_gap" =>	e_fracgapd = val;
+	"fraction_gap" =>	e_fracgapt = val;
 	}
 }
 

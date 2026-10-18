@@ -11,6 +11,10 @@
 #	none in the front matter;
 #	the bibliography in the Manual's order: a work by an author alone
 #	before those with others, those by the others' names;
+#	its pages flush at the foot (tr2pdf's x X vstretch and vfoot, as
+#	LaTeX's \flushbottom): every page of a chapter's prose but its
+#	last ends where a full page's does, where troff's output without
+#	x X vfoot, not stretched, has some end short;
 #	mathematics with Libertinus Math's parameters (eqnrc): a function's
 #	name apart from what is before it (a cos, not acos), scripts 80%
 #	of the text's size (9 points of 11), an integral's limits beside
@@ -48,7 +52,10 @@ Nevertheless, the organization's establishment represented an extraordinary acco
 out = ['.title "Quality"', '.author "Test"', '.EQ', 'delim $$', '.EN', '.maketitle', '.frontmatter',
        '.contents', '.chapter* "Preface"', '.section "A Note on the Text"', '', 'Unnumbered, being in the front matter.',
        '.mainmatter', '.chapter "Prose" prose', '.section "The Organization" org', '']
-for i in range(6):
+# sections kept with their text, so some pages break short
+for i in range(14):
+    if i and i % 3 == 0:
+        out += ['.section "Part %d"' % i, '']
     out += prose.split('\n') + ['']
 out += ['Mathematics: $a cos theta + b sin theta$ and $x sup 2$.', '.EQ', 'int from 0 to inf e sup {-x} dx = 1', '.EN',
         '', 'Cited.\\c', '.cite solo 1', 'Again.\\c', '.cite withh 2', 'And again.\\c', '.cite witha 3',
@@ -65,6 +72,10 @@ if [ ! -s "$tmp/q.pdf" ] || [ ! -s "$tmp/o.pdf" ]; then
     echo "FAIL: no PDF: $(cat "$tmp/q.err" "$tmp/emu.log")"
     exit 1
 fi
+# the same, not stretched
+grep -v '^x X vfoot' "$tmp/q.out" >"$tmp/qn.out"
+with_timeout 120 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; tr2pdf qn.out >qn.pdf" </dev/null >>"$tmp/emu.log" 2>&1
+pdftotext -bbox "$tmp/qn.pdf" "$tmp/qn.html" 2>/dev/null
 for f in q o; do
     pdftotext "$tmp/$f.pdf" "$tmp/$f.txt" 2>/dev/null
     pdftotext -layout "$tmp/$f.pdf" "$tmp/${f}l.txt" 2>/dev/null
@@ -135,6 +146,23 @@ def sentgap(words):
     return ratios[len(ratios) // 2] if ratios else 0, len(ratios)
 new, old = sentgap(words), sentgap(boxes('o.html'))
 check(new[1] >= 5 and new[0] < 1.25 and old[0] > 1.5, 'one space after a sentence, not two', (new, old))
+
+# pages flush at the foot: the prose's pages (but its chapter's last) end
+# alike, the text's lines (11 points) apart from notes and folios
+def bottoms(f):
+    pages = re.findall(r'<page [^>]*>(.*?)</page>', open(d + '/' + f, encoding='utf-8').read(), re.S)
+    out = []
+    for p in pages:
+        ws = [(float(a), float(b), html.unescape(w)) for a, b, w in
+              re.findall(r'yMin="([\d.]+)" xMax="[\d.]+" yMax="([\d.]+)">([^<]*)<', p)]
+        body = [w for w in ws if 12 < w[1] - w[0] < 13]
+        if len(body) > 150 and 'Contents' not in p:
+            out.append(max(w[1] for w in body))
+    return out[1:-1]	# not the chapter's first page, nor its last
+new, old = bottoms('q.html'), bottoms('qn.html')
+check(len(new) >= 3 and len(old) == len(new) and max(new) - min(new) < 0.5 and max(old) - min(old) > 5,
+      "its pages flush at the foot (%d pages; not stretched, %.1f points apart)" %
+      (len(new), max(old) - min(old) if old else 0), (new, old))
 
 # the mathematics
 check('cos' in ws and 'sin' in ws and 'acos' not in ws and 'bsin' not in ws,

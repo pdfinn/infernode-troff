@@ -36,6 +36,9 @@ set big_op_spacing2 15
 set big_op_spacing3 25
 set big_op_spacing4 62
 set script_space 4
+set tex_script_drop 1
+set fraction_display_gap 20
+set fraction_gap 7
 bracketsizes ( 13 "(" "\N'parenleft.size1'" "\N'parenleft.size2'" "\N'parenleft.size3'" "\N'parenleft.size4'" "\N'parenleft.size5'" "\N'parenleft.size6'" "\N'parenleft.size7'" "\N'parenleft.size8'" "\N'parenleft.size9'" "\N'parenleft.size10'" "\N'parenleft.size11'" "\N'parenleft.size12'"
 bracketsizes ) 13 ")" "\N'parenright.size1'" "\N'parenright.size2'" "\N'parenright.size3'" "\N'parenright.size4'" "\N'parenright.size5'" "\N'parenright.size6'" "\N'parenright.size7'" "\N'parenright.size8'" "\N'parenright.size9'" "\N'parenright.size10'" "\N'parenright.size11'" "\N'parenright.size12'"
 bracketsizes [ 13 "[" "\N'bracketleft.size1'" "\N'bracketleft.size2'" "\N'bracketleft.size3'" "\N'bracketleft.size4'" "\N'bracketleft.size5'" "\N'bracketleft.size6'" "\N'bracketleft.size7'" "\N'bracketleft.size8'" "\N'bracketleft.size9'" "\N'bracketleft.size10'" "\N'bracketleft.size11'" "\N'bracketleft.size12'"

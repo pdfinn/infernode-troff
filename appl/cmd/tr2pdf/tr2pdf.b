@@ -48,6 +48,7 @@ include "pdf.b";
 include "pdfext.b";
 include "cffsub.b";
 include "tag.b";
+include "vjust.b";
 
 TROFFFDIR: con "/lib/troff";
 
@@ -578,6 +579,14 @@ postps()
 	"tag" =>
 		if(!compat)
 			tag_cmd(arg);
+	"vstretch" =>
+		v := scanints(arg, 1);
+		if(!compat && len v == 1)
+			vj_stretch(v[0]);
+	"vfoot" =>
+		v := scanints(arg, 2);
+		if(!compat && len v == 2)
+			vj_setfoot(v[0], v[1]);
 	"lang" =>
 		(l, nil) := word(arg);
 		if(l != nil)

@@ -143,6 +143,18 @@
 .hlm 3
 .ss 12 0
 ..
+.\" pages flush at their foot, as LaTeX's \flushbottom makes them (tr2pdf's
+.\" x X vstretch and vfoot): where space may stretch, and by how much
+.\" with the others (LaTeX's: a point between paragraphs, more about
+.\" headings and displays); at the foot, where a full page's last line
+.\" is, on the lines from the top margin.  Not a chapter's last page, nor
+.\" the index's columns.
+.nr book-nofill 0
+.nr book-fotrap 0
+.de book-vstretch
+.nr book-vw (\\$1)
+.if '\\n[.z]'' .if \\n[book-ncol]<2 .dv vstretch \\n[book-vw]
+..
 .\" ---------------------------------------------------------------
 .\" begin: the page set, once, before the first text
 .\"
@@ -237,6 +249,8 @@
 .\" that reaches a trap, then springs it, so the trap is a line of the
 .\" text less a unit above the margin, and no line is set below it
 .wh -\\n[book-bm]u-\\n[book-vs]u+1u book-fo
+.nr book-fotrap \\n[.p]-\\n[book-bm]-\\n[book-vs]+1
+.nr book-nofill 0
 .if \\n[book-balance] .book-colbal
 .book-fnplan
 ..
@@ -256,6 +270,13 @@
 .de book-pagefo
 .\" not sprung again by the moves below
 .ch book-fo
+.\" the text ends here: where a full page's would, for tr2pdf: as low as
+.\" the foot's trap lets a line be set (the margin, or above notes, the
+.\" same distance above them on every page), as LaTeX's \textheight
+.if !\\n[book-nofill] .if \\n[book-ncol]<2 \{\
+.	nr book-vt \\n[book-fotrap]+\\n[book-vs]-1
+.	dv vfoot \\n[book-vt] \\n[book-vs]
+.\}
 .\" the page's own margin, not its last column's
 .po \\n[book-po]u
 .book-fnput
@@ -288,6 +309,7 @@
 .de p
 .br
 .book-tag P
+.book-vstretch 1p
 .ie \\n[book-noindent] .ti 0
 .el .ti \\n[book-pi]u
 .nr book-noindent 0
@@ -354,6 +376,7 @@
 .\" and book-recto, with no running head if $2
 .de book-newpage
 .br
+.nr book-nofill 1
 .bp
 .if \\$1 .if \\n[book-recto] .if e \{\
 .	nr book-blank 1
@@ -464,6 +487,7 @@
 .nr book-subsection 0
 .ds book-cur \\n[book-chapter].\\n[book-section]
 .br
+.book-vstretch 4p
 .sp 1v
 .ne 4v
 .ad l
@@ -475,6 +499,7 @@
 \\*[book-hx]\f[B]\\*[book-sn]\\$1\fP
 .br
 .book-tag end
+.book-vstretch 1p
 .ad pb
 .sp 0.5v
 .tm aux:.book-tocent section "\\*[book-snt]" "\\$1" \\n% book-h\\n[book-hn]
@@ -497,6 +522,7 @@
 .nr book-subsection +1
 .ds book-cur \\n[book-chapter].\\n[book-section].\\n[book-subsection]
 .br
+.book-vstretch 3p
 .sp 0.75v
 .ne 3v
 .ad l
@@ -508,6 +534,7 @@
 \\*[book-hx]\f[I]\\*[book-sn]\\$1\fP
 .br
 .book-tag end
+.book-vstretch 1p
 .ad pb
 .sp 0.25v
 .tm aux:.book-tocent subsection "\\*[book-snt]" "\\$1" \\n% book-h\\n[book-hn]
@@ -523,6 +550,7 @@
 .book-begin
 .br
 .book-tag push BlockQuote
+.book-vstretch 3p
 .sp 0.5v
 .ev quote
 .evc 0
@@ -537,6 +565,7 @@
 .de endquote
 .br
 .book-tag pop
+.book-vstretch 3p
 .ev
 .sp 0.5v
 .nr book-noindent 1
@@ -565,6 +594,7 @@
 .de endepigraph
 .br
 .book-tag pop
+.book-vstretch 3p
 .ev
 .sp 1v
 .nr book-noindent 1
@@ -626,6 +656,7 @@
 .nr fn-i \\n[fn-qp]+1
 .if !\\n[fn-split] .book-fnfe \\n[fn-i]
 .if \\n[fn-qp]>\\n[fn-qp0] .ch book-fo -\\n[book-bm]u-\\n[fn-h]u-\\n[book-vs]u+1u
+.if \\n[fn-qp]>\\n[fn-qp0] .nr book-fotrap \\n[.p]-\\n[book-bm]-\\n[fn-h]-\\n[book-vs]+1
 .ev
 ..
 .de book-fnfe
@@ -660,6 +691,7 @@
 .	book-fnplan1 \\n[fn-qf]
 .	ev
 .	if \\n[fn-h] .ch book-fo -\\n[book-bm]u-\\n[fn-h]u-\\n[book-vs]u+1u
+.	if \\n[fn-h] .nr book-fotrap \\n[.p]-\\n[book-bm]-\\n[fn-h]-\\n[book-vs]+1
 .\}
 ..
 .de book-fnplan1
@@ -762,6 +794,7 @@
 .nr book-endn 0
 .de book-end
 .br
+.nr book-nofill 1
 .nr book-endn +1
 .if \\n[book-endn]>1000 \{\
 .	tm book: notes \\n[fn-qf] to \\n[fn-ql] never set
@@ -859,6 +892,7 @@
 .if \\n[dn] \{\
 .	book-begin
 .	nr book-eqw \\n[dl]
+.	book-vstretch 3p
 .	sp 0.5v
 .	ne \\n[dn]u
 .	nf
@@ -874,6 +908,7 @@
 .		tl '''\\*[book-eqlabel]'
 .		sp |\\n[book-eqe]u
 .	\}
+.	book-vstretch 3p
 .	sp 0.5v
 .	nr book-noindent 1
 .\}
@@ -886,15 +921,18 @@
 .de TS
 .book-begin
 .br
+.book-vstretch 3p
 .sp 0.5v
 ..
 .de TE
+.book-vstretch 3p
 .sp 0.5v
 .nr book-noindent 1
 ..
 .de PS
 .book-begin
 .br
+.book-vstretch 3p
 .book-tag end
 .book-tag push Figure
 .ie '\\*[book-alt]'' \{\
@@ -915,6 +953,7 @@
 .de PE
 .br
 .book-tag pop
+.book-vstretch 3p
 .in
 .if \\n[book-pich] .sp 0.65v
 .nr book-noindent 1

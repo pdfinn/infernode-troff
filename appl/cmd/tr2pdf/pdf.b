@@ -695,6 +695,8 @@ o_loadfont(g: ref Glyph): int
 pdfpos00(uh, uv: big): string
 {
 	h := int (uh * big 72 / big devres());
+	if(!compat)	# given at the page's end (vjust.b)
+		return dec2(h) + " " + vj_place(uv);
 	v := int (big pdf_height * big 100 - uv * big 72 / big devres());
 	return dec2(h) + " " + dec2(v);
 }
@@ -741,6 +743,7 @@ o_queue(g: ref Glyph)
 	if(!compat){
 		tag_glyph(g);
 		textbeg();
+		vj_glyph();
 	}
 	if(o_v != p_v){
 		o_flush();
@@ -889,7 +892,12 @@ outlink(lnk: string, hwid, vwid: int)
 		if(tag_link(s, hwid, vwid))
 			return;
 	}
-	ann[ann_n++] = obj_beg(0);
+	id := 0;
+	if(compat)
+		id = obj_beg(0);
+	else
+		id = obj_map();	# written at the page's end, its places known
+	ann[ann_n++] = id;
 	s := "<<\n  /Type /Annot\n  /Subtype /Link\n";
 	s += "  /Rect [" + pdfpos(o_h, o_v);
 	s += " " + pdfpos(o_h + hwid, o_v + vwid) + "]\n";
@@ -901,6 +909,10 @@ outlink(lnk: string, hwid, vwid: int)
 		s += "  /A << /S /GoTo /D /" + pdfname(lnk[1:]) + " >>\n";
 	else
 		s += "  /A << /S /URI /URI " + pdftext_static(lnk) + " >>\n";
+	if(!compat){
+		vj_annot(id, s + ">>\n");
+		return;
+	}
 	pdfout(s + ">>\n");
 	obj_end();
 }
@@ -1360,6 +1372,7 @@ docpagebeg(nil: int)
 	# for marked content (not Neatpost's: it drew in one)
 	pg = "";
 	tag_pagebeg();
+	vj_reset();
 }
 
 textbeg()
@@ -1390,6 +1403,7 @@ docpageend(nil: int)
 	}else{
 		tagent = tag_pageend();
 		textend();
+		vj_pageend();
 	}
 	# the page's contents
 	b := array of byte pg;

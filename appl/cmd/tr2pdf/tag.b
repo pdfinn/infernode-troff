@@ -398,9 +398,7 @@ lnkdone()
 		t = t[0:len t - 1];
 	if(t == "")
 		t = "Link";
-	obj_beg(lnk_ann);
-	pdfout(lnk_dict + "  /Contents " + pdftext(t) + "\n  /StructParent " + string lnk_key + "\n>>\n");
-	obj_end();
+	vj_annot(lnk_ann, lnk_dict + "  /Contents " + pdftext(t) + "\n  /StructParent " + string lnk_key + "\n>>\n");
 	lnk_e = -1;
 }
 

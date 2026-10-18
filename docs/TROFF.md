@@ -173,6 +173,33 @@ moves the foot up is allowed for. `-mbook` sets it in drafts as in the
 book as it goes to press, so the two break their pages alike. With
 `.wo 0`, the default, troff sets as C Neatroff does.
 
+## Pages flush at the foot
+
+Keeping a heading with its text, or a widow or orphan from a page,
+leaves the page a line or more short. LaTeX's book class sets every
+page's text to end at the same place (`\flushbottom`), spreading what a
+page lacks through it; `-mbook` does the same through tr2pdf. The
+macros say where space may stretch, and where a page's text ends and a
+full page's would:
+
+    x X vstretch 100             \" the space after this line may stretch, by 1 point (weight)
+    x X vfoot 58600 1400         \" the text ends; a full page's last baseline, its spacing
+
+`-mbook` marks the space between paragraphs (1 point), before a section
+(4) and a subsection (3), after a heading (1), and about quotations,
+epigraphs, displayed equations, tables and pictures (3). A page's lack
+goes to those points first, each taking as much as its weight in
+proportion; the rest is spread over its lines, a fraction of a point
+each. What follows the text (notes, the folio, the running heads)
+stays where it was set, and links, destinations and bookmarks move with
+the text. A chapter's last page, a page broken by `.bp`, one set in
+columns or short by more than five lines stays as set. Of a book of 444
+pages, those ending short went from 47% to 27%, all chapters' ends, as
+LaTeX's 26%.
+
+tr2pdf writes each page's vertical places as placeholders and gives
+them at its end, so a page's plan costs nothing until it is known.
+
 ## The index: `.index` and `mkindex`
 
 An entry is written as LaTeX's `\index` (makeindex's syntax), on a line
@@ -333,6 +360,11 @@ TeX's: `a cos theta` is set with a thin space between `a` and `cos`, not
 as `acos`. An integral's limits are beside it, as TeX sets them
 (`nolimits`, beyond Neateqn), and `book2tex` writes `\int_0^\infty`, not
 `\int\limits`.
+A superscript on a letter is raised from the letter's baseline, not
+from its top less a drop, as TeX's rule 18a has it (`set
+tex_script_drop 1`); a fraction's numerator and denominator keep the
+font's gaps from its bar, larger in a display (`set fraction_gap` and
+`set fraction_display_gap`).
 
 Glyphs' heights and depths come from the fonts' descriptions: `mkfn`
 reads each glyph's bounding box from its outline, CFF's (Libertinus's)

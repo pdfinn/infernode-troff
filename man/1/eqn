@@ -73,7 +73,21 @@ and
 of the operator
 .I x
 as its scripts, beside it, as TeX's
-.BR \enolimits .
+.BR \enolimits ;
+.B "set tex_script_drop 1"
+raises a script on a single character from its baseline, and drops one
+on a larger base by the script's size, as TeX's rule 18a (not from
+every base's top, in the base's size);
+.B "set fraction_display_gap"
+.I n
+and
+.B "set fraction_gap"
+.I n
+are the least gaps between a fraction's bar and its numerator or
+denominator, displayed and in text, in hundredths of an em (the font's
+.B FractionNumDisplayStyleGapMin
+and
+.BR FractionNumeratorGapMin ).
 .TP
 .BI -c " chars"
 The characters an equation within a line may be broken after.

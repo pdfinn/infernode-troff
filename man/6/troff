@@ -104,7 +104,13 @@ hyphens costing as loose lines do
 .RB ( .hycost ),
 one space after a sentence.
 Notes are set at the foot of their marks' pages, in order, a long one
-split between pages; widows and orphans are kept from pages' edges; the
+split between pages; widows and orphans are kept from pages' edges, and
+a page left short by them, or by a heading kept with its text, ends
+where a full page does, its space spread between paragraphs and about
+headings and displays
+.RB ( "x X vstretch" ,
+.BR vfoot );
+the
 PDF's contents, references, notes' marks and index are links, its
 headings bookmarks.
 The PDF is tagged

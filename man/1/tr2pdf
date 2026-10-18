@@ -74,6 +74,27 @@ The PDF's information
 .BI "mark " "title page offset level"
 Neatpost's: a destination and a bookmark at a page and place given.
 .TP
+.BI "vstretch " w
+The space after the line set last may stretch, by
+.I w
+(troff's units), others in proportion.
+.TP
+.BI "vfoot " "b vs"
+The page's text ends here; a full page's last baseline is at
+.IR b ,
+its lines
+.I vs
+apart. The space the page lacks is spread through its text: to the
+.B vstretch
+points first, each as much as its
+.IR w ,
+the rest over its lines, so the page ends where a full page does (as
+LaTeX's
+.BR \eflushbottom ).
+What is set after (notes, the folio) does not move; links and
+destinations move with the text. A page short by more than five lines
+is set as it is.
+.TP
 .BI "tag " "..."
 The document's structure, for a tagged PDF (below).
 .TP

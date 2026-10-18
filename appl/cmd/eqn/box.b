@@ -211,6 +211,18 @@ m100(n: int): string
 	return "(" + string n + "m/100u)";
 }
 
+# whether a box is a single character (TeX's character box): one atom,
+# and nothing moved up or down in it
+box_ischar(box: ref Box): int
+{
+	if(box.atoms != 1)
+		return 0;
+	for(i := 0; i + 1 < len box.raw; i++)
+		if(box.raw[i] == '\\' && (box.raw[i + 1] == 'v' || box.raw[i + 1] == '*'))
+			return 0;
+	return 1;
+}
+
 box_sub(box, sub, sup: ref Box)
 {
 	box_wd := nregmk();
@@ -236,10 +248,17 @@ box_sub(box, sub, sup: ref Box)
 	printf(".ps " + nreg(box.szreg) + "\n");
 	tok_dim(box_toreg(box), box_wd, box_ht, box_dp);
 	box_putf(box, "\\h'5m/100u'");
+	char := e_texdrop && box_ischar(box);
 	if(sup != nil){
 		tok_dim(box_toreg(sup), sup_wd, 0, sup_dp);
 		# 18a
-		printf(".nr " + nregname(sup_rise) + " 0" + nreg(box_ht) + "u-(" + string e_supdrop + "m/100u)\n");
+		if(char)
+			printf(".nr " + nregname(sup_rise) + " 0\n");
+		else if(e_texdrop)	# the script's drop, in its size
+			printf(".nr " + nregname(sup_rise) + " 0" + nreg(box_ht) + "u-(" + string e_supdrop + "m/100u*" +
+				nreg(sup.szreg) + "/" + nreg(box.szreg) + ")\n");
+		else
+			printf(".nr " + nregname(sup_rise) + " 0" + nreg(box_ht) + "u-(" + string e_supdrop + "m/100u)\n");
 		# 18c
 		printf(".if " + nreg(sup_rise) + "<" + m100(box_suprise(box)) + " .nr " + nregname(sup_rise) + " " + m100(box_suprise(box)) + "\n");
 		printf(".if " + nreg(sup_rise) + "<(" + nreg(sup_dp) + "+(" + string e_xheight + "m/100u/4)) .nr " +
@@ -248,7 +267,13 @@ box_sub(box, sub, sup: ref Box)
 	if(sub != nil){
 		tok_dim(box_toreg(sub), sub_wd, sub_ht, 0);
 		# 18a
-		printf(".nr " + nregname(sub_fall) + " 0" + nreg(box_dp) + "u+(" + string e_subdrop + "m/100u)\n");
+		if(char)
+			printf(".nr " + nregname(sub_fall) + " 0\n");
+		else if(e_texdrop)
+			printf(".nr " + nregname(sub_fall) + " 0" + nreg(box_dp) + "u+(" + string e_subdrop + "m/100u*" +
+				nreg(sub.szreg) + "/" + nreg(box.szreg) + ")\n");
+		else
+			printf(".nr " + nregname(sub_fall) + " 0" + nreg(box_dp) + "u+(" + string e_subdrop + "m/100u)\n");
 	}
 	if(sub != nil && sup == nil){
 		# 18b
@@ -412,6 +437,10 @@ box_over(box, num, den: ref Box)
 	bargap := 3 * e_rulethickness / 2;
 	if(TS_DX(box.style))
 		bargap = 7 * e_rulethickness / 2;
+	if(TS_DX(box.style) && e_fracgapd)
+		bargap = e_fracgapd;
+	if(!TS_DX(box.style) && e_fracgapt)
+		bargap = e_fracgapt;
 	box_beforeput(box, T_INNER, 0);
 	box_italiccorrection(num);
 	box_italiccorrection(den);
