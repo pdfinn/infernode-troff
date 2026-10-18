@@ -52,6 +52,10 @@
 .nr book-im 0.875i	\" inner (binding) margin
 .nr book-om 0.75i	\" outer margin
 .nr book-pi 1.5m	\" paragraph indent
+.nr book-tvs 0		\" the contents' and lists' spacing (0: the text's)
+.nr book-nps 0		\" the notes' point size (0: the text's less 2)
+.nr book-nvs 0		\" and their spacing (0: the text's less 2 points),
+.\"			so that text set double (a thesis's) has its notes single
 .nr book-recto 1	\" chapters open on a right-hand page
 .\"
 .\" the point size book-ps times $1/$2
@@ -73,9 +77,18 @@
 .de alt
 .ds book-alt \\$*
 ..
+.\" the page: its width and height, or a name (a4, a5, b5, letter); a
+.\" size no page could be is refused, said, and the page left as it was
 .de papersize
-.nr book-pw (\\$1)
-.nr book-ph (\\$2)
+.ie '\\$1'a4' .papersize 21c 29.7c
+.el .ie '\\$1'a5' .papersize 14.8c 21c
+.el .ie '\\$1'b5' .papersize 17.6c 25c
+.el .ie '\\$1'letter' .papersize 8.5i 11i
+.el .ie ((\\$1)<1i)+((\\$2)<1i) .tm book: .papersize \\$1 \\$2: not a page's size (a width and a height, or a4, a5, b5, letter)
+.el \{\
+.	nr book-pw (\\$1)
+.	nr book-ph (\\$2)
+.\}
 ..
 .de margins
 .if !'\\$1'' .nr book-tm (\\$1)
@@ -133,11 +146,14 @@
 .\" by a third (.ssh), as TeX's may, so a line need not be broken short
 .\" and stretched; a hyphen costs as a loose line does (.hycost), a
 .\" second in a row ten times as much, a fourth not allowed (.hlm); one
-.\" space after a sentence, not two (.ss).  Measured on a book's prose
-.\" against LuaLaTeX's with microtype: its spaces as even, as few lines
-.\" loose, about as many hyphens.  Each environment has its own.
+.\" space after a sentence, not two (.ss); three letters at least after
+.\" a hyphen (.hy 5: not the last two, as English's \righthyphenmin).
+.\" Measured on a book's prose against LuaLaTeX's with microtype: its
+.\" spaces as even, as few lines loose, about as many hyphens.  Each
+.\" environment has its own.
 .de book-fill
 .ad pb
+.hy 5
 .ssh 33
 .hycost 300 3000
 .hlm 3
@@ -207,15 +223,18 @@
 .nr book-sized 0
 .de book-papersize
 .nr book-sized 1
-.nr book-wpt \\n[book-pw]*72/1i
-.nr book-hpt \\n[book-ph]*72/1i
+.\" in points, the nearest (A4's 841.89 is 842)
+.nr book-wpt (\\n[book-pw]*72+(1i/2))/1i
+.nr book-hpt (\\n[book-ph]*72+(1i/2))/1i
 \X'papersize \\n[book-wpt]x\\n[book-hpt]'
 .br
 ..
 .de book-noteenv
 .ft R
-.ps \\n[book-ps]-2
-.vs \\n[book-vs]u-2p
+.ie \\n[book-nps] .ps \\n[book-nps]
+.el .ps \\n[book-ps]-2
+.ie \\n[book-nvs] .vs \\n[book-nvs]u
+.el .vs \\n[book-vs]u-2p
 .ll \\n[book-ll]u
 .fi
 .book-fill
@@ -277,10 +296,13 @@
 .\" not sprung again by the moves below
 .ch book-fo
 .\" the text ends here: where a full page's would, for tr2pdf: as low as
-.\" the foot's trap lets a line be set (the margin, or above notes, the
-.\" same distance above them on every page), as LaTeX's \textheight
+.\" the foot's trap lets a line be set, as LaTeX's \textheight; above
+.\" notes, at the trap, a line above their top, so that the last line is
+.\" as far above their rule on every page and never on it (the lowest a
+.\" line may be set, their top, is a line too low for the rule's gap)
 .if !\\n[book-nofill] .if \\n[book-ncol]<2 \{\
-.	nr book-vt \\n[book-fotrap]+\\n[book-vs]-1
+.	ie \\n[book-fotrap]<(\\n[.p]-\\n[book-bm]-\\n[book-vs]+1) .nr book-vt \\n[book-fotrap]
+.	el .nr book-vt \\n[book-fotrap]+\\n[book-vs]-1
 .	dv vfoot \\n[book-vt] \\n[book-vs]
 .\}
 .\" the page's own margin, not its last column's
@@ -437,13 +459,14 @@
 .tm aux:.book-tocent part "" "\\$1" \\n% book-h\\n[book-hn]
 .book-newpage 1 0
 ..
+.\" .chapter "Title" [label] ["Short"]: Short, if given, the running head
 .de chapter
 .book-begin
-.book-chapterhead 1 "\\$1" "\\$2"
+.book-chapterhead 1 "\\$1" "\\$2" "\\$3"
 ..
 .de chapter*
 .book-begin
-.book-chapterhead 0 "\\$1" "\\$2"
+.book-chapterhead 0 "\\$1" "\\$2" "\\$3"
 ..
 .de book-chapterhead
 .book-newpage 1 1
@@ -452,6 +475,7 @@
 .nr fn-n 0
 .nr en-n 0
 .ds book-rh \\$2
+.if !'\\$4'' .ds book-rh \\$4
 .ds book-en-chapter
 .rs
 .sp 1.25i
@@ -479,6 +503,13 @@
 .	as book-hx \X^outline 1 \\$2^
 .	if !'\\$2'Contents' .if !\\n[book-notoc] .tm aux:.book-tocent chapter "" "\\$2" \\n% book-h\\n[book-hn]
 .	ds book-en-chapter \\$2
+.\}
+.\" a running head too wide to leave its folio room: the chapter's number
+.\" (as LaTeX's \chapter[short]{long} would be given), else none
+.if \w'\s-1\f[SC]\\*[book-rh]\fP\s+1'>(\\n[book-ll]-8m) \{\
+.	tm book: the running head too wide; a short title, .chapter "\\$2" label "Short" (at \\n[.c] of \\n[.F])
+.	ie \\n[book-chnum] .ds book-rh Chapter \\n[book-chapter]
+.	el .ds book-rh
 .\}
 .ce 1
 .book-size 17 10
@@ -553,6 +584,94 @@
 .if !'\\$2'' .book-label \\$2
 .nr book-noindent 1
 .ns
+..
+.\" a heading below a subsection's, as LaTeX's book sets one: not
+.\" numbered, not in the contents; a label on it refers to the subsection
+.de subsubsection
+.book-begin
+.br
+.book-vstretch 2p
+.sp 0.5v
+.ne 3v
+.ad l
+.nr book-hn +1
+.ds book-hx \X^dest book-h\\n[book-hn]^\X^outline 4 \\$1^
+.if !'\\$2'' .as book-hx \X^dest lab-\\$2^
+.book-tag H4
+\\*[book-hx]\f[BI]\\$1\fP
+.br
+.book-tag end
+.book-vstretch 1p
+.ad pb
+.sp 0.25v
+.if !'\\$2'' .book-label \\$2
+.nr book-noindent 1
+.ns
+..
+.\"
+.\" ---------------------------------------------------------------
+.\" lists: .list [1 a i bullet dash] ... .item ... .endlist, as LaTeX's
+.\" enumerate and itemize; nested, each 2.5 ems further in, its marks
+.\" hung before its items' text (1. a) i. • –); tagged L, LI, Lbl, LBody
+.\"
+.nr book-ld 0		\" the lists open
+.de list
+.book-begin
+.br
+.nr book-ld +1
+.ds book-lt\\n[book-ld] \\$1
+.if '\\$1'' .ds book-lt\\n[book-ld] bullet
+.nr book-ln\\n[book-ld] 0 1
+.af book-ln\\n[book-ld] 1
+.if '\\$1'a' .af book-ln\\n[book-ld] a
+.if '\\$1'i' .af book-ln\\n[book-ld] i
+.nr book-li\\n[book-ld] 0
+.if \\n[book-ld]=1 \{\
+.	book-vstretch 2p
+.	sp 0.5v
+.\}
+.book-tag end
+.book-tag push L
+.nr book-noindent 1
+..
+.\" (an item an LI of its Lbl and its LBody, the LBody pushed, so that a
+.\" list within the item is in it, as PDF/UA has it)
+.de item
+.br
+.if \\n[book-li\\n[book-ld]] \{\
+.	book-tag pop
+.	book-tag pop
+.\}
+.nr book-li\\n[book-ld] 1
+.nr book-ln\\n[book-ld] +1
+.ds book-lm \\(bu
+.if '\\*[book-lt\\n[book-ld]]'dash' .ds book-lm \\(en
+.if '\\*[book-lt\\n[book-ld]]'1' .ds book-lm \\n[book-ln\\n[book-ld]].
+.if '\\*[book-lt\\n[book-ld]]'a' .ds book-lm \\n[book-ln\\n[book-ld]])
+.if '\\*[book-lt\\n[book-ld]]'i' .ds book-lm \\n[book-ln\\n[book-ld]].
+.if !'\\$1'' .ds book-lm \\$1
+.book-vstretch 1p
+.sp 0.2v
+.book-tag push LI
+.in \\n[book-ld]u*2.5m
+.ti \\n[book-ld]u*2.5m
+\X'tag Lbl'\h'-\w'\\*[book-lm]'u-0.5m'\\*[book-lm]\h'0.5m'\X'tag end'\X'tag push LBody'\c
+..
+.de endlist
+.br
+.if \\n[book-li\\n[book-ld]] \{\
+.	book-tag pop
+.	book-tag pop
+.\}
+.book-tag pop
+.nr book-ld -1
+.in \\n[book-ld]u*2.5m
+.if \\n[book-ld]=0 \{\
+.	book-vstretch 2p
+.	sp 0.5v
+.	in 0
+.\}
+.nr book-noindent 1
 ..
 .\"
 .\" ---------------------------------------------------------------
@@ -638,6 +757,8 @@
 .\" to the mark (fnm-N)
 .ds book-fnmk \s-3\\n[fn-n]\s+3
 .ds book-fnnt \s-2\\n[fn-n]\s+2
+.ds book-fnhn \\n[fn-n]
+.nr book-fnhang 1	\" a note's number hung in the margin, full size
 .ds fnmark \R'fn-n +1'\R'fn-tot +1'\R'fn-marked 1'\X^dest fnm-\\n[fn-tot]^\X^nr fn-out \\n[fn-tot]^\v'-0.4m'\\*[book-lks fn-\\n[fn-tot] book-fnmk]\v'0.4m'
 .de fn
 .book-begin
@@ -655,7 +776,11 @@
 .if \\n[fn-pend]<1 .nr fn-pend 1
 .ev fn
 .di fn-p\\n[fn-tot]
-\X^dest fn-\\n[fn-tot]^\v'-0.3m'\\*[book-lks fnm-\\n[fn-tot] book-fnnt]\v'0.3m'\ \c
+.\" the note's number: full size, hung in the margin, its last figure
+.\" half an em before the text (as Bringhurst sets them); or raised at
+.\" the note's head (book-fnhang 0)
+.ie \\n[book-fnhang] \X^dest fn-\\n[fn-tot]^\h'-\w'\\n[fn-n]'u-0.5m'\\*[book-lks fnm-\\n[fn-tot] book-fnhn]\h'0.5m'\c
+.el \X^dest fn-\\n[fn-tot]^\v'-0.3m'\\*[book-lks fnm-\\n[fn-tot] book-fnnt]\v'0.3m'\ \c
 ..
 .de fe
 .br
@@ -973,6 +1098,39 @@
 ..
 .\"
 .\" ---------------------------------------------------------------
+.\" an image, JPEG or PNG: .image file width height, centred, kept on
+.\" one page, described for a tagged PDF by .alt as a picture is (tr2pdf
+.\" places it, x X image)
+.\"
+.de image
+.book-begin
+.br
+.ie (\\$2+0)*(\\$3+0) \{\
+.	nr book-iw (\\$2)
+.	nr book-ih (\\$3)
+.	if \\n[book-iw]>(\\n[.l]-\\n[.i]) \{\
+.		nr book-ih \\n[book-ih]*(\\n[.l]-\\n[.i])/\\n[book-iw]
+.		nr book-iw \\n[.l]-\\n[.i]
+.	\}
+.	book-tag end
+.	book-tag push Figure
+.	ie '\\*[book-alt]'' \{\
+.		tm book: an image with no .alt (\\$1, at \\n[.c] of \\n[.F])
+.		book-tag alt Image
+.	\}
+.	el .book-tag alt \\*[book-alt]
+.	ds book-alt
+.	ne \\n[book-ih]u+1v
+.	sp \\n[book-ih]u-1v
+.	nf
+\h'(\\n[.l]u-\\n[.i]u-\\n[book-iw]u)/2u'\X'image \\$1 \\n[book-iw] \\n[book-ih]'
+.	fi
+.	book-tag pop
+.\}
+.el .tm book: .image \\$1 \\$2 \\$3: its width and height wanted (at \\n[.c] of \\n[.F])
+..
+.\"
+.\" ---------------------------------------------------------------
 .\" floats: a figure or a table with its caption, diverted in its own
 .\" environment (a paragraph it is in goes on unbroken); set where it is
 .\" if nothing waits and it fits there, between paragraphs; else at the
@@ -1009,6 +1167,7 @@
 .ds book-fllab \\$3
 .ev fl
 .evc 0
+.ft R
 .in 0
 .ti 0
 .di book-fl\\n[book-flnext]
@@ -1137,9 +1296,11 @@
 .nr book-notoc 0
 .if \\n[lof-\\$1-set] \{\
 .	ad l
+.	if \\n[book-tvs] .vs \\n[book-tvs]u
 .	book-tag push TOC
 .	lof-\\$1-calls
 .	book-tag pop
+.	vs \\n[book-vs]u
 .	in 0
 .	ad pb
 .\}
@@ -1308,52 +1469,56 @@
 .\}
 .el .ie '\\$1'chapter' \{\
 .	sp 0.5v
-.	ta \\n[book-ll]u-2m \\n[book-ll]uR
-.	ie !'\\$2'' \\*[book-tl \\$5]\\$2.\ \ \\$3\a\t\\$4
-.	el \\*[book-tl \\$5]\\$3\a\t\\$4
+.	ie !'\\$2'' .book-tocent1 0 1.8m "\\$2." "\\$3" \\$4 \\$5
+.	el .book-tocent1 0 0 "" "\\$3" \\$4 \\$5
 .\}
-.el .ie '\\$1'figure' \{\
-.\"	a figure's or table's: its number before its caption, a long one
-.\"	filled short of the page's column, hung after the number, the
-.\"	leaders from its last line
-.	in 2m
-.	ta \\n[book-ll]u-2m-2m \\n[book-ll]u-2mR
-.	ie \w'\\$2\h'3m-\w'\\$2'u'\\$3'<(\\n[book-ll]-7m) \\*[book-tl \\$5]\\$2\h'3m-\w'\\$2'u'\\$3\a\t\\$4
-.	el \{\
-.		in 5m
-.		ti 2m
-.		ll \\n[book-ll]u-4m
-.		fi
-.		ad l
-\\*[book-tl \\$5]\\$2\h'3m-\w'\\$2'u'\\$3
-.		br
-.		nf
-.		ll \\n[book-ll]u
-.		nr book-tlw \\n[.n]
-.		sp -1v
-.		ta \\n[book-ll]u-5m-2m \\n[book-ll]u-5mR
-\h'\\n[book-tlw]u'\a\t\\$4
-.		ad pb
-.	\}
-.\}
+.\" (LaTeX's indents and numbers' widths)
+.el .ie '\\$1'subsection' .book-tocent1 3.8m 3.2m "\\$2" "\\$3" \\$4 \\$5
+.el .ie '\\$1'figure' .book-tocent1 1.5m 2.3m "\\$2" "\\$3" \\$4 \\$5
 .el \{\
-.	in 2m
-.	ta \\n[book-ll]u-2m-2m \\n[book-ll]u-2mR
-.	ie !'\\$2'' \\*[book-tl \\$5]\\$2\ \ \\$3\a\t\\$4
-.	el \\*[book-tl \\$5]\\$3\a\t\\$4
+.	ie !'\\$2'' .book-tocent1 1.5m 2.3m "\\$2" "\\$3" \\$4 \\$5
+.	el .book-tocent1 1.5m 0 "" "\\$3" \\$4 \\$5
 .\}
 .br
 .lc .
 .fi
+..
+.\" an entry: at the indent $1, its number $3 in a box $2 wide, its
+.\" title $4; a title too long for one line (with room for leaders and
+.\" its page) filled to 2.55 ems short of the page's measure, as LaTeX's
+.\" contents are, hung after the number, the leaders to its page $5 from
+.\" its last line; the whole a link to $6
+.de book-tocent1
+.in \\$1
+.ta \\n[book-ll]u-\\$1-2.55m \\n[book-ll]u-\\$1R
+.ie \w'\\$3\h'\\$2-\w'\\$3'u'\\$4'<(\\n[book-ll]-\\$1-4.5m) \\*[book-tl \\$6]\\$3\h'\\$2-\w'\\$3'u'\\$4\a\t\\$5
+.el \{\
+.	in \\$1+\\$2
+.	ti \\$1
+.	ll \\n[book-ll]u-2.55m
+.	fi
+.	ad l
+\\*[book-tl \\$6]\\$3\h'\\$2-\w'\\$3'u'\\$4
+.	br
+.	nf
+.	ll \\n[book-ll]u
+.	nr book-tlw \\n[.n]
+.	sp -1v
+.	ta \\n[book-ll]u-\\$1-\\$2-2.55m \\n[book-ll]u-\\$1-\\$2R
+\h'\\n[book-tlw]u'\a\t\\$5
+.	ad pb
+.\}
 ..
 .de contents
 .book-begin
 .book-chapterhead 0 "Contents"
 .if \\n[toc-set] \{\
 .	ad l
+.	if \\n[book-tvs] .vs \\n[book-tvs]u
 .	book-tag push TOC
 .	toc-calls
 .	book-tag pop
+.	vs \\n[book-vs]u
 .	in 0
 .	ad pb
 .\}

@@ -517,8 +517,13 @@ pdfext(p: array of byte, hwid, vwid: int): int
 		sb.str("<<\n  /Type /XObject\n  /Subtype /Form\n  /FormType 1\n");
 		if(bbox >= 0)
 			sb.str("  /BBox " + pdf_copy(p, bbox) + "\n");
+		# placed by the page (outpdf), where its place is given at the
+		# page's end; Neatpost's, here
+		at := "0 0";
+		if(compat)
+			at = pdfpos(o_h, o_v);
 		sb.str(sys->sprint("  /Matrix [%d.%02d 0 0 %d.%02d %s]\n",
-			hzoom / 100, hzoom % 100, vzoom / 100, vzoom % 100, pdfpos(o_h, o_v)));
+			hzoom / 100, hzoom % 100, vzoom / 100, vzoom % 100, at));
 		if(res >= 0)
 			pdf_rescopy(p, res, sb);
 		sb.str("  /Length " + string length + "\n");

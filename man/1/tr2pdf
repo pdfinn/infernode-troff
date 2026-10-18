@@ -74,6 +74,17 @@ The PDF's information
 .BI "mark " "title page offset level"
 Neatpost's: a destination and a bookmark at a page and place given.
 .TP
+.BI "image " "file w h"
+A JPEG or PNG image, its lower left corner here,
+.I w
+by
+.I h
+(troff's units; one of them 0, the image's proportions give it): a
+JPEG's data as it is, a PNG's decoded and compressed again, its alpha a
+soft mask, its palette an indexed colour space (not an interlaced PNG,
+which is said).
+Each image is one object, however many pages show it.
+.TP
 .BI "vstretch " w
 The space after the line set last may stretch, by
 .I w

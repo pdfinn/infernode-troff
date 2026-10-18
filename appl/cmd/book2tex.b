@@ -93,6 +93,7 @@ numbered := 1;	# chapters numbered (\mainmatter's)
 chapnum := 0;
 enhead := "";	# the heading of the chapter's endnotes, until its first
 npics := 0;
+lists: list of string;	# the lists open (enumerate, itemize), innermost first
 infloat := "";	# the float open (figure, table): its pictures and tables centred by it
 floatlabel := "";
 
@@ -915,7 +916,10 @@ request(s: string)
 			emit(cur, "\\markboth{" + t + "}{" + t + "}");
 			enhead = t;
 		}else{
-			block("\\chapter{" + t + "}");
+			if(arg(a, 2) != "")	# its short title, the running head's
+				block("\\chapter[" + textarg(arg(a, 2)) + "]{" + t + "}");
+			else
+				block("\\chapter{" + t + "}");
 			if(numbered){
 				chapnum++;
 				enhead = "Chapter " + string chapnum + ": " + t;
@@ -924,7 +928,7 @@ request(s: string)
 		}
 		if(arg(a, 1) != "")
 			emit(cur, "\\label{" + arg(a, 1) + "}");
-	"section" or "subsection" =>
+	"section" or "subsection" or "subsubsection" =>
 		blankline();
 		block("\\" + name + "{" + textarg(arg(a, 0)) + "}");
 		if(arg(a, 1) != "")
@@ -972,6 +976,35 @@ request(s: string)
 		block("\\end{" + infloat + "}");
 		infloat = "";
 		floatlabel = "";
+	"list" =>
+		blankline();
+		env := "itemize";
+		if(arg(a, 0) == "1" || arg(a, 0) == "a" || arg(a, 0) == "i")
+			env = "enumerate";
+		lists = env :: lists;
+		block("\\begin{" + env + "}");
+	"item" =>
+		closefont(cur);
+		if(arg(a, 0) != "")
+			block("\\item[" + textarg(arg(a, 0)) + "]");
+		else
+			block("\\item");
+	"endlist" =>
+		if(lists != nil){
+			block("\\end{" + hd lists + "}");
+			lists = tl lists;
+		}
+		cur.noindent = 1;
+	"image" =>
+		havepics = 1;
+		closefont(cur);
+		f := arg(a, 0);
+		o := "";
+		if(arg(a, 1) != "")
+			o = "width=" + dimen(arg(a, 1));
+		if(arg(a, 2) != "")
+			o += ",height=" + dimen(arg(a, 2));
+		centrein("\\includegraphics[" + o + "]{" + f + "}");
 	"listoffigures" =>
 		block("\\listoffigures");
 	"listoftables" =>

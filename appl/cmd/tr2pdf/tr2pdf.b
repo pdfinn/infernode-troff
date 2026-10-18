@@ -49,6 +49,7 @@ include "pdfext.b";
 include "cffsub.b";
 include "tag.b";
 include "vjust.b";
+include "image.b";
 
 TROFFFDIR: con "/lib/troff";
 
@@ -474,7 +475,7 @@ postps()
 	case cmd {
 	"rotate" =>
 		;
-	"eps" or "pdf" =>
+	"eps" or "pdf" or "image" =>
 		(path, spec) := strcut(arg);
 		v := scanints(spec, 2);
 		hwid := 0;
@@ -485,6 +486,8 @@ postps()
 			vwid = v[1];
 		if(path != "" && cmd == "pdf")
 			outpdf(path, hwid, vwid);
+		if(path != "" && cmd == "image")
+			outimage(path, hwid, vwid);
 	"name" =>
 		(desc, spec) := strcut(arg);
 		v := scanints(spec, 2);

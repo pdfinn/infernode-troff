@@ -695,7 +695,9 @@ o_loadfont(g: ref Glyph): int
 pdfpos00(uh, uv: big): string
 {
 	h := int (uh * big 72 / big devres());
-	if(!compat)	# given at the page's end (vjust.b)
+	# given at the page's end (vjust.b), if of the text: what is set after
+	# it (the notes, their rule, the folio) stays where it is
+	if(!compat && !vj_foot)
 		return dec2(h) + " " + vj_place(uv);
 	v := int (big pdf_height * big 100 - uv * big 72 / big devres());
 	return dec2(h) + " " + dec2(v);
@@ -869,7 +871,7 @@ outpdf(path: string, hwid, vwid: int)
 	if(xobj_id >= 0 && !compat){
 		tag_content(0);
 		textend();
-		pg += "/FO" + string xobj_id + " Do\n";
+		pg += "q 1 0 0 1 " + pdfpos(o_h, o_v) + " cm /FO" + string xobj_id + " Do Q\n";
 	}else if(xobj_id >= 0)
 		pg += "ET /FO" + string xobj_id + " Do BT\n";
 	p_h = -1;

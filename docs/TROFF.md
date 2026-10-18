@@ -42,9 +42,12 @@ LaTeX without being LaTeX.
 | `.title`, `.subtitle`, `.author`, `.date`, `.maketitle` | `\title`, ..., `\maketitle` |
 | `.frontmatter`, `.mainmatter`, `.backmatter` | the same |
 | `.part "Title"` | `\part{Title}` |
-| `.chapter "Title" [label]` | `\chapter{Title}\label{label}` |
+| `.chapter "Title" [label] ["Short"]` | `\chapter[Short]{Title}\label{label}` |
 | `.chapter* "Title"` | `\chapter*{Title}` |
-| `.section "Title" [label]`, `.subsection` | `\section`, `\subsection` |
+| `.section "Title" [label]`, `.subsection`, `.subsubsection` | `\section`, `\subsection`, `\subsubsection` |
+| `.list 1` (or `a`, `i`) ... `.item` ... `.endlist` | `enumerate` with `\item` |
+| `.list` (or `bullet`, `dash`) ... `.item` ... `.endlist` | `itemize` with `\item` |
+| `.image file width height` | `\includegraphics[width=...,height=...]{file}` |
 | a blank line, or `.p` | a paragraph |
 | `.quote` ... `.endquote` | `quotation` |
 | `.epigraph` ... `.attrib "Source"` `.endepigraph` | `\epigraph{...}{Source}` |
@@ -401,6 +404,43 @@ thickness come from the glyph's bounding box: the character's own, or
 the one its `.char` gives it (eqnrc's rules are Libertinus Math's).
 eqn and tbl place the rules by those boxes, so each lands where its
 glyphs would have.
+
+## A thesis: the page, the notes, lists and images
+
+A doctoral dissertation written for XeLaTeX (A4, 12 points double
+spaced, notes in Chicago's style by biblatex, figures, 230 pages) was
+set with `-mbook` from its LaTeX, on the same page in the same face, to
+find what a real manuscript asks. Its chapters came out page for page
+as XeLaTeX sets them, in 12 seconds against XeLaTeX's 40 (three passes
+and biber). What it asked for:
+
+    .papersize a4                \" or a5, b5, letter; a size no page could be is refused
+    .nr book-recto 0             \" one-sided: a chapter on the next page
+    .nr book-ps 12               \" 12 points,
+    .nr book-vs 24p              \" double spaced,
+    .nr book-nps 10              \" its notes 10 points,
+    .nr book-nvs 12p             \" single spaced,
+    .nr book-tvs 14p             \" and its contents single spaced
+    .chapter "A Long Title" ch3 "Short"   \" Short its running head
+    .subsubsection "Title"       \" not numbered, not in the contents
+    .list 1                      \" or a, i, bullet, dash; lists nest
+    .item
+    The first.
+    .endlist
+    .alt "What the figure shows"
+    .image fig.jpg 5i 1.9i       \" a JPEG or a PNG, its width and height
+
+A note's number is set full size and hung in the margin, the note's
+text at the text's margin, as Bringhurst sets them (`book-fnhang 0`
+raises it at the note's head instead). A word breaks with three
+letters at least after its hyphen. Long entries in the contents are
+filled short of their page's number and hung after their numbers,
+subsections further in than sections, as LaTeX sets them; a running
+head too long to sit beside its page's number is said, and the
+chapter's number set instead. `tr2pdf` places images (`x X image file
+w h`): a JPEG's data as it is, a PNG decoded, its alpha a soft mask, its
+palette an indexed colour space; tagged, each is a Figure described by
+`.alt`. `tests/host/manuscript_test.sh` checks each of these.
 
 ## Figures and tables that float
 

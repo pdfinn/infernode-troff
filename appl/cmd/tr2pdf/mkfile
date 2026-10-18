@@ -9,6 +9,7 @@ MODULES=\
 	cffsub.b\
 	tag.b\
 	vjust.b\
+	image.b\
 
 SYSMODULES= \
 	bufio.m\
