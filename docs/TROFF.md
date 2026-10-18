@@ -742,33 +742,31 @@ The toolchain's own pages are `troff(1)`, `eqn(1)`, `tbl(1)`, `pic(1)`,
 `refer(1)`, `tr2pdf(1)`, `mkfn(1)`, `book(1)` (with `book2tex` and
 `mkindex`) and `troff(6)`, the macro packages.
 
-## Still to come
+## Speed: what was done, and what was left
 
-Speed at a book's length, where XeLaTeX is faster (see Speed; the
-measure is `tools/mathbook.py`'s 245 pages: `book` 14.7 seconds from
-nothing, XeLaTeX 2.4 a pass). In order of what each would save:
-- eqn's boxes measured once. eqn measures a box by having troff set it
-  (`\w'\*(xx'`), and each level of an equation sets again what is in
-  it: 45,000 measurements for 1,800 equations, 1.6 of troff's 5.6
-  seconds a pass, and most of eqn's 7.4 MB of output. TeX keeps each
-  box's width, height and depth and adds them up. eqn could keep them in
-  registers beside each box (as a box keeps its strut, `sht` and
-  `sdp`), measuring only atoms, and compute a merge's, a fraction's or
-  a script's from its parts', with the motions it puts in. The output
-  must stay Neateqn's without eqnrc (eqn_test), so this is TeX's way,
-  under a setting. Measured before and after on mathbook.ms; the 23
-  displays' placement (maths_test) must not move.
-- Deflate in C. tr2pdf's deflate is Limbo (`/dis/lib/deflate.dis`),
-  two thirds of tr2pdf's 1.8 seconds; a builtin module in emu (zlib's
-  or miniz's deflate) would make it a few hundredths. That is a change
-  to InferNode's emu, not this package.
-- troff's text. 1.9 seconds for 186 pages of text, a pass: the profile
-  is flat (Dis's reference counting, frames and allocation); see the
-  note on profiling compiled code above for how to look further.
-- Measured and found not worth keeping: a cache of `\w`'s widths by the
-  string measured (a fifth of eqn's measurements are of a string seen
-  before, and those mostly where an equation is repeated); deflate at
-  level 1 (a fifth of its time for a file a sixth larger).
+troff's pass over `tools/mathbook.py`'s 245 pages now takes 6.0 seconds
+of CPU, not 7.3 (one CPU), its output byte for byte as before: eqn
+chooses a delimiter's size by the heights mkfn -M writes
+(`bracketheights`), not by having troff set every size, so its output
+is 6.2 MB, not 8.0; troff reads a file whole, uses again the buffers
+pushed for strings, makes a word's buffer small and grows it, copies a
+string's plain runs at once in `.ds` and `.as`, and finds two-character
+names in a table. A rebuild after an edit is one pass (book stops when
+the aux file does not change).
+
+Measured and left, as worth less than they would cost:
+- eqn keeping each box's width, height and depth, as TeX does, not
+  having troff set a box to measure it (`\w`): at most 0.9 seconds a
+  pass, a large rewrite, and placement would move (troff could no
+  longer kern across boxes).
+- Deflate in C: 0.77 seconds of tr2pdf's 1.97, about 5% of a book; a
+  change to emu on every platform.
+- What remains of troff's time is Dis's: reference counting, frames and
+  returns (18%, the JIT's macros) and allocation (a quarter, emu's pools
+  and libc). Sampling compiled code: run emu with `-c5`, which prints
+  each module's code base, each Dis instruction's end offset and the
+  macros', sample the busy thread's program counter (ptrace), and map
+  the samples through the module's `.sbl`.
 
 A test book like the one this was made for (its notes, index, tables,
 equations and Greek) is the next measure.
