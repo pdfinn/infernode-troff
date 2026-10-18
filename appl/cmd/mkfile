@@ -3,6 +3,7 @@
 TARG=\
 	book2tex.dis\
 	mkindex.dis\
+	tr2img.dis\
 
 SYSMODULES=\
 	bufio.m\
@@ -10,7 +11,8 @@ SYSMODULES=\
 	sh.m\
 	sys.m\
 
-PKGMODULES=
+PKGMODULES=\
+	troffpage.m\
 
 DISBIN=$PKG/dis
 

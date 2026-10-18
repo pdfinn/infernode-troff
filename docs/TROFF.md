@@ -17,6 +17,7 @@ to read in InferNode's document views.
 | `refer` | Citations by key from BibTeX's and refer's databases; with `-S chicago`, the *Chicago Manual of Style*'s notes and bibliography (18th edition) | Neatrefer, translated, with a BibTeX reader and styles of its own |
 | `tr2pdf` | Troff's output as PDF: OpenType fonts embedded, subset to the glyphs used, compressed, with ToUnicode maps (text can be searched and copied) | Neatpost's PDF writer, translated |
 | `mkfn` | Font descriptions for troff from OpenType, TrueType and AFM fonts, with each glyph's bounding box (CFF's too) | Neatmkfn, translated |
+| `tr2img` | A page of troff's output painted as the document views paint them (its fonts, drawings and images), as a PPM image | |
 | `mkindex` | A book's index from troff's output: makeindex's entries, sorted word by word as the *Chicago Manual* sorts, Greek and accents included | |
 | `book2tex` | A book written with `-mbook` as LaTeX, for LuaLaTeX, for a publisher who wants it | |
 | `book` | Runs them: refer, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
@@ -504,7 +505,7 @@ filled short of their page's number and hung after their numbers,
 subsections further in than sections, as LaTeX sets them; a running
 head too long to sit beside its page's number is said, and the
 chapter's number set instead. `tr2pdf` places images (`x X image file
-w h`): a JPEG's data as it is, a PNG decoded, its alpha a soft mask, its
+w h`), and the document views paint them there (`tr2img` one page): a JPEG's data as it is, a PNG decoded, its alpha a soft mask, its
 palette an indexed colour space; tagged, each is a Figure described by
 `.alt`. Two registers set a thesis as LaTeX's book class does by
 default: `book-plain` 1, no running heads and every page's number

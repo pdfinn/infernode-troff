@@ -1,0 +1,48 @@
+.TH TR2IMG 1
+.SH NAME
+tr2img \- a page of troff's output as an image
+.SH SYNOPSIS
+.B tr2img
+[
+.BI -p " page"
+] [
+.BI -r " dpi"
+] [
+.BI -d " dir"
+] [
+.I file
+]
+.SH DESCRIPTION
+.I Tr2img
+paints a page of what
+.IR troff (1)
+wrote (its
+.I file
+or its standard input) as the document views paint it (Xenith's,
+.IR wm/page (1)):
+its glyphs from the device's outline fonts, its drawings and its images
+.RB ( "x X image" ,
+as
+.IR tr2pdf (1)
+places them), and writes it on its standard output as a PPM image.
+.TP
+.BI -p " page"
+The page, from 1 (1).
+.TP
+.BI -r " dpi"
+Its resolution, in dots to the inch (72).
+.TP
+.BI -d " dir"
+The directory an image's name is from, if it is not rooted (the
+current directory).
+.SH EXAMPLES
+.IP
+.EX
+troff -mbook book.ms >book.out
+tr2img -p 3 -r 150 book.out >page3.ppm
+.EE
+.SH SOURCE
+.B /appl/cmd/tr2img.b
+.SH SEE ALSO
+.IR troff (1),
+.IR tr2pdf (1)

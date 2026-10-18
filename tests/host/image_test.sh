@@ -7,7 +7,10 @@
 #	.image f w: the height by the image's proportions; .image f "" h:
 #	the width; .image f: its size at its resolution, 72 to the inch if
 #	it says none; and no wider than the line;
-#	book2tex: \includegraphics with what was given.
+#	book2tex: \includegraphics with what was given;
+#	an image in running text below the line above it, its descenders
+#	cleared; tr2img (troffpage, the document views) paints it where
+#	tr2pdf puts it.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -37,7 +40,18 @@ open(d + '/c.png', 'wb').write(png(3000, 1000))	# wider than the line at 72
 j = b'\xff\xd8' + b'\xff\xe0' + struct.pack('>H', 16) + b'JFIF\x00\x01\x02\x01' + struct.pack('>HH', 200, 200) + b'\x00\x00'
 j += b'\xff\xc0' + struct.pack('>HBHHB', 11, 8, 300, 400, 1) + b'\x01\x11\x00' + b'\xff\xd9'
 open(d + '/d.jpg', 'wb').write(j)
+rows = b''.join(b'\x00' + b'\xd0\x20\x20' * 40 for y in range(20))
+open(d + '/red.png', 'wb').write(b'\x89PNG\r\n\x1a\n' + chunk(b'IHDR', struct.pack('>IIBBBBB', 40, 20, 8, 2, 0, 0, 0)) +
+    chunk(b'IDAT', zlib.compress(rows)) + chunk(b'IEND', b''))
 PY
+cat >"$tmp/r.ms" <<'MS'
+.chapter "Images" im
+A paragraph of words above the image, set as a line or two of text so that
+there is something just above it to compare against.
+.alt "red"
+.image red.png 2i
+Words below.
+MS
 cat >"$tmp/t.ms" <<'MS'
 .imgsize a.png
 .tm A \n[imgw] \n[imgh] \n[imgres]
@@ -62,7 +76,7 @@ cat >"$tmp/t.ms" <<'MS'
 .image c.png
 MS
 with_timeout 120 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c \
-    "cd '#U*$tmp'; troff -mbook t.ms > t.out >[2] t.err; book2tex -o t.tex t.ms >[2] tex.err" </dev/null >"$tmp/emu.log" 2>&1
+    "cd '#U*$tmp'; troff -mbook t.ms > t.out >[2] t.err; book2tex -o t.tex t.ms >[2] tex.err; troff -mbook r.ms > r.out >[2] r.err; tr2img -r 300 r.out > r.ppm; tr2pdf r.out > r.pdf" </dev/null >"$tmp/emu.log" 2>&1
 
 python3 -I - "$tmp" <<'PY'
 import re, sys
@@ -88,5 +102,38 @@ tex = open(d + '/t.tex').read()
 check('\\includegraphics[width=3in]{a.png}' in tex and '\\includegraphics[height=2in]{a.png}' in tex and
       '\\includegraphics{a.png}' in tex, 'book2tex: \\includegraphics with what was given',
       re.findall(r'\\includegraphics[^\n]*', tex))
+# the image painted by tr2img where tr2pdf puts it, below the text above
+def redbox(rgb, w, h):
+    red = [(i % w, i // w) for i in range(w * h) if rgb[3 * i] > 180 and rgb[3 * i + 1] < 80]
+    dark = [i // w for i in range(w * h) if sum(rgb[3 * i:3 * i + 3]) < 300 and not (rgb[3 * i] > 180 and rgb[3 * i + 1] < 80)]
+    if not red:
+        return None
+    xs = [x for x, y in red]; ys = [y for x, y in red]
+    top = min(ys)
+    above = [y for y in dark if y < top]
+    return (min(xs), top, max(xs), max(ys), max(above) if above else -1)
+def ppm(path):
+    b = open(path, 'rb').read()
+    m = re.match(rb'P6\s+(\d+)\s+(\d+)\s+255\s', b)
+    return int(m.group(1)), int(m.group(2)), b[m.end():]
+try:
+    w, h, px = ppm(d + '/r.ppm')
+    v = redbox(px, w, h)
+except Exception as e:
+    v = None
+check(v and abs((v[2] - v[0] + 1) - 600) < 6 and abs((v[3] - v[1] + 1) - 300) < 6 and v[1] > v[4],
+      'tr2img: the image painted, 2 inches by 1, below the text above it', v)
+import shutil, subprocess
+if shutil.which('pdftoppm'):
+    subprocess.run(['pdftoppm', '-r', '300', '-f', '1', '-l', '1', '-png', d + '/r.pdf', d + '/rp'], check=False)
+    import glob
+    try:
+        from PIL import Image
+        f = glob.glob(d + '/rp*.png')[0]
+        im = Image.open(f).convert('RGB')
+        p = redbox(im.tobytes(), im.width, im.height)
+        check(v and p and all(abs(a - b) < 3 for a, b in zip(v[:4], p[:4])), 'tr2img paints it where tr2pdf puts it', (v, p))
+    except ImportError:
+        pass
 sys.exit(fail)
 PY

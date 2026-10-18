@@ -1296,6 +1296,9 @@
 .	el .book-tag alt \\*[book-alt]
 .	ds book-alt
 .	ne \\n[book-ih]u+1v
+.\"	below what is above it, its descenders cleared (its top would be at
+.\"	the line's baseline); first in a float, at its top
+.	if \\n[.d]>0 .sp 0.3v
 .	sp \\n[book-ih]u-1v
 .	nf
 \h'(\\n[.l]u-\\n[.i]u-\\n[book-iw]u)/2u'\X'image \\$1 \\n[book-iw] \\n[book-ih]'

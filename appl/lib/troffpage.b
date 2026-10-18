@@ -26,6 +26,11 @@ include "outlinefont.m";
 	outlinefont: OutlineFont;
 	Face: import outlinefont;
 
+include "bufio.m";
+include "imagefile.m";
+include "imgload.m";
+	imgload: Imgload;
+
 include "troffpage.m";
 
 NFONTS:	con 32;
@@ -66,6 +71,15 @@ State: adt {
 	pages:	array of ref Start;
 	links:	array of array of Link;
 	names:	list of (string, int);	# named destinations: name, page
+	dir:	string;		# where its images' names are from
+	imgs:	list of ref Img;	# its images, read, and as last drawn
+};
+
+# an image (x X image file w h), as read and as last scaled
+Img: adt {
+	path:	string;
+	im:	ref Image;	# as read, RGBA32; nil if it cannot be
+	scaled:	ref Image;
 };
 
 docs: array of ref State;
@@ -172,9 +186,14 @@ qword(b: array of byte, i, e: int): (string, int)
 
 open(data: array of byte, fontdir: string): (ref Doc, string)
 {
+	return opendir(data, fontdir, nil);
+}
+
+opendir(data: array of byte, fontdir, dir: string): (ref Doc, string)
+{
 	if(!istroff(data))
 		return (nil, "not troff output");
-	st := ref State(data, fontdir, 10, 1, nil, nil, nil);
+	st := ref State(data, fontdir, 10, 1, nil, nil, nil, dir, nil);
 	d := ref Doc("utf", 720, 612, 792, 0, 0);
 	mounts := array[NFONTS] of string;
 	f := 1;
@@ -772,9 +791,16 @@ devctl(w: ref Walk, mounts: array of string, b: array of byte, i, e: int, h, v, 
 		if(pos >= 0 && pos < NFONTS)
 			mounts[pos] = name;
 	"X" =>
+		(x, k) := word(b, j, e);
+		if(x == "image" && w.what == Wpaint){
+			(f, k2) := word(b, k, e);
+			(iw, k3) := num(b, k2);
+			(ih, nil) := num(b, k3);
+			image(w, f, h, v, iw, ih);
+			return;
+		}
 		if(w.what != Wlinks)
 			return;
-		(x, k) := word(b, j, e);
 		if(x != "link")
 			return;
 		(url, k2) := qword(b, k, e);
@@ -1042,4 +1068,73 @@ Doc.links(d: self ref Doc, n: int): array of Link
 		st.links[n] = a;
 	}
 	return st.links[n];
+}
+
+# an image (x X image file w h): its lower left at (h, v), w by h units,
+# as tr2pdf places it; read once (imgload), scaled to where it is drawn
+image(w: ref Walk, f: string, h, v, iw, ih: int)
+{
+	r := Rect((int (w.ox + real h * w.k), int (w.oy + real (v - ih) * w.k)),
+		(int (w.ox + real (h + iw) * w.k), int (w.oy + real v * w.k)));
+	if(r.dx() <= 0 || r.dy() <= 0 || !r.Xrect(w.clip))
+		return;
+	img := readimg(w.st, f);
+	if(img == nil || img.im == nil)
+		return;
+	if(img.scaled == nil || img.scaled.r.dx() != r.dx() || img.scaled.r.dy() != r.dy())
+		img.scaled = scale(img.im, r.dx(), r.dy());
+	if(img.scaled != nil)
+		w.dst.draw(r, img.scaled, nil, (0, 0));
+}
+
+readimg(st: ref State, f: string): ref Img
+{
+	for(l := st.imgs; l != nil; l = tl l)
+		if((hd l).path == f)
+			return hd l;
+	img := ref Img(f, nil, nil);
+	st.imgs = img :: st.imgs;
+	if(imgload == nil){
+		imgload = load Imgload Imgload->PATH;
+		if(imgload == nil)
+			return img;
+		imgload->init(display);
+	}
+	path := f;
+	if(st.dir != nil && f != nil && f[0] != '/' && f[0] != '#')
+		path = st.dir + "/" + f;
+	(im, nil) := imgload->readimage(path);
+	if(im == nil)
+		return img;
+	# as RGBA32, its pixels read for scaling
+	img.im = display.newimage(im.r, Draw->RGBA32, 0, Draw->Transparent);
+	if(img.im != nil)
+		img.im.draw(img.im.r, im, nil, im.r.min);
+	return img;
+}
+
+# an image scaled to dx by dy, its nearest pixel each
+scale(im: ref Image, dx, dy: int): ref Image
+{
+	sw := im.r.dx();
+	sh := im.r.dy();
+	if(sw <= 0 || sh <= 0 || dx > 8192 || dy > 8192)
+		return nil;
+	src := array[4 * sw * sh] of byte;
+	if(im.readpixels(im.r, src) != len src)
+		return nil;
+	dst := array[4 * dx * dy] of byte;
+	for(y := 0; y < dy; y++){
+		sy := y * sh / dy;
+		for(x := 0; x < dx; x++){
+			s := 4 * (sy * sw + x * sw / dx);
+			d := 4 * (y * dx + x);
+			dst[d:] = src[s:s + 4];
+		}
+	}
+	out := display.newimage(Rect((0, 0), (dx, dy)), Draw->RGBA32, 0, Draw->Transparent);
+	if(out == nil)
+		return nil;
+	out.writepixels(out.r, dst);
+	return out;
 }
