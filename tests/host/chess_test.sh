@@ -12,7 +12,8 @@
 #	a bad position, an unknown setting or a board with no .CE reported
 #	with its file and line, and chess failing;
 #	book(1) running it on a book with a board, the PDF's Figure
-#	described by the position;
+#	described by the position, a figure in its text (♔d3) set in CH,
+#	not in the fallback (DejaVu Sans, which has them too);
 #	tr2img painting the board: its dark squares grey, a piece's ink on
 #	its square and none on an empty one.
 
@@ -69,7 +70,7 @@ MS
 # a book: words, then a board with a king and a pawn each
 cat >"$tmp/b.ms" <<'MS'
 .chapter "Kings and pawns" kp
-The opposition decides it.
+The opposition decides it: after 1.\fB♔d3\fP White keeps it.
 .CB
 fen 8/8/4k3/8/4P3/4K3/8/8 w
 .CE
@@ -147,6 +148,9 @@ for m in re.finditer(rb'stream\r?\n(.*?)endstream', pdf, re.S):
 desc = b'Chess diagram. White: King e3, Pawn e4. Black: King e6. White to move.'
 check(b'/S /Figure' in text and desc in text, 'book: chess run, the PDF\'s Figure described by the position',
       (len(pdf), read('book.err')[-300:]))
+fonts = set(re.findall(rb'/BaseFont /[A-Z]{6}\+([^\s/]+)', pdf))
+check(b'CH' in fonts and not any(b'DejaVu' in f for f in fonts),
+      'book: a figure in the text (♔d3) from CH, not the fallback\'s', fonts)
 try:
     b = open(d + '/start.ppm', 'rb').read()
     m = re.match(rb'P6\s+(\d+)\s+(\d+)\s+255\s', b)

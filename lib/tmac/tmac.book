@@ -108,10 +108,23 @@
 .fp 11 SC R
 .ff SC +smcp
 .\" the fallback: a character none of Libertinus's fonts has is DejaVu
-.\" Sans's (a special font, searched when the font set in lacks a glyph),
-.\" but the chess figures (♘f3), Noto Sans Symbols 2's
-.fp 12 CH
-.fp 13 DF
+.\" Sans's (a special font, searched when the font set in lacks a glyph)
+.fp 12 DF
+.\" the chess figures (♘f3), Noto Sans Symbols 2's, each named so that
+.\" DejaVu's are not found first (13 is left to the user: tableau(1)'s)
+.fp 14 CH
+.char ♔ \f[CH]\N'uni2654'
+.char ♕ \f[CH]\N'uni2655'
+.char ♖ \f[CH]\N'uni2656'
+.char ♗ \f[CH]\N'uni2657'
+.char ♘ \f[CH]\N'uni2658'
+.char ♙ \f[CH]\N'uni2659'
+.char ♚ \f[CH]\N'uni265A'
+.char ♛ \f[CH]\N'uni265B'
+.char ♜ \f[CH]\N'uni265C'
+.char ♝ \f[CH]\N'uni265D'
+.char ♞ \f[CH]\N'uni265E'
+.char ♟ \f[CH]\N'uni265F'
 .\" and a character none has is said, not dropped without a word
 .mg 1
 .\"
