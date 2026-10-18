@@ -338,6 +338,8 @@ ren_mc(w, ljust: int): string
 }
 
 # process a line and print it with ren_out()
+ren_lastw := 0;	# the text's length on the line set last (\n[.n])
+
 ren_line(line: string, w, ad, body, li, lI, ll, els_neg, els_pos: int): int
 {
 	ren_first();
@@ -404,8 +406,11 @@ ren_passline(fmt: ref Fmt): int
 	}
 	if(nr(R_ce))
 		ad = AD_C;
-	if(l == nil)
+	if(l == nil){
+		ren_lastw = 0;
 		return ren_line("", 0, ad, 1, 0, 0, 0, 0, 0);
+	}
+	ren_lastw = l.wid;
 	return ren_line(l.sbuf, l.wid, ad, 1, l.li, l.lI, l.ll, l.elsn, l.elsp);
 }
 

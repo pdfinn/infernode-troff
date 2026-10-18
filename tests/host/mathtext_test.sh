@@ -11,6 +11,8 @@
 #	the paragraph after .p indented, text having followed the heading;
 #	displays lined up (eqn's lineup) a baseline and TeX's \jot apart,
 #	as align's lines, their signs one above the other;
+#	less space above and below a display after a short line (TeX's
+#	\abovedisplayshortskip, \belowdisplayshortskip);
 #	book2tex: those displays one align, each line its \tag; the hard
 #	displays' aligned matrix (matrix -100 { rcol ... lcol ... }) as
 #	aligned; eqnrc's names (nabla, oiint) as LaTeX's.
@@ -27,15 +29,30 @@ command -v pdftotext >/dev/null 2>&1 && command -v python3 >/dev/null 2>&1 ||
 tmp=$(mktemp -d "${TMPDIR:-/tmp}/mathtext.XXXXXX")
 trap 'rm -rf "$tmp"' EXIT
 cp tests/eqn/text.ms tests/eqn/hard.ms "$tmp/"
+cat >"$tmp/disp.ms" <<'MS'
+.chapter "Displays" d
+Thus before:
+.EQ
+x = 1
+.EN
+after1.
+.p
+A line that passes the display,\h'2.5i'here:
+.EQ
+x = 1
+.EN
+after2.
+MS
 
 with_timeout 180 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c \
-    "cd '#U*$tmp'; book text.ms >[2] book.err; book2tex -o text.tex text.ms >[2] tex.err; book2tex -o hard.tex hard.ms >[2] hard.err" \
+    "cd '#U*$tmp'; book text.ms >[2] book.err; book2tex -o text.tex text.ms >[2] tex.err; book2tex -o hard.tex hard.ms >[2] hard.err; book disp.ms >[2] disp.err" \
     </dev/null >"$tmp/emu.log" 2>&1
 if [ ! -s "$tmp/text.pdf" ]; then
     echo "FAIL: no PDF: $(cat "$tmp/book.err" | head -3)"
     exit 1
 fi
 pdftotext -bbox "$tmp/text.pdf" "$tmp/text.html" 2>/dev/null
+pdftotext -bbox "$tmp/disp.pdf" "$tmp/disp.html" 2>/dev/null
 
 python3 -I - "$tmp" <<'PY'
 import sys, re, html, unicodedata
@@ -81,6 +98,23 @@ eqs = sorted([w for w in words if w[4] in ('=', '≥') and labs and min(abs(w[3]
 gaps = [labs['(1.4)'][3] - labs['(1.3)'][3], labs['(1.5)'][3] - labs['(1.4)'][3]] if len(labs) == 3 else []
 check(gaps and all(14 < g < 19.5 for g in gaps) and len(eqs) >= 3 and max(w[0] for w in eqs[-3:]) - min(w[0] for w in eqs[-3:]) < 1,
       "displays lined up a baseline and \\jot apart, aligned", (gaps, [(w[4], w[0]) for w in eqs]))
+
+# a display after a short line closer to it than one after a line
+# reaching past its left edge (TeX's \abovedisplayshortskip), the line
+# after it too (\belowdisplayshortskip)
+dw = [(float(a), float(b), float(c), float(e), html.unescape(w)) for a, b, c, e, w in
+      re.findall(r'xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<',
+                 open(d + '/disp.html', encoding='utf-8').read())]
+def at(t):
+    return [w[3] for w in dw if w[4] == t or (t == '=' and '=' in w[4])]
+try:
+    (b1,), (h2,), (e1, e2), (a1,), (a2,) = at('before:'), at('here:'), at('='), at('after1.'), at('after2.')
+    above = (e1 - b1, e2 - h2)
+    below = (a1 - e1, a2 - e2)
+except ValueError:
+    above = below = (0, 0)
+check(above[0] and above[0] < above[1] - 4 and below[0] < below[1] - 1,
+      'less space above and below a display after a short line', (above, below))
 
 # book2tex
 tex = open(d + '/text.tex', encoding='utf-8').read()

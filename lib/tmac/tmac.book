@@ -1160,7 +1160,11 @@
 .ds .eqnbeg \R'book-eqlly \\n[bblly]'
 .nr book-eqend -1
 .de EQ
+.\" the line before it, if it is a paragraph's (TeX's \predisplaysize)
+.nr book-eqprew 0-1
+.if \\n[.pend]>0 .nr book-eqprew 1
 .br
+.if \\n[book-eqprew]>0 .nr book-eqprew \\n[.i]+\\n[.n]
 .ds book-eqlabel \\$1
 .di book-eqd
 .nf
@@ -1175,6 +1179,13 @@
 .if \\n[dn] \{\
 .	book-begin
 .	nr book-eqw \\n[dl]
+.\"	after a line of a paragraph ending 2 ems short of it, less space
+.\"	above and below (TeX's \abovedisplayshortskip, 0 plus 3 points,
+.\"	and \belowdisplayshortskip)
+.	nr book-eqshort 0
+.	if (\\n[MK]<2)&(\\n[book-eqprew]>=0) \{\
+.		if \\n[book-eqprew]+2m<((\\n[book-ll]u-\\n[book-eqw]u)/2u) .nr book-eqshort 1
+.	\}
 .\"	lined up (eqn's lineup) with the display just before, nothing
 .\"	between: TeX's \jot apart, as align's lines, not a display's space
 .	ie (\\n[MK]==2)&(\\n[.d]==\\n[book-eqend]) \{\
@@ -1183,7 +1194,7 @@
 .	\}
 .	el \{\
 .		book-vstretch 3p
-.		sp 0.5v
+.		if !\\n[book-eqshort] .sp 0.5v
 .	\}
 .	ne \\n[dn]u
 .	nf
@@ -1205,7 +1216,8 @@
 .		sp |\\n[book-eqe]u
 .	\}
 .	book-vstretch 3p
-.	sp 0.5v
+.	ie \\n[book-eqshort] .sp 0.3v
+.	el .sp 0.5v
 .	book-noindent
 .	nr book-eqend \\n[.d]
 .\}

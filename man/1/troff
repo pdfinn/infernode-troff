@@ -177,6 +177,10 @@ all 0 if it cannot be read.
 The lines the text not yet set will take, were the paragraph to end
 here.
 .TP
+.B \en[.n]
+Classic troff's: the length of the text on the line set last (not its
+indent).
+.TP
 .BI \eX'nr " name value" '
 Set the register
 .I name

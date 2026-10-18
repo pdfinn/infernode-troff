@@ -441,8 +441,12 @@ XeLaTeX's of `book2tex`'s LaTeX): an operator's limits are beside it in
 text (`lim` too: eqnrc's function names are braced, so that `from`
 finds an operator); displays lined up (eqn's `lineup`) are TeX's `\jot`
 apart, as `align`'s lines, and indented as the one with the `mark`, so
-that eqn's motion to the mark puts their signs one above the other.
-`tests/host/mathtext_test.sh` checks these.
+that eqn's motion to the mark puts their signs one above the other; a
+display after a paragraph's line ending two ems short of it has less
+space above and below it, as TeX's `\abovedisplayshortskip` and
+`\belowdisplayshortskip` (troff's `\n[.n]`, classic troff's register,
+the text's length on the line set last, tells). `tests/host/mathtext_test.sh`
+checks these.
 
 What is the font's in all this is its MATH table's: `mkfn -M` writes
 it as eqn's settings (constants, maths italic glyphs and their italic

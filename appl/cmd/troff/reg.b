@@ -126,6 +126,8 @@ num_str(id: int): string
 		return sys->sprint("%d", fmt_pending(env_fmt()));
 	if(s == ".ev")
 		return map_name(env_id);
+	if(s == ".n")	# classic troff's: the text's length on the line set last
+		return sys->sprint("%d", ren_lastw);
 	if(s == "$$")
 		return sys->sprint("%d", sys->pctl(0, nil));
 	if(s == "yr")
