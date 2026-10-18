@@ -245,6 +245,13 @@ are the braces' sizes and pieces; all as
 .IR mkfn (1)'s
 .B -M
 writes them from a font's MATH table;
+.B "set speech 1"
+describes each equation, under
+.BR -t ,
+in words, as it is spoken
+(\(lqx squared plus y sub i squared\(rq, \(lqthe fraction with
+numerator a plus b and denominator 2\(rq, \(lqthe sum from i equals 1 to
+n of\(rq, \(lqf of x\(rq, cases, matrices by rows), not as written;
 .B "set math_upright 1"
 takes digits and upright capital Greek from the math font
 .RB ( gsfont ),
@@ -296,7 +303,9 @@ Each equation a
 .B Formula
 for a tagged PDF
 .RI ( tr2pdf (1)),
-described by its eqn, as written; a display a block of its own.
+described by its eqn, as written (or in words, under
+.BR "set speech 1" );
+a display a block of its own.
 The output is then no longer Neateqn's.
 .SH FILES
 .B /lib/troff/eqnrc

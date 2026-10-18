@@ -396,6 +396,10 @@ tagalt(src: string): string
 		sp = 0;
 		r[len r] = c;
 	}
+	# said in words (set speech 1), as a screen reader would say it: from
+	# the source, its troff names whole
+	if(e_speech)
+		r = speak(s);
 	# as eqn's strings are, its bytes (printf writes each as one)
 	b = array of byte r;
 	r = "";

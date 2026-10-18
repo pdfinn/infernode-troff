@@ -160,6 +160,7 @@ include "src.b";
 include "tok.b";
 include "def.b";
 include "box.b";
+include "speak.b";
 
 init(nil: ref Draw->Context, args: list of string)
 {

@@ -191,10 +191,13 @@ check(types['BlockQuote'] >= 1 and types['P'] > 50 and types['Index'] == 1,
       'quotations, paragraphs and the index', types)
 forms = [e for e in elems if e['/S'] == '/Formula']
 alts = [str(e.get('/Alt')) for e in forms]
-check(len(forms) == 7 and 'x sup 2 + y sub i sup 2' in alts and 'alpha over beta' in alts and
-      '\u2200 x ( p \u2192 roman in )' in alts and
-      'sum from i=1 to n x sub i = int from 0 to inf e sup {-x sup 2} dx' in alts,
-      'each equation a Formula, described by its eqn as written', alts)
+check(len(forms) == 7 and 'x squared plus y sub i squared' in alts and 'alpha over beta' in alts and
+      'the square root of a plus b, end root' in alts and
+      'the sum from i equals 1 to n of x sub i equals the integral from 0 to infinity of '
+      'e raised to the power minus x squared, end power, d x' in alts and
+      any('the limit as x approaches 0 of the fraction with numerator sin x and denominator x, equals 1' in a
+          for a in alts),
+      'each equation a Formula, described in words', alts)
 tables = [e for e in elems if e['/S'] == '/Table']
 rows = [[c for c in child(tr)] for t in tables for tr in child(t)]
 def span(c):

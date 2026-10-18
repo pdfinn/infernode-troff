@@ -283,8 +283,14 @@ claims PDF/UA-1 (ISO 14289-1). veraPDF finds it conforms.
   footnotes and endnotes (`Note`, each with its ID, a note continued on
   the next page one note), the contents (`TOC`, each line a `TOCI`),
   the bibliography's entries, the index (`Index`).
-- **Equations.** Each a `Formula`, described by its eqn as written
-  (`x sup 2 + y sub i sup 2`); a display a block of its own.
+- **Equations.** Each a `Formula`, described in words as a screen
+  reader would speak it (`x sup 2 + y sub i sup 2` is "x squared plus
+  y sub i squared"; `{-b +- sqrt {b sup 2 - 4ac}} over 2a` "the
+  fraction with numerator minus b plus or minus the square root of b
+  squared minus 4 a c, end root, and denominator 2 a"; limits,
+  integrals, functions, cases and matrices read as ClearSpeak reads
+  them), `set speech 1` in eqnrc; without it, by its eqn as written.
+  A display is a block of its own.
 - **Tables.** Each a `Table` of rows (`TR`) of cells (`TD`); the rows
   above the first rule, if rows follow it, headings (`TH`, `Scope`); a
   cell spanning columns says so (`ColSpan`); a text block (`T{ T}`) is

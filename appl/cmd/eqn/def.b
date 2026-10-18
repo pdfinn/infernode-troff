@@ -402,6 +402,8 @@ e_texaccents := 0;
 # digits and capital Greek (upright) from the math font (gsfont), as
 # unicode-math sets them; 0, Neateqn's: the roman font's
 e_mathupright := 0;
+# a tagged PDF's Formula described in words (speak.b), not by its source
+e_speech := 0;
 # sizes in the device's scaled points (DESC sizescale, troff's z and
 # .ps), so that a script is 8.8 points, not 9
 e_scaledsz := 0;
@@ -476,6 +478,7 @@ def_set(name: string, val: int)
 	"math_italic" =>	e_mathitalic = val;
 	"tex_accents" =>	e_texaccents = val;
 	"math_upright" =>	e_mathupright = val;
+	"speech" =>	e_speech = val;
 	"scaled_sizes" =>	e_scaledsz = val;
 	"stack_top_display_shift_up" =>	e_stacktopd = val;
 	"stack_top_shift_up" =>	e_stacktop = val;
