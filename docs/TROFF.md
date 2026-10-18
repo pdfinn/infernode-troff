@@ -434,9 +434,10 @@ one in each numerator is spaced as `\cfrac`'s; delimiters as
 TeX sizes them (`set delimiter_factor 901`). Its scripts are TeX's 8.8
 points and scriptscripts 6.6 (`set scaled_sizes 1`: the device's
 `sizescale 100` keeps sizes in hundredths of a point, as groff's scaled
-points). The 23 displays take 0.6 seconds, eqn, troff and tr2pdf, emu's
-start included; one XeLaTeX pass over 22 of them, its font cache warm,
-takes 0.8 (cold, 2). At a book's length XeLaTeX is faster (see Speed).
+points). A page of hard displays (`examples/maths.ms`) is built whole in 0.5
+seconds by `book -f`, emu's start included, by XeLaTeX in 1.9 and by
+LuaLaTeX in 3.8 (two passes each, font caches warm). At a book's length
+of mathematics XeLaTeX and LuaLaTeX are faster (see Speed).
 In running text and between displays (`tests/eqn/text.ms`, set beside
 XeLaTeX's of `book2tex`'s LaTeX): an operator's limits are beside it in
 text (`lim` too: eqnrc's function names are braced, so that `from`
@@ -652,11 +653,12 @@ read so (CID-keyed, Type 1 charstrings) is embedded whole.
 
 ## Speed
 
-On a 2.8 GHz Xeon, the 62-page benchmark book (`-ms`) takes troff 1.36
-seconds compiled (`emu -c1`), 22 milliseconds a page; C Neatroff takes
-0.58. It took 2.34 before the changes below. A 39-page `-mbook` book
-with notes on every page takes 0.77 seconds a pass. A page is painted
-in about 20 milliseconds.
+Complete builds against XeLaTeX and LuaLaTeX are in the README's
+Benchmarks, all measured on one machine (a 4-core 2.1 GHz Xeon, emu
+`-c1`). On it the dissertation's 235 pages take `book -f` 12.4
+seconds for the whole build (refer, troff until its references settle,
+tr2pdf), about 50 milliseconds a page; XeLaTeX takes 42.6 and LuaLaTeX
+62.8. A page is painted on screen in about 20 milliseconds.
 
 The time went where a translation from C puts it: a string made for
 every character, an array allocated and zeroed for every word, a
@@ -694,8 +696,8 @@ goes:
   up dimensions it has. Measuring boxes is 1.6 seconds of troff's 5.6.
 - tr2pdf's deflate, in Limbo, is two thirds of its time; level 1 for
   6 saves a fifth of it for a file a sixth larger.
-- book ran the preprocessors (refer, pic, tbl, eqn) again for every
-  pass of troff; they now run once (17.2 seconds to 14.7).
+- book runs the preprocessors (refer, chess, pic, tbl, eqn) once, not
+  for every pass of troff.
 
 The 23 displays alone (`tests/eqn/hard.ms`) take 0.6 seconds, emu's
 start included, where XeLaTeX's start is most of its 0.8: the
@@ -785,11 +787,12 @@ The toolchain's own pages are `troff(1)`, `eqn(1)`, `tbl(1)`, `pic(1)`,
 
 ## Speed: what was done, and what was left
 
-troff's pass over `tools/mathbook.py`'s 245 pages now takes 6.0 seconds
-of CPU, not 7.3 (one CPU), its output byte for byte as before: eqn
+troff's pass over `tools/mathbook.py`'s 245 pages takes 6.0 seconds
+of CPU (one CPU), its output byte for byte what it was before this
+work: eqn
 chooses a delimiter's size by the heights mkfn -M writes
 (`bracketheights`), not by having troff set every size, so its output
-is 6.2 MB, not 8.0; troff reads a file whole, uses again the buffers
+is 6.2 MB; troff reads a file whole, uses again the buffers
 pushed for strings, makes a word's buffer small and grows it, copies a
 string's plain runs at once in `.ds` and `.as`, and finds two-character
 names in a table. A rebuild after an edit is one pass (book stops when
