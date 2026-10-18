@@ -61,7 +61,7 @@ maths = ''.join((alt if l.startswith('.PS') else '') + l + '\n'
                 if l and not l.startswith('.printindex') and not l.startswith('Done:'))
 # a table broken across a page whose foot has a note
 long = ('.chapter "Long Tables" long\n\nIn logic, $\u2200 x ( p \u2192 roman \\&in )$.\n\nA note on the table\\c\n.fn\nThe note.\n.fe\nthat follows.\n'
-        '.TS\nbox;\nl n.\nWork\tYear\n_\n' + ''.join('Row %d\t%d\n' % (i, 1900 + i) for i in range(60)) + '.TE\n')
+        '.TS\nbox;\nl n.\nWork\tYear\n_\nA power\t$x sup {2 k}$\n' + ''.join('Row %d\t%d\n' % (i, 1900 + i) for i in range(60)) + '.TE\n')
 end = '.backmatter\n.notes\n.bibliography\n.printindex\n'
 open(sys.argv[3] + '/t.ms', 'w', encoding='utf-8').write(book + '\n' + maths + long + end)
 # the same, its picture not described
@@ -78,6 +78,13 @@ fi
 if command -v pdftotext >/dev/null 2>&1; then
     e=$(pdftotext "$tmp/t.pdf" /dev/null 2>&1; pdftoppm -r 10 -f 1 -l 40 "$tmp/t.pdf" "$tmp/pp" 2>&1)
     [ -z "$e" ] && pass "poppler reads it without complaint" || failed "poppler: $e"
+    # an equation in a numeric column, which tbl splits at its last
+    # digit: its description on one line, none of it set as text
+    if pdftotext "$tmp/t.pdf" - 2>/dev/null | grep -q 'end power'; then
+        failed "an equation in a numeric column: its description set as text"
+    else
+        pass "an equation in a numeric column: its description not set as text"
+    fi
 fi
 
 python3 -I - "$tmp/t.pdf" "$tmp/t.ms" <<'PY' || fail=1
@@ -191,7 +198,7 @@ check(types['BlockQuote'] >= 1 and types['P'] > 50 and types['Index'] == 1,
       'quotations, paragraphs and the index', types)
 forms = [e for e in elems if e['/S'] == '/Formula']
 alts = [str(e.get('/Alt')) for e in forms]
-check(len(forms) == 7 and 'x squared plus y sub i squared' in alts and 'alpha over beta' in alts and
+check(len(forms) == 8 and 'x squared plus y sub i squared' in alts and 'alpha over beta' in alts and
       'the square root of a plus b, end root' in alts and
       'the sum from i equals 1 to n of x sub i equals the integral from 0 to infinity of '
       'e raised to the power minus x squared, end power, d x' in alts and
@@ -207,7 +214,7 @@ widths = [[sum(span(c) for c in row) for row in child_rows] for child_rows in
           [[child(tr) for tr in child(t)] for t in tables]]
 th = [c for row in rows for c in row if c['/S'] == '/TH']
 check(len(tables) == 3 and all(len(set(w)) == 1 and w[0] == 2 for w in widths) and len(th) == 3 and
-      th[0]['/A']['/ColSpan'] == 2 and th[0]['/A']['/Scope'] == '/Column' and len(child(tables[2])) == 61,
+      th[0]['/A']['/ColSpan'] == 2 and th[0]['/A']['/Scope'] == '/Column' and len(child(tables[2])) == 62,
       'the tables in rows of cells, the heading spanning two', (widths, [(c['/S'], c.get('/A')) for c in th]))
 # a table's kids its rows, a row's its cells: a note set at a page's foot
 # between two rows is the table's neighbour
