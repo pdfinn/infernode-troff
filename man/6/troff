@@ -146,7 +146,8 @@ hyphens costing as loose lines do
 .RB ( .hycost ),
 one space after a sentence.
 Notes are set at the foot of their marks' pages, in order, a long one
-split between pages, each one's number full size, hung in the margin
+split between pages, a note within a note set below it,
+each one's number full size, hung in the margin
 (as Bringhurst sets them; raised at its head, with the register
 .B book-fnhang
 0); with the register

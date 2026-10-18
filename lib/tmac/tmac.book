@@ -389,19 +389,30 @@
 .nr book-blank 1
 .rs
 .sp 2i
-.ce 1
+.\" the title and subtitle centred, filled if too long for a line, not
+.\" hyphenated (as LaTeX's \maketitle)
+.nr book-thy \\n[.hy]
+.nh
+.ad c
 .book-size 2 1
+.vs \\n[.s]p*12/10
 .book-tag H1
 \f[B]\\*[book-title]\fP
+.br
 .ps
+.vs
 .if !'\\*[book-subtitle]'' \{\
 .	sp 0.3i
-.	ce 1
 .	book-size 14 10
+.	vs \\n[.s]p*12/10
 .	book-tag P
 \f[I]\\*[book-subtitle]\fP
+.	br
 .	ps
+.	vs
 .\}
+.ad \\*[book-adj]
+.hy \\n[book-thy]
 .sp 1i
 .ce 1
 .book-size 14 10
@@ -486,6 +497,28 @@
 .book-begin
 .book-chapterhead 0 "\\$1" "\\$2" "\\$3"
 ..
+.\" LaTeX's chapter head's sizes, as its classes give them for the text's:
+.\" Chapter N \huge, the title \Huge (24.88 points, but 20.74 for \huge
+.\" under 11), each on 1.2 times its size, as far apart as the text's
+.\" lines are stretched from single spacing (book-tvs; setspace's)
+.de book-chlsz
+.ie \\n[book-ps]<11 \{\
+.	nr book-chsz \\n[book-ps]p*2074/1000
+.	nr book-tisz \\n[book-ps]p*2488/1000
+.\}
+.el .ie \\n[book-ps]<13 \{\
+.	nr book-chsz 2488p/100
+.	nr book-tisz 2488p/100
+.\}
+.el \{\
+.	nr book-chsz \\n[book-ps]p*2074/1000
+.	nr book-tisz \\n[book-chsz]
+.\}
+.nr book-chb \\n[book-vs]
+.if \\n[book-tvs] .nr book-chb \\n[book-tvs]
+.nr book-chvs \\n[book-chsz]*12/10*\\n[book-vs]/\\n[book-chb]
+.nr book-tivs \\n[book-tisz]*12/10*\\n[book-vs]/\\n[book-chb]
+..
 .de book-chapterhead
 .book-newpage 1 1
 .nr book-section 0
@@ -496,7 +529,12 @@
 .if !'\\$4'' .ds book-rh \\$4
 .ds book-en-chapter
 .rs
-.ie \\n[book-chlatex] .sp 50p
+.ie \\n[book-chlatex] \{\
+.	book-chlsz
+.	\" (LaTeX's 50 points below the text's top, where a page's first line
+.	\" would be)
+.	sp 50p+\\n[book-vs]u
+.\}
 .el .sp 1.25i
 .book-tag H1
 .\" the heading a destination (for the contents and references) and a
@@ -512,8 +550,8 @@
 .	nr book-tab 0
 .	as book-hx \X^outline 1 \\n[book-chapter] \\$2^
 .	ie \\n[book-chlatex] \{\
-.		book-size 1728 1000
-.		vs \\n[.s]p*12/10
+.		ps \\n[book-chsz]u
+.		vs \\n[book-chvs]u
 .		ce 0
 .		ad l
 \\*[book-hx]\f[B]Chapter \\n[book-chapter]\fP
@@ -547,8 +585,8 @@
 .\}
 .ie \\n[book-chlatex] \{\
 .	\" (LaTeX's: \Huge bold, ragged right; 40 points below)
-.	book-size 2074 1000
-.	vs \\n[.s]p*12/10
+.	ps \\n[book-tisz]u
+.	vs \\n[book-tivs]u
 .	ad l
 \\*[book-hx]\f[B]\\$2\fP
 .	br
@@ -815,7 +853,47 @@
 .ds book-fnhn \\n[fn-n]
 .nr book-fnhang 1	\" a note's number hung in the margin, full size
 .ds fnmark \R'fn-n +1'\R'fn-tot +1'\R'fn-marked 1'\X^dest fnm-\\n[fn-tot]^\X^nr fn-out \\n[fn-tot]^\v'-0.4m'\\*[book-lks fn-\\n[fn-tot] book-fnmk]\v'0.4m'
+.\" .fn ... .fe: a note; one within a note (as LaTeX's \footnote may be)
+.\" is numbered after it, its mark in it, and set below it
+.nr fn-in 0		\" in a note: 1; in one within it: 2
 .de fn
+.ie \\n[fn-in] .book-fnin
+.el \{\
+.	book-fn0
+.	nr fn-in 1
+.	nr fn-cur \\n[fn-tot]
+.\}
+..
+.de fe
+.ie \\n[fn-in]>1 .book-fein
+.el \{\
+.	book-fe0
+.	nr fn-in 0
+.\}
+..
+.\" a note within a note: its mark in the note's text, its own text in
+.\" an environment of its own (the note's line is still being filled),
+.\" planned when the note it is in ends
+.de book-fnin
+.nr fn-n +1
+.nr fn-tot +1
+.nr fn-icur \\n[fn-tot]
+\X^dest fnm-\\n[fn-tot]^\v'-0.4m'\\*[book-lks fn-\\n[fn-tot] book-fnmk]\v'0.4m'
+.ev fnin
+.evc fn
+.di fn-p\\n[fn-tot]
+.nr fn-in 2
+.ie \\n[book-fnhang] \X^dest fn-\\n[fn-tot]^\h'-\w'\\n[fn-n]'u-0.5m'\\*[book-lks fnm-\\n[fn-tot] book-fnhn]\h'0.5m'\c
+.el \X^dest fn-\\n[fn-tot]^\v'-0.3m'\\*[book-lks fnm-\\n[fn-tot] book-fnnt]\v'0.3m'\ \c
+..
+.de book-fein
+.br
+.di
+.nr fn-dn\\n[fn-icur] \\n[dn]
+.ev
+.nr fn-in 1
+..
+.de book-fn0
 .book-begin
 .if !\\n[fn-marked] \{\
 .	nr fn-n +1
@@ -837,10 +915,10 @@
 .ie \\n[book-fnhang] \X^dest fn-\\n[fn-tot]^\h'-\w'\\n[fn-n]'u-0.5m'\\*[book-lks fnm-\\n[fn-tot] book-fnhn]\h'0.5m'\c
 .el \X^dest fn-\\n[fn-tot]^\v'-0.3m'\\*[book-lks fnm-\\n[fn-tot] book-fnnt]\v'0.3m'\ \c
 ..
-.de fe
+.de book-fe0
 .br
 .di
-.nr fn-dn\\n[fn-tot] \\n[dn]
+.nr fn-dn\\n[fn-cur] \\n[dn]
 .nr fn-ql \\n[fn-tot]
 .\" planned for the page, with any before it waiting, if they fit below
 .\" the mark's line (or three lines of the last do)
@@ -850,6 +928,8 @@
 .if \\n[fn-qp]>\\n[fn-qp0] .ch book-fo -\\n[book-bm]u-\\n[fn-h]u-\\n[book-vs]u+1u
 .if \\n[fn-qp]>\\n[fn-qp0] .nr book-fotrap \\n[.p]-\\n[book-bm]-\\n[fn-h]-\\n[book-vs]+1
 .ev
+.\" the notes within it go out with its mark
+.if \\n[fn-tot]>\\n[fn-cur] \X^nr fn-out \\n[fn-tot]^\c
 ..
 .de book-fnfe
 .book-fnover1
@@ -1539,9 +1619,21 @@
 \\*[book-tl \\$5]\f[B]\\$3\fP
 .\}
 .el .ie '\\$1'chapter' \{\
-.	sp 0.5v
-.	ie !'\\$2'' .book-tocent1 0 1.8m "\\$2." "\\$3" \\$4 \\$5
-.	el .book-tocent1 0 0 "" "\\$3" \\$4 \\$5
+.	\" (with book-chlatex, as LaTeX's book class: an em above, bold, the
+.	\" number in a box 1.5 ems wide, no leaders)
+.	ie \\n[book-chlatex] \{\
+.		sp 1m
+.		ft B
+.		lc
+.		ie !'\\$2'' .book-tocent1 0 1.5m "\\$2" "\\$3" \\$4 \\$5
+.		el .book-tocent1 0 0 "" "\\$3" \\$4 \\$5
+.		ft
+.	\}
+.	el \{\
+.		sp 0.5v
+.		ie !'\\$2'' .book-tocent1 0 1.8m "\\$2." "\\$3" \\$4 \\$5
+.		el .book-tocent1 0 0 "" "\\$3" \\$4 \\$5
+.	\}
 .\}
 .\" (LaTeX's indents and numbers' widths)
 .el .ie '\\$1'subsection' .book-tocent1 3.8m 3.2m "\\$2" "\\$3" \\$4 \\$5
@@ -1565,6 +1657,14 @@
 .ta \\n[book-ll]u-\\$1-1.55m \\n[book-ll]u-\\$1R
 .ie \w'\\$3\h'\\$2-\w'\\$3'u'\\$4'<(\\n[book-ll]-\\$1-4.5m) \\*[book-tl \\$6]\\$3\h'\\$2-\w'\\$3'u'\\$4\a\t\\$5
 .el \{\
+.	\" room for its lines, the last of them reaching the page's foot at
+.	\" most (counted short of the measure, so as not to count too few);
+.	\" the foot a line lower while they are set,
+.	\" so that the last does not spring it before its leaders go back up
+.	\" beside it, and sprung after, if the last reached it
+.	nr book-tln \w'\\$3\h'\\$2-\w'\\$3'u'\\$4'/(\\n[book-ll]-\\$1-\\$2-4m)+1
+.	ne \\n[book-tln]v-\\n[.v]u+1u
+.	ch book-fo \\n[book-fotrap]u+\\n[.v]u
 .	in \\$1+\\$2
 .	ti \\$1
 .	ll \\n[book-ll]u-2.55m
@@ -1585,6 +1685,8 @@
 .	sp -1v
 .	ta \\n[book-ll]u-\\$1-\\$2-1.55m \\n[book-ll]u-\\$1-\\$2R
 \h'\\n[book-tlw]u'\a\t\\$5
+.	ch book-fo \\n[book-fotrap]u
+.	if \\n[nl]>=\\n[book-fotrap] .book-fo
 .	ad pb
 .\}
 ..

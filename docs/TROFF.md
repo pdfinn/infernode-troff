@@ -441,6 +441,8 @@ and biber). What it asked for:
     .alt "What the figure shows"
     .image fig.jpg 5i 1.9i       \" a JPEG or a PNG, its width and height
 
+A note within a note (`.fn` ... `.fe` inside one, as LaTeX's `\footnote`
+may be) is numbered after it, its mark in it, and set below it.
 A note's number is set full size and hung in the margin, the note's
 text at the text's margin, as Bringhurst sets them (`book-fnhang 0`
 raises it at the note's head instead). A word breaks with three
@@ -454,7 +456,10 @@ palette an indexed colour space; tagged, each is a Figure described by
 `.alt`. Two registers set a thesis as LaTeX's book class does by
 default: `book-plain` 1, no running heads and every page's number
 centred at its foot; `book-chlatex` 1, a chapter headed by
-"Chapter N" and its title below, both bold and at the left. For a
+"Chapter N" and its title below, both bold and at the left, at
+LaTeX's sizes for the text's (`\huge`, `\Huge`) and LaTeX's distances,
+stretched as the text's lines are from single spacing (`book-tvs`), and
+its line in the contents bold, its number with no stop, no leaders. For a
 one-sided thesis, `book-oneside` 1 puts the binding margin on the left
 of every page and heads every page with its chapter, its number at the
 right (LaTeX's `oneside`); `.ds book-adj pl` sets the text ragged

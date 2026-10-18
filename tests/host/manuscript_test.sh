@@ -25,9 +25,18 @@
 #	number at the foot of every page; book-chlatex, a chapter headed
 #	as LaTeX's book class heads it, Chapter 1 and its title bold, at
 #	the left;
+#	a note within a note (LaTeX's \footnote in a \footnote): numbered
+#	after it, its mark in it, set below it on the same page, the page
+#	full;
+#	the contents with book-chlatex, as LaTeX's book class sets them:
+#	a chapter's line with no leaders and no stop after its number;
+#	entries of two lines, enough that some come at a page's foot, each
+#	whole on its page, its leaders beside its last line, none below
+#	the text;
 #	one-sided (book-oneside): the binding margin on every page's left,
 #	every page headed by its chapter, its number at the right; ragged
-#	right (book-adj pl);
+#	right (book-adj pl), no line past the measure (one that fits as its
+#	spaces shrink has them shrunk); a long title filled and centred;
 #	where veraPDF is (verapdf, or $VERAPDF), PDF/UA-1;
 #	book2tex: lists, images, \subsubsection, \chapter[short]{long}.
 
@@ -98,14 +107,29 @@ for i in range(12):
     p += [para, '']
 open(d + '/p.ms', 'w').write('\n'.join(p) + '\n')
 # one-sided, ragged right
-o = ['.margins 1i 1i 1.5i 0.5i', '.nr book-oneside 1', '.ds book-adj pl', '.title "Onesided"', '.maketitle',
+o = ['.margins 1i 1i 1.5i 0.5i', '.nr book-oneside 1', '.ds book-adj pl',
+     '.title "Onesided, With a Title Long Enough That It Must Be Set Over Several Lines"', '.maketitle',
      '.mainmatter', '.chapter "Lopsided"', '']
 for i in range(12):
     o += [para, '']
 open(d + '/o.ms', 'w').write('\n'.join(o) + '\n')
+# a note within a note
+nn = ['.title "Nested"', '.maketitle', '.mainmatter', '.chapter "Notes"', '', para, '',
+      para + ' Markword\\c', '.fn', 'Outernote begins, and its own note\\c', '.fn', 'Innernote text.', '.fe',
+      'follows; Outernote ends.', '.fe', 'The paragraph goes on after its mark.', '']
+for i in range(8):
+    nn += [para, '']
+open(d + '/n.ms', 'w').write('\n'.join(nn) + '\n')
+# contents of two-line entries
+c = ['.nr book-chlatex 1', '.title "Contents"', '.maketitle', '.frontmatter', '.contents', '.mainmatter']
+for ch in range(3):
+    c += ['.chapter "Chapter Of Entries %d"' % (ch + 1), '']
+    for i in range(22):
+        c += ['.section "A Section Whose Title Takes Two Lines Of The Contents To Set, Number %d"' % i, '', 'Short.', '']
+open(d + '/c.ms', 'w').write('\n'.join(c) + '\n')
 PY
 with_timeout 300 "$EMU" -c1 -pheap=1024m -pmain=1024m -r"$ROOT" /dis/sh.dis -c \
-    "cd '#U*$tmp'; book -f m.ms >[2]m.err; book2tex -o t.tex m.ms >[2]t.err; book p.ms >[2]p.err; book o.ms >[2]o.err" </dev/null >"$tmp/emu.log" 2>&1
+    "cd '#U*$tmp'; book -f m.ms >[2]m.err; book2tex -o t.tex m.ms >[2]t.err; book p.ms >[2]p.err; book o.ms >[2]o.err; book n.ms >[2]n.err; book c.ms >[2]c.err" </dev/null >"$tmp/emu.log" 2>&1
 if [ ! -s "$tmp/m.pdf" ]; then
     echo "FAIL: no PDF: $(cat "$tmp/m.err" "$tmp/emu.log")"
     exit 1
@@ -115,6 +139,8 @@ pdftotext -layout "$tmp/m.pdf" "$tmp/ml.txt" 2>/dev/null
 pdfimages -list "$tmp/m.pdf" >"$tmp/images" 2>/dev/null
 pdftotext -bbox "$tmp/p.pdf" "$tmp/p.html" 2>/dev/null
 pdftotext -bbox "$tmp/o.pdf" "$tmp/o.html" 2>/dev/null
+pdftotext -bbox "$tmp/n.pdf" "$tmp/n.html" 2>/dev/null
+pdftotext -bbox "$tmp/c.pdf" "$tmp/c.html" 2>/dev/null
 
 python3 -I - "$tmp" <<'PY' || fail=1
 import sys, re, html
@@ -263,10 +289,63 @@ for p in ob:
             k = round(w[1])
             ends[k] = max(ends.get(k, 0), w[2])
 spread = max(ends.values()) - sorted(ends.values())[len(ends) // 4]
+# the measure: 1.5 inches in, 4 inches wide
+past = [(w[4], w[2]) for p in op for w in p if w[2] > 108 + 288 + 0.5]
+tl = sorted(set(round(w[3]) for w in op[0] if w[4] in ('Onesided,', 'Several', 'Lines')))
+check(not past and len(tl) >= 2, 'ragged: no line past the measure; a long title over lines, within it', (past[:5], tl))
 check(len(ob) >= 3 and all(abs(x - 108) < 2 for x in lms) and
       all(h and h[0][4].lower() == 'lopsided' and re.match(r'^\d+$', h[-1][4]) for h in heads) and spread > 10,
       'one-sided: every page 1.5 inches in, headed by its chapter; ragged right',
       (lms, [[w[4] for w in h] for h in heads], spread))
+
+# a note within a note: on the mark's page, note 1 (Outernote, the mark
+# 2 in it) above note 2 (Innernote); the page's text to its foot
+npg = [[(float(a), float(b), float(c), float(e), html.unescape(w)) for a, b, c, e, w in
+        re.findall(r'xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<', p)]
+       for p in re.findall(r'<page [^>]*>(.*?)</page>', open(d + '/n.html', encoding='utf-8').read(), re.S)]
+mp = [p for p in npg if any(w[4] == 'Outernote' for w in p)]
+ok = False
+why = ([[w[4] for w in p if w[4].startswith(('Outer', 'Inner', 'note'))] for p in mp], open(d + '/n.err').read()[:200])
+if mp:
+    p = mp[0]
+    outer = [w for w in p if w[4] == 'Outernote']
+    inner = [w for w in p if w[4] == 'Innernote']
+    body = [w for w in p if 11.5 < w[3] - w[1] < 15]
+    ok = (len(outer) == 2 and len(inner) == 1 and outer[1][1] < inner[0][1] and
+          any(w[4].endswith('2') and outer[0][1] - 2 < w[1] < outer[1][3] for w in p) and
+          inner[0][0] > min(w[0] for w in body) - 1 and
+          max(w[3] for w in body) > min(w[1] for w in outer) - 60 and not open(d + '/n.err').read())
+check(ok, 'a note within a note: numbered after it, its mark in it, set below it, the page full', why)
+
+# the contents, book-chlatex: chapters' lines LaTeX's; two-line entries
+# whole on their pages, leaders beside their last lines, none below the
+# text (none lower than the text's lowest line elsewhere)
+cp = [[(float(a), float(b), float(c), float(e), html.unescape(w)) for a, b, c, e, w in
+       re.findall(r'xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<', p)]
+      for p in re.findall(r'<page [^>]*>(.*?)</page>', open(d + '/c.html', encoding='utf-8').read(), re.S)]
+tp = [p for p in cp if any(w[4] == 'Entries' for w in p) and any(w[4] == 'Number' for w in p)
+      and not any(w[4] == 'Short.' for w in p)]
+foot = max(w[3] for p in cp if p not in tp for w in p if 11 < w[3] - w[1] < 13.5)	# the text's lowest line
+bad = []
+chap = []
+for p in tp:
+    lines = {}
+    for w in p:
+        lines.setdefault(round(w[3]), []).append(w)
+    ks = sorted(lines)
+    for k in ks:
+        l = sorted(lines[k])
+        t = [w[4] for w in l]
+        if t[-1].isdigit() and all(x == '.' for x in t[:-1]):
+            bad.append(('leaders alone', t[-3:]))
+        if 'Entries' in t:
+            chap.append(t)
+        if t[0] == 'A' and 'Number' not in t and k == ks[-2]:
+            bad.append(('a first line at the foot', t[:4]))
+    if max(w[3] for w in p) > foot + 1:
+        bad.append(('below the text', max(w[3] for w in p), foot))
+check(len(tp) >= 2 and not bad and len(chap) == 3 and all('.' not in t and t[0] in '123' for t in chap),
+      "the contents, book-chlatex: chapters as LaTeX's, two-line entries whole beside their leaders", (len(tp), bad[:4], chap[:3]))
 sys.exit(fail)
 PY
 
