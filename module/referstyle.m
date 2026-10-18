@@ -33,6 +33,10 @@ Referstyle: module
 
 	init:	fn(): string;
 
+	# options the style knows (a name each; nil if all are known, else
+	# what is not): chicago's british, nodoi, nourl
+	options:	fn(o: list of string): string;
+
 	# the text of a note citing r at loc (a page, a range, 1.1-5; nil
 	# for none), the first time it is cited or after
 	note:	fn(r: ref Ref, first: int, loc: string): string;

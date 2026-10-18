@@ -98,7 +98,8 @@ The index, its entries makeindex's
 .BI ".table " \fR[\fPlabel\fR]\fP " ... .caption " "text " .endtable
 A figure or a table, numbered in its chapter (1.2), its caption below
 or above what it captions as it is written; set where it is if
-nothing waits and it fits, between paragraphs, else at the next
+nothing waits and it fits, between paragraphs (written in a
+paragraph, after it), else at the next
 page's top; any waiting when a chapter ends set in it.
 .TP
 .B ".listoffigures  .listoftables"
@@ -148,7 +149,18 @@ Notes are set at the foot of their marks' pages, in order, a long one
 split between pages, each one's number full size, hung in the margin
 (as Bringhurst sets them; raised at its head, with the register
 .B book-fnhang
-0); widows and orphans are kept from pages' edges, and
+0); with the register
+.B book-plain
+1 there are no running heads, each page's number centred at its foot,
+and with
+.B book-chlatex
+1 a chapter is headed as LaTeX's book class heads one (Chapter N above
+its title, both bold, at the left); with
+.B book-oneside
+1 the binding margin is on the left of every page and every page is
+headed by its chapter, and
+.B ".ds book-adj pl"
+sets the text ragged right; widows and orphans are kept from pages' edges, and
 a page left short by them, or by a heading kept with its text, ends
 where a full page does, its space spread between paragraphs and about
 headings and displays

@@ -53,6 +53,9 @@
 .nr book-om 0.75i	\" outer margin
 .nr book-pi 1.5m	\" paragraph indent
 .nr book-tvs 0		\" the contents' and lists' spacing (0: the text's)
+.nr book-plain 0		\" no running heads, the folio at the foot (LaTeX's plain)
+.nr book-chlatex 0		\" chapters headed as LaTeX's book class heads them
+.nr book-oneside 0		\" one-sided: the binding margin on every page's left, one head
 .nr book-nps 0		\" the notes' point size (0: the text's less 2)
 .nr book-nvs 0		\" and their spacing (0: the text's less 2 points),
 .\"			so that text set double (a thesis's) has its notes single
@@ -151,8 +154,9 @@
 .\" Measured on a book's prose against LuaLaTeX's with microtype: its
 .\" spaces as even, as few lines loose, about as many hyphens.  Each
 .\" environment has its own.
+.ds book-adj pb	\" the text's adjustment: pl, ragged right (broken as pb's)
 .de book-fill
-.ad pb
+.ad \\*[book-adj]
 .hy 5
 .ssh 33
 .hycost 300 3000
@@ -262,7 +266,9 @@
 .de book-hd
 .if !\\n[book-sized] .book-papersize
 .\" the binding margin alternates: inner on the left of a right-hand page
-.ie o .po \\n[book-im]u
+.\" (one-sided, book-oneside, every page's on the left, as LaTeX's oneside)
+.ie \\n[book-oneside] .po \\n[book-im]u
+.el .ie o .po \\n[book-im]u
 .el .po \\n[book-om]u
 'sp |\\n[book-tm]u
 .nr book-col 1
@@ -312,15 +318,26 @@
 .ps \\n[book-ps]-1
 .lt \\n[book-ll]u
 .book-tag art
+.\" (no running heads, with book-plain: the folio at the foot of every
+.\" page, as LaTeX's plain page style sets it)
 .if !\\n[book-blank] \{\
-.	ie \\n[book-nohead] \{\
+.	ie \\n[book-nohead]+\\n[book-plain] \{\
 '	sp |\\n[.p]u-\\n[book-bm]u+0.4i
 .	tl '\X^folio \\n%^\X^dest pg-\\n% page^'\\n%''
 .	\}
 .	el \{\
 '	sp |\\n[book-tm]u-0.45i
-.	ie o .tl '\X^folio \\n%^\X^dest pg-\\n% page^\f[SC]\\*[book-rh]\fP''\\n%'
-.	el .tl '\X^folio \\n%^\X^dest pg-\\n% page^\\n%''\f[SC]\\*[book-lh]\fP'
+.	\" a left-hand head too wide to leave its folio room: the right's
+.	ds book-lh1 \\*[book-lh]
+.	if !\\n[book-oneside] .if \w'\f[SC]\\*[book-lh]\fP'>(\\n[book-ll]-8m) \{\
+.		if !\\n[book-lhsaid] .tm book: the title too wide for a running head; the chapter's set instead
+.		nr book-lhsaid 1
+.		ds book-lh1 \\*[book-rh]
+.	\}
+.	nr book-odd \\n[book-oneside]
+.	if o .nr book-odd 1
+.	ie \\n[book-odd] .tl '\X^folio \\n%^\X^dest pg-\\n% page^\f[SC]\\*[book-rh]\fP''\\n%'
+.	el .tl '\X^folio \\n%^\X^dest pg-\\n% page^\\n%''\f[SC]\\*[book-lh1]\fP'
 .	\}
 .\}
 .book-tag endart
@@ -336,6 +353,7 @@
 .nr book-noindent 1	\" the next paragraph is not indented (after a heading)
 .de p
 .br
+.if \\n[book-flafter] .book-flafterput
 .book-tag P
 .book-vstretch 1p
 .ie \\n[book-noindent] .ti 0
@@ -478,7 +496,8 @@
 .if !'\\$4'' .ds book-rh \\$4
 .ds book-en-chapter
 .rs
-.sp 1.25i
+.ie \\n[book-chlatex] .sp 50p
+.el .sp 1.25i
 .book-tag H1
 .\" the heading a destination (for the contents and references) and a
 .\" bookmark, at its first line
@@ -492,10 +511,25 @@
 .	nr book-fig 0
 .	nr book-tab 0
 .	as book-hx \X^outline 1 \\n[book-chapter] \\$2^
-.	ce 1
+.	ie \\n[book-chlatex] \{\
+.		book-size 1728 1000
+.		vs \\n[.s]p*12/10
+.		ce 0
+.		ad l
+\\*[book-hx]\f[B]Chapter \\n[book-chapter]\fP
+.		br
+.		ad \\*[book-adj]
+.		ps
+.		vs
+.		ds book-hx
+.		sp 20p
+.	\}
+.	el \{\
+.		ce 1
 \\*[book-hx]\f[SC]Chapter \\n[book-chapter]\fP
-.	ds book-hx
-.	sp 0.25i
+.		ds book-hx
+.		sp 0.25i
+.	\}
 .	tm aux:.book-tocent chapter "\\n[book-chapter]" "\\$2" \\n% book-h\\n[book-hn]
 .	ds book-en-chapter Chapter \\n[book-chapter]: \\$2
 .\}
@@ -511,14 +545,29 @@
 .	ie \\n[book-chnum] .ds book-rh Chapter \\n[book-chapter]
 .	el .ds book-rh
 .\}
-.ce 1
-.book-size 17 10
-.vs \\n[book-vs]u*16/10
+.ie \\n[book-chlatex] \{\
+.	\" (LaTeX's: \Huge bold, ragged right; 40 points below)
+.	book-size 2074 1000
+.	vs \\n[.s]p*12/10
+.	ad l
+\\*[book-hx]\f[B]\\$2\fP
+.	br
+.	ad \\*[book-adj]
+.	ds book-hx
+.	ps
+.	vs
+.	sp 40p
+.\}
+.el \{\
+.	ce 1
+.	book-size 17 10
+.	vs \\n[book-vs]u*16/10
 \\*[book-hx]\f[I]\\$2\fP
-.ds book-hx
-.ps
-.vs
-.sp 0.6i
+.	ds book-hx
+.	ps
+.	vs
+.	sp 0.6i
+.\}
 .book-tag end
 .if !'\\$3'' .book-label \\$3
 .nr book-noindent 1
@@ -530,6 +579,7 @@
 .nr book-subsection 0
 .ds book-cur \\n[book-chapter].\\n[book-section]
 .br
+.if \\n[book-flafter] .book-flafterput
 .book-vstretch 4p
 .sp 1v
 .ne 4v
@@ -543,7 +593,7 @@
 .br
 .book-tag end
 .book-vstretch 1p
-.ad pb
+.ad \\*[book-adj]
 .sp 0.5v
 .tm aux:.book-tocent section "\\*[book-snt]" "\\$1" \\n% book-h\\n[book-hn]
 .if !'\\$2'' .book-label \\$2
@@ -565,6 +615,7 @@
 .nr book-subsection +1
 .ds book-cur \\n[book-chapter].\\n[book-section].\\n[book-subsection]
 .br
+.if \\n[book-flafter] .book-flafterput
 .book-vstretch 3p
 .sp 0.75v
 .ne 3v
@@ -578,7 +629,7 @@
 .br
 .book-tag end
 .book-vstretch 1p
-.ad pb
+.ad \\*[book-adj]
 .sp 0.25v
 .tm aux:.book-tocent subsection "\\*[book-snt]" "\\$1" \\n% book-h\\n[book-hn]
 .if !'\\$2'' .book-label \\$2
@@ -590,6 +641,7 @@
 .de subsubsection
 .book-begin
 .br
+.if \\n[book-flafter] .book-flafterput
 .book-vstretch 2p
 .sp 0.5v
 .ne 3v
@@ -602,7 +654,7 @@
 .br
 .book-tag end
 .book-vstretch 1p
-.ad pb
+.ad \\*[book-adj]
 .sp 0.25v
 .if !'\\$2'' .book-label \\$2
 .nr book-noindent 1
@@ -618,6 +670,7 @@
 .de list
 .book-begin
 .br
+.if \\n[book-flafter] .book-flafterput
 .nr book-ld +1
 .ds book-lt\\n[book-ld] \\$1
 .if '\\$1'' .ds book-lt\\n[book-ld] bullet
@@ -680,6 +733,7 @@
 .de quote
 .book-begin
 .br
+.if \\n[book-flafter] .book-flafterput
 .book-tag push BlockQuote
 .book-vstretch 3p
 .sp 0.5v
@@ -704,6 +758,7 @@
 .de epigraph
 .book-begin
 .br
+.if \\n[book-flafter] .book-flafterput
 .book-tag push BlockQuote
 .ev quote
 .evc 0
@@ -1143,6 +1198,7 @@
 .nr book-flnext 1	\" the next float's diversion, book-fl<n>
 .nr book-flfirst 1	\" the first waiting
 .nr book-flbusy 0	\" floats being set: the head sets none
+.nr book-flafter 0	\" a float to set after the paragraph it was written in
 .nr book-fig 0 1
 .nr book-tab 0 1
 .nr lof-fig-set 0
@@ -1216,14 +1272,29 @@
 .ev
 .nr book-flh\\n[book-flnext] \\n[dn]
 .nr book-flnext +1
-.\" here: nothing waits, between paragraphs, and room for it and a line
-.if (\\n[book-flfirst]=(\\n[book-flnext]-1))&(\\n[.k]=0)&((\\n[dn]+2v)<\\n[.t]) \{\
+.\" here: nothing waits, between paragraphs, and room for it and a line;
+.\" written in a paragraph, after it, if there is room then (as near as
+.\" LaTeX's [h] can be, a paragraph not broken for it)
+.ie (\\n[book-flfirst]=(\\n[book-flnext]-1))&(\\n[.k]=0)&((\\n[dn]+2v)<\\n[.t]) \{\
 .	book-vstretch 3p
 .	sp 0.75v
 .	book-flout
 .	book-vstretch 3p
 .	sp 0.75v
 .\}
+.el .if (\\n[book-flfirst]=(\\n[book-flnext]-1))&(\\n[.k]>0) .nr book-flafter \\n[book-flnext]-1
+..
+.\" the paragraph a float was written in ended: the float after it, if it
+.\" still waits (the page did not end first) and there is room
+.de book-flafterput
+.if \\n[book-flafter]=\\n[book-flfirst] .if (\\n[book-flh\\n[book-flfirst]]+2v)<\\n[.t] \{\
+.	book-vstretch 3p
+.	sp 0.75v
+.	book-flout
+.	book-vstretch 3p
+.	sp 0.75v
+.\}
+.nr book-flafter 0
 ..
 .\" the first waiting float set here
 .de book-flout
@@ -1302,7 +1373,7 @@
 .	book-tag pop
 .	vs \\n[book-vs]u
 .	in 0
-.	ad pb
+.	ad \\*[book-adj]
 .\}
 ..
 .\"
@@ -1336,7 +1407,7 @@
 .br
 .book-tag end
 .in 0
-.ad pb
+.ad \\*[book-adj]
 .hy \\n[book-hy0]
 ..
 .\"
@@ -1498,11 +1569,18 @@
 .	ll \\n[book-ll]u-2.55m
 .	fi
 .	ad l
+.	nr book-tly \\n[nl]
 \\*[book-tl \\$6]\\$3\h'\\$2-\w'\\$3'u'\\$4
 .	br
 .	nf
 .	ll \\n[book-ll]u
 .	nr book-tlw \\n[.n]
+.	\" (one line, its width from the number, not after it)
+.	nr book-tly \\n[nl]-\\n[book-tly]
+.	if (\\n[book-tly]>0)&(\\n[book-tly]<(2*\\n[.v])) .nr book-tlw -(\\$2)
+.	\" (and short of the leaders' stop, else the tab passes it: a line
+.	\" its spaces shrank to fit is narrower than \n[.n] says)
+.	if \\n[book-tlw]>(\\n[book-ll]-\\$1-\\$2-2.55m) .nr book-tlw \\n[book-ll]-\\$1-\\$2-2.55m-1
 .	sp -1v
 .	ta \\n[book-ll]u-\\$1-\\$2-2.55m \\n[book-ll]u-\\$1-\\$2R
 \h'\\n[book-tlw]u'\a\t\\$5

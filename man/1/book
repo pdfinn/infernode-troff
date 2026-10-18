@@ -41,7 +41,9 @@ with the database
 .I works.bib
 (its citations in the style,
 .B chicago
-by default),
+by default, with its options:
+.B "-S chicago,british,nodoi"
+as a British thesis has them),
 .IR pic (1),
 .IR tbl (1)
 and

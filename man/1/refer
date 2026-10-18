@@ -63,7 +63,16 @@ The database.
 .TP
 .BI -S " style"
 Set citations in the style
-.RB ( chicago ).
+.RB ( chicago ),
+its options after its name, each after a comma
+.RB ( chicago,british,nodoi,nourl ):
+.B british
+titles in single quotation marks, quotations within them double, the
+punctuation after the marks;
+.B nodoi
+and
+.B nourl
+neither DOI nor URL; an option the style does not know is refused.
 .TP
 .BI -r " xy,..."
 The requests that begin a chapter, for a style

@@ -20,6 +20,13 @@
 #	soft mask, each at the size asked;
 #	a chapter's short title its running head; a running head too long
 #	for its page's number, the chapter's number instead, and said;
+#	LaTeX's house style: book-plain, no running heads and the page's
+#	number at the foot of every page; book-chlatex, a chapter headed
+#	as LaTeX's book class heads it, Chapter 1 and its title bold, at
+#	the left;
+#	one-sided (book-oneside): the binding margin on every page's left,
+#	every page headed by its chapter, its number at the right; ragged
+#	right (book-adj pl);
 #	where veraPDF is (verapdf, or $VERAPDF), PDF/UA-1;
 #	book2tex: lists, images, \subsubsection, \chapter[short]{long}.
 
@@ -72,16 +79,32 @@ out = ['.papersize 0 0', '.papersize a4', '.margins 0.7i 0.8i 1.4i 1.4i', '.nr b
 for i in range(10):
     out += [para + ' Notedword\\c', '.fn', note, '.fe', '']
 out += ['.section "A Section Whose Title Is Long Enough That Its Entry In The Contents Must Be Filled Over Two Lines" ls', '']
+# subsections' titles from one line with room for leaders to two: one
+# between, filled to a line only as its spaces shrink, its page's number
+# at the margin still
+for k in range(1, 15):
+    out += ['.subsection "Growing word word word word word word word %s"' % 'abcdefghijklmnop'[:k], '', 'Short.', '']
 out += ['.subsection "Sub"', '', para, '', '.subsubsection "Deeper"', '', para, '',
         'A list follows.', '.list 1', '.item', 'Firstitem of the list.', '.item', 'Seconditem, with', '.list bullet', '.item',
         'Nesteditem.', '.endlist', '.item', 'Thirditem.', '.endlist', '',
         '.alt "Two halves, blue and red"', '.image a.jpg 2i 1i', '', para, '',
         '.alt "A green half"', '.image b.png 3i 1i', '', para, '',
-        '.chapter "Second" two "Short Head"', '', para, '', para, '', para, '', para, '']
+        '.chapter "Second" two "Short Head"', ''] + [para, ''] * 16
 open(d + '/m.ms', 'w').write('\n'.join(out) + '\n')
+# LaTeX's house style
+p = ['.margins 1i 1i 1i 1i', '.nr book-recto 0', '.nr book-plain 1', '.nr book-chlatex 1', '.title "Plain"', '.maketitle', '.mainmatter', '.chapter "Plainchapter"', '']
+for i in range(12):
+    p += [para, '']
+open(d + '/p.ms', 'w').write('\n'.join(p) + '\n')
+# one-sided, ragged right
+o = ['.margins 1i 1i 1.5i 0.5i', '.nr book-oneside 1', '.ds book-adj pl', '.title "Onesided"', '.maketitle',
+     '.mainmatter', '.chapter "Lopsided"', '']
+for i in range(12):
+    o += [para, '']
+open(d + '/o.ms', 'w').write('\n'.join(o) + '\n')
 PY
 with_timeout 300 "$EMU" -c1 -pheap=1024m -pmain=1024m -r"$ROOT" /dis/sh.dis -c \
-    "cd '#U*$tmp'; book -f m.ms >[2]m.err; book2tex -o t.tex m.ms >[2]t.err" </dev/null >"$tmp/emu.log" 2>&1
+    "cd '#U*$tmp'; book -f m.ms >[2]m.err; book2tex -o t.tex m.ms >[2]t.err; book p.ms >[2]p.err; book o.ms >[2]o.err" </dev/null >"$tmp/emu.log" 2>&1
 if [ ! -s "$tmp/m.pdf" ]; then
     echo "FAIL: no PDF: $(cat "$tmp/m.err" "$tmp/emu.log")"
     exit 1
@@ -89,6 +112,8 @@ fi
 pdftotext -bbox "$tmp/m.pdf" "$tmp/m.html" 2>/dev/null
 pdftotext -layout "$tmp/m.pdf" "$tmp/ml.txt" 2>/dev/null
 pdfimages -list "$tmp/m.pdf" >"$tmp/images" 2>/dev/null
+pdftotext -bbox "$tmp/p.pdf" "$tmp/p.html" 2>/dev/null
+pdftotext -bbox "$tmp/o.pdf" "$tmp/o.html" 2>/dev/null
 
 python3 -I - "$tmp" <<'PY' || fail=1
 import sys, re, html
@@ -152,11 +177,11 @@ check(not short, 'three letters at least after a hyphen', short)
 
 # the contents
 cont = [p for p in pages if any(w[4] == 'Contents' for w in p)][0]
-right = max(w[2] for w in text)
+right = max(w[2] for p in pages if p is not cont for w in p if 13 < w[3] - w[1] < 15)	# the text's margin
 nums = [w for w in cont if re.match(r'^\d+$', w[4])]
 long = [w for w in cont if w[4] in ('Filled', 'Over')]
 sec = [w for w in cont if w[4] == '1.1']
-sub = [w for w in cont if w[4] == '1.2.1']
+sub = [w for w in cont if w[4] == '1.2.15']
 toc = ' '.join(w[4] for w in cont)
 check(nums and max(w[2] for w in nums) <= right + 1 and len(set(round(w[3]) for w in long)) >= 1 and
       sub and sec and sub[0][0] > sec[0][0] + 5 and 'Deeper' not in toc and 'Sub' in toc,
@@ -203,6 +228,41 @@ heads = [p[0][4] for p in pages if p and p[0][1] < 50]
 check(any(h.startswith('Chapter') for h in heads) and 'running head too wide' in err and
       any('Short' in ' '.join(w[4] for w in p if w[1] < 50) for p in pages),
       'a short title its running head; one too long the chapter\'s number, said', (heads, err[:200]))
+
+# LaTeX's house style: no heads, the folio centred at the foot; the
+# chapter's head bold, at the left, Chapter 1 above its title
+pp = [[(float(a), float(b), float(c), float(e), html.unescape(w)) for a, b, c, e, w in
+       re.findall(r'xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<', p)]
+      for p in re.findall(r'<page [^>]*>(.*?)</page>', open(d + '/p.html', encoding='utf-8').read(), re.S)]
+body = [p for p in pp if any('Considerable' in w[4] for w in p)]
+tops = [min(w[1] for w in p) for p in body]
+foots = [max(p, key=lambda w: w[3]) for p in body]
+lm = min(w[0] for p in body for w in p if 11 < w[3] - w[1] < 13.5)
+ch = [w for p in body for w in p if w[4] in ('Chapter', 'Plainchapter')]
+check(all(t > 60 for t in tops) and all(re.match(r'^\d+$', f[4]) and abs((f[0] + f[2]) / 2 - 216) < 3 for f in foots) and
+      len(ch) == 2 and all(abs(w[0] - lm) < 2 and w[3] - w[1] > 18 for w in ch) and ch[0][3] < ch[1][1],
+      "LaTeX's house style: no heads, the folio at the foot; the chapter headed at the left, bold",
+      (tops, [(f[4], round((f[0] + f[2]) / 2)) for f in foots], lm, ch))
+
+# one-sided: every page's text 1.5 inches in, headed Lopsided at the
+# left and its number at the right; ragged: the lines' ends uneven
+op = [[(float(a), float(b), float(c), float(e), html.unescape(w)) for a, b, c, e, w in
+       re.findall(r'xMin="([\d.]+)" yMin="([\d.]+)" xMax="([\d.]+)" yMax="([\d.]+)">([^<]*)<', p)]
+      for p in re.findall(r'<page [^>]*>(.*?)</page>', open(d + '/o.html', encoding='utf-8').read(), re.S)]
+ob = [p for p in op if any('Considerable' in w[4] for w in p)]
+lms = [round(min(w[0] for w in p if 11 < w[3] - w[1] < 13.5)) for p in ob]
+heads = [sorted((w for w in p if w[1] < 60), key=lambda w: w[0]) for p in ob[1:]]
+ends = {}
+for p in ob:
+    for w in p:
+        if 11 < w[3] - w[1] < 13.5:
+            k = round(w[1])
+            ends[k] = max(ends.get(k, 0), w[2])
+spread = max(ends.values()) - sorted(ends.values())[len(ends) // 4]
+check(len(ob) >= 3 and all(abs(x - 108) < 2 for x in lms) and
+      all(h and h[0][4].lower() == 'lopsided' and re.match(r'^\d+$', h[-1][4]) for h in heads) and spread > 10,
+      'one-sided: every page 1.5 inches in, headed by its chapter; ragged right',
+      (lms, [[w[4] for w in h] for h in heads], spread))
 sys.exit(fail)
 PY
 

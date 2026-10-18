@@ -4,6 +4,8 @@
 # and .table, as LaTeX's figure and table environments):
 #
 #	one written between paragraphs, with room for it, set there;
+#	one written in a paragraph, with room, set after the paragraph
+#	(LaTeX's [h], as near as a paragraph not broken for it allows);
 #	one written in a paragraph, too tall for the room left, set at the
 #	top of the next page, the paragraph unbroken where it was written;
 #	one still waiting when its chapter ends set before the next begins;
@@ -53,7 +55,10 @@ out += [para, para + 'Alphaword', fig('big', '5.5', 'Big box').rstrip('\n'), 'om
 out += [para] * 3 + [tab] + [para] * 4
 # the chapter's last, too tall for what is left of its page
 out += [para, fig('last', '6', 'Last box')]
-out += ['.chapter "Two" two', '', para, '', fig('twobox', '1.0', 'Box of two'), '', para]
+# a small figure written in a paragraph, with room: after the paragraph
+out += ['.chapter "Two" two', '', 'A short paragraph, its Midword', fig('mid', '0.6', 'Box in a paragraph').rstrip('\n'),
+        'endword ends it.', '', 'Nextword begins the next.', '']
+out += ['', para, '', fig('twobox', '1.0', 'Box of two'), '', para]
 open(sys.argv[1], 'w').write('\n'.join(out) + '\n')
 PY
 with_timeout 300 "$EMU" -c1 -pheap=1024m -pmain=1024m -r"$ROOT" /dis/sh.dis -c \
@@ -112,6 +117,14 @@ top = pc == pa + 1 and pages[pc] and all(cap[1] < b[1] for b in body(pages[pc]) 
 check(together, 'the paragraph it was written in goes on unbroken', (alpha, omega))
 check(top, 'a figure without room for it set at the next page\'s top', (pa, pc, cap))
 
+# in a paragraph, with room: after it, before the next
+pm, mid = find('Midword', 5)
+pe, end = find('endword', 5)
+pn, nxt = find('Nextword', 5)
+pc, cap = caption('2.1')
+check(pm == pe == pn == pc and end[3] < cap[1] < nxt[1], 'a figure written in a paragraph, with room, set after it',
+      (pm, pe, pn, pc, end, cap, nxt))
+
 # the chapter's last: set before the next chapter
 pl, cap = caption('1.3')
 ph, two = find('Two', 5)
@@ -140,7 +153,7 @@ heading = lambda t: re.search(r'\n\s*' + t + r'\s*\n', txt).end()
 lof = txt[heading('List of Figures'):heading('List of Tables')]
 ents = re.findall(r'^\s*(\d\.\d)\s+.*?(\S+)\s*$', lof, re.M)
 want = []
-for n in ('1.1', '1.2', '1.3', '2.1'):
+for n in ('1.1', '1.2', '1.3', '2.1', '2.2'):
     p, c = caption(n)
     want.append((n, labels[p] if p is not None else None))
 check(ents == want, 'the list of figures: each entry its page', (ents, want))
@@ -174,7 +187,7 @@ def walk(e):
     for x in kids:
         walk(x)
 walk(cat['/StructTreeRoot'])
-check(divs.count(['/Caption', '/Figure']) == 4 and divs.count(['/Caption', '/Table']) == 1,
+check(divs.count(['/Caption', '/Figure']) == 5 and divs.count(['/Caption', '/Table']) == 1,
       'each a Div of its Caption and its Figure or Table', divs)
 
 # pages flush at the foot: those with text, but each chapter's last
@@ -191,7 +204,7 @@ python3 -I - "$tmp/t.tex" <<'PY' || fail=1
 import sys, re
 t = open(sys.argv[1], encoding='utf-8').read()
 envs = re.findall(r'\\begin\{(figure|table)\}\[tbp\]\n\\centering\n(?:.*\n)*?\\caption\{([^}]*)\}\n\\label\{(\w+)\}\n(?:.*\n)*?\\end\{\1\}', t)
-ok = [(e, l) for e, c, l in envs] == [('figure', 'small'), ('figure', 'big'), ('table', 'nums'), ('figure', 'last'), ('figure', 'twobox')]
+ok = [(e, l) for e, c, l in envs] == [('figure', 'small'), ('figure', 'big'), ('table', 'nums'), ('figure', 'last'), ('figure', 'mid'), ('figure', 'twobox')]
 ok = ok and '\\listoffigures' in t and '\\listoftables' in t and '\\begin{center}' not in t
 print(('PASS: ' if ok else 'FAIL: ') + 'book2tex: figure and table environments, captioned and labelled, and the lists' +
       ('' if ok else ': ' + str(envs)[:300]))
@@ -201,7 +214,7 @@ if command -v lualatex >/dev/null 2>&1; then
     if (cd "$tmp" && lualatex -interaction=nonstopmode -halt-on-error t.tex >/dev/null 2>&1 &&
         lualatex -interaction=nonstopmode -halt-on-error t.tex >/dev/null 2>&1); then
         n=$(pdftotext -layout "$tmp/t.pdf" - | sed -n '/List of Figures/,/List of Tables/p' | grep -oE '^ *[12]\.[0-9]' | tr -d ' ' | tr '\n' ' ')
-        [ "$n" = "1.1 1.2 1.3 2.1 " ] && echo "PASS: LuaLaTeX sets them, numbered as the book" ||
+        [ "$n" = "1.1 1.2 1.3 2.1 2.2 " ] && echo "PASS: LuaLaTeX sets them, numbered as the book" ||
             { echo "FAIL: LuaLaTeX's list of figures: $n"; fail=1; }
     else
         echo "FAIL: LuaLaTeX: $(grep -A3 '^!' "$tmp/t.log" | head -8)"

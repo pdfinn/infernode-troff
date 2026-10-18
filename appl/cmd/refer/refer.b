@@ -104,7 +104,7 @@ usage := "usage: refer [options] <input >output\n" +
 	"\t-o xy     \tcitation macro (\\*[xy label])\n" +
 	"\t-a xy     \tauthor-year citation macro (\\*[xy label])\n" +
 	"\t-sa       \tsort by author last names\n" +
-	"\t-S style  \tset citations in a style (chicago)\n" +
+	"\t-S style  \tset citations in a style (chicago; chicago,british,nodoi,nourl)\n" +
 	"\t-r xy,... \trequests beginning a chapter, for a style (chapter)\n";
 
 init(nil: ref Draw->Context, args: list of string)
@@ -179,6 +179,13 @@ refermain(args: list of string)
 		}
 	}
 	if(stylename != nil){
+		# a style's options after its name: chicago,british,nodoi
+		opts: list of string;
+		(nil, sl) := sys->tokenize(stylename, ",");
+		if(sl != nil){
+			stylename = hd sl;
+			opts = tl sl;
+		}
 		path := stylename;
 		if(strchr(path, '/') < 0)
 			path = "/dis/refer/" + stylename + ".dis";
@@ -188,6 +195,10 @@ refermain(args: list of string)
 			raise "fail:style";
 		}
 		if((e := style->init()) != nil){
+			sys->fprint(sys->fildes(2), "refer: style %s: %s\n", stylename, e);
+			raise "fail:style";
+		}
+		if(opts != nil && (e = style->options(opts)) != nil){
 			sys->fprint(sys->fildes(2), "refer: style %s: %s\n", stylename, e);
 			raise "fail:style";
 		}

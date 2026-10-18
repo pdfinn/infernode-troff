@@ -340,6 +340,17 @@ classical works cited by their parts (`entrysubtype = {classical}`:
 Homer, *Iliad* 1.1–5). See `appl/cmd/refer/style/chicago.b` for its
 rules and `tests/refer/` for examples.
 
+An article or a chapter cited whole is given its pages the first time,
+a chapter its number (*chap. 2 in*), a month its name, as
+biblatex-chicago gives them. Options follow the style's name, as
+biblatex's do (`book -S chicago,british,nodoi`):
+
+| Option | |
+|---|---|
+| `british` | titles in single quotation marks, quotations within them double, the punctuation after the marks (biblatex with British English) |
+| `nodoi` | no DOI (biblatex's `doi=false`) |
+| `nourl` | no URL (`url=false`) |
+
 A style is a module (`module/referstyle.m`): another is a file of its
 own under `appl/cmd/refer/style`.
 
@@ -440,7 +451,15 @@ head too long to sit beside its page's number is said, and the
 chapter's number set instead. `tr2pdf` places images (`x X image file
 w h`): a JPEG's data as it is, a PNG decoded, its alpha a soft mask, its
 palette an indexed colour space; tagged, each is a Figure described by
-`.alt`. `tests/host/manuscript_test.sh` checks each of these.
+`.alt`. Two registers set a thesis as LaTeX's book class does by
+default: `book-plain` 1, no running heads and every page's number
+centred at its foot; `book-chlatex` 1, a chapter headed by
+"Chapter N" and its title below, both bold and at the left. For a
+one-sided thesis, `book-oneside` 1 puts the binding margin on the left
+of every page and heads every page with its chapter, its number at the
+right (LaTeX's `oneside`); `.ds book-adj pl` sets the text ragged
+right, its lines still broken a paragraph at a time.
+`tests/host/manuscript_test.sh` checks each of these.
 
 ## Figures and tables that float
 
@@ -464,7 +483,9 @@ precedes: a table's usually first. `\*[ref flow]` is its number,
 What is between `.figure` and `.endfigure` is set in an environment of
 its own, so a figure written in a paragraph leaves the paragraph whole.
 It is set where it is written if nothing is waiting and it fits there,
-between paragraphs; otherwise it waits for the top of the next page,
+between paragraphs; written in a paragraph, after the paragraph if it
+fits then (as near to LaTeX's `[h]` as a paragraph not broken for it
+can be); otherwise it waits for the top of the next page,
 where as many as take seven tenths of the page are set, the first
 whatever its size, in their order. Any still waiting when a chapter
 ends are set before it ends. On a test of four figures and a table,
