@@ -100,6 +100,104 @@ denominator, displayed and in text, in hundredths of an em (the font's
 .B FractionNumDisplayStyleGapMin
 and
 .BR FractionNumeratorGapMin ).
+.PP
+Beyond Neateqn too, in its language:
+.B "root"
+.I "n x"
+sets the
+.IR n th
+root of
+.IR x ,
+its degree in scriptscript style, raised and kerned into the radical
+by the font's parameters (TeX's
+.BR \esqrt[n]{x} );
+.B overbrace
+.I x
+and
+.B underbrace
+.I x
+set a brace over or under
+.IR x ,
+the font's own sizes or one made of its pieces, the whole a big
+operator, so that
+.B to
+(or
+.BR from )
+puts a label over (or under) it;
+.B displaystyle
+and
+.B textstyle
+set what follows in a display's or text's style
+.RB ( \edfrac ,
+.BR \ecfrac );
+.B "type op icorr"
+.I n
+gives an operator its italic correction, in hundredths of an em, for
+its subscript to sit under its tail, as TeX sets an integral's;
+.B gsfont
+.I f
+sets operators, relations and punctuation in the font
+.I f
+(the math font's, as TeX's), not
+.BR grfont 's.
+.PP
+And these settings, each 0 (Neateqn's way) unless set, as
+.B /lib/troff/eqnrc
+sets them:
+.B "set tex_arrays 1"
+sets a matrix as TeX sets an array, each column its own width, each row
+its own height and depth (a strut's at least), the whole centred on the
+axis;
+.B "set tex_atoms 1"
+makes
+.B {}
+an ordinary atom and keeps a relation at a box's start a relation, so
+that
+.B "{} = 0"
+is spaced as TeX's, and makes
+.B left
+\&...
+.B right
+one inner atom;
+.B "set tex_greek 1"
+sets capital Greek upright;
+.B "set fraction_ord 1"
+makes a fraction an ordinary atom, as LaTeX's
+.B \efrac
+(braced) is, no thin space beside it;
+.B "set tex_fractions 1"
+sets a fraction's numerator and denominator in TeX's styles for them
+(in text style in script size, in a script in scriptscript size);
+.B "set script_kern"
+.I n
+is the kern before scripts (Neateqn's 5);
+.BR "set sub_superscript_gap_min" ,
+.BR superscript_bottom_max_with_subscript ,
+.B superscript_bottom_min
+and
+.B subscript_top_max
+are the font's limits on scripts;
+.BR "set radical_vertical_gap" ,
+.BR radical_display_vertical_gap ,
+.BR radical_rule_thickness ,
+.BR radical_degree_bottom_raise_percent ,
+.B radical_kern_before_degree
+and
+.B radical_kern_after_degree
+its radicals';
+.B "set delimiter_factor"
+.I n
+and
+.B "set delimiter_shortfall"
+.I n
+size a delimiter as TeX's
+.B \edelimiterfactor
+and
+.BR \edelimitershortfall ;
+.B "set stretch_stack_gap"
+.I n
+is a brace's gap from what it is over or under.
+All are in hundredths of an em but the percentages and the factor.
 .TP
 .BI -c " chars"
 The characters an equation within a line may be broken after.

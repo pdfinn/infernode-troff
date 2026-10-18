@@ -117,7 +117,7 @@ box_fixatom(cur, pre: int): int
 	if(cur == T_BINOP && (!pre || pre == T_RELOP || pre == T_BIGOP ||
 			pre == T_LEFT || pre == T_PUNC))
 		return T_ORD;
-	if(cur == T_RELOP && (!pre || pre == T_LEFT))
+	if(cur == T_RELOP && (!pre || pre == T_LEFT) && !e_texatoms)
 		return T_ORD;
 	return cur;
 }
@@ -223,6 +223,35 @@ box_ischar(box: ref Box): int
 	return 1;
 }
 
+# TeX's script limits, or the font's (def.b)
+subsupgap(): string
+{
+	if(e_subsupgap)
+		return m100(e_subsupgap);
+	return "(" + string e_rulethickness + "m/100u*4)";
+}
+
+supbotmaxsub(): string
+{
+	if(e_supbotmaxsub)
+		return m100(e_supbotmaxsub);
+	return "(" + string e_xheight + "m/100u*4/5)";
+}
+
+supbotmin(): string
+{
+	if(e_supbotmin)
+		return m100(e_supbotmin);
+	return "(" + string e_xheight + "m/100u/4)";
+}
+
+subtopmax(): string
+{
+	if(e_subtopmax)
+		return m100(e_subtopmax);
+	return "(" + string e_xheight + "m/100u*4/5)";
+}
+
 box_sub(box, sub, sup: ref Box)
 {
 	box_wd := nregmk();
@@ -247,8 +276,16 @@ box_sub(box, sub, sup: ref Box)
 	box_italiccorrection(box);
 	printf(".ps " + nreg(box.szreg) + "\n");
 	tok_dim(box_toreg(box), box_wd, box_ht, box_dp);
-	box_putf(box, "\\h'5m/100u'");
+	if(e_scriptkern)
+		box_putf(box, "\\h'" + string e_scriptkern + "m/100u'");
 	char := e_texdrop && box_ischar(box);
+	# an operator's italic correction (type op icorr n): its subscript
+	# that much to the left, under it, as TeX sets an integral's
+	opic := 0;
+	if(box.tcur == T_BIGOP){
+		opic = eqn_opic;
+		eqn_opic = 0;
+	}
 	if(sup != nil){
 		tok_dim(box_toreg(sup), sup_wd, 0, sup_dp);
 		# 18a
@@ -261,8 +298,8 @@ box_sub(box, sub, sup: ref Box)
 			printf(".nr " + nregname(sup_rise) + " 0" + nreg(box_ht) + "u-(" + string e_supdrop + "m/100u)\n");
 		# 18c
 		printf(".if " + nreg(sup_rise) + "<" + m100(box_suprise(box)) + " .nr " + nregname(sup_rise) + " " + m100(box_suprise(box)) + "\n");
-		printf(".if " + nreg(sup_rise) + "<(" + nreg(sup_dp) + "+(" + string e_xheight + "m/100u/4)) .nr " +
-			nregname(sup_rise) + " 0" + nreg(sup_dp) + "+(" + string e_xheight + "m/100u/4)\n");
+		printf(".if " + nreg(sup_rise) + "<(" + nreg(sup_dp) + "+" + supbotmin() + ") .nr " +
+			nregname(sup_rise) + " 0" + nreg(sup_dp) + "+" + supbotmin() + "\n");
 	}
 	if(sub != nil){
 		tok_dim(box_toreg(sub), sub_wd, sub_ht, 0);
@@ -278,18 +315,18 @@ box_sub(box, sub, sup: ref Box)
 	if(sub != nil && sup == nil){
 		# 18b
 		printf(".if " + nreg(sub_fall) + "<" + m100(e_sub1) + " .nr " + nregname(sub_fall) + " " + m100(e_sub1) + "\n");
-		printf(".if " + nreg(sub_fall) + "<(" + nreg(sub_ht) + "-(" + string e_xheight + "m/100u*4/5)) .nr " +
-			nregname(sub_fall) + " 0" + nreg(sub_ht) + "-(" + string e_xheight + "m/100u*4/5)\n");
+		printf(".if " + nreg(sub_fall) + "<(" + nreg(sub_ht) + "-" + subtopmax() + ") .nr " +
+			nregname(sub_fall) + " 0" + nreg(sub_ht) + "-" + subtopmax() + "\n");
 	}
 	if(sub != nil && sup != nil){
 		# 18d
 		printf(".if " + nreg(sub_fall) + "<" + m100(e_sub2) + " .nr " + nregname(sub_fall) + " " + m100(e_sub2) + "\n");
 		# 18e
 		printf(".if (" + nreg(sup_rise) + "-" + nreg(sup_dp) + ")-(" + nreg(sub_ht) + "-" + nreg(sub_fall) +
-			")<(" + string e_rulethickness + "m/100u*4) \\{\\\n");
-		printf(".nr " + nregname(sub_fall) + " (" + string e_rulethickness + "m/100u*4)+" + nreg(sub_ht) +
+			")<" + subsupgap() + " \\{\\\n");
+		printf(".nr " + nregname(sub_fall) + " " + subsupgap() + "+" + nreg(sub_ht) +
 			"-(" + nreg(sup_rise) + "-" + nreg(sup_dp) + ")\n");
-		printf(".nr " + nregname(tmp_18e) + " (" + string e_xheight + "m/100u*4/5)-(" + nreg(sup_rise) +
+		printf(".nr " + nregname(tmp_18e) + " " + supbotmaxsub() + "-(" + nreg(sup_rise) +
 			"-" + nreg(sup_dp) + ")\n");
 		printf(".if " + nreg(tmp_18e) + ">0 .nr " + nregname(sup_rise) + " +" + nreg(tmp_18e) + "\n");
 		printf(".if " + nreg(tmp_18e) + ">0 .nr " + nregname(sub_fall) + " -" + nreg(tmp_18e) + " \\}\n");
@@ -303,9 +340,13 @@ box_sub(box, sub, sup: ref Box)
 	# the subscript
 	if(sub != nil){
 		# its correction
-		printf(".nr " + nregname(sub_cor) + " (" + nreg(box_wd) + "-" + nreg(box_wdnoic) + ")\n");
-		printf(".if " + nreg(box_ht) + ">0 .nr " + nregname(sub_cor) + " (" + nreg(box_ht) + "+" + nreg(sub_fall) +
-			")*(" + nreg(box_wd) + "-" + nreg(box_wdnoic) + ")/" + nreg(box_ht) + "\n");
+		if(opic)
+			printf(".nr " + nregname(sub_cor) + " " + m100(opic) + "\n");
+		else{
+			printf(".nr " + nregname(sub_cor) + " (" + nreg(box_wd) + "-" + nreg(box_wdnoic) + ")\n");
+			printf(".if " + nreg(box_ht) + ">0 .nr " + nregname(sub_cor) + " (" + nreg(box_ht) + "+" + nreg(sub_fall) +
+				")*(" + nreg(box_wd) + "-" + nreg(box_wdnoic) + ")/" + nreg(box_ht) + "\n");
+		}
 		printf(".nr " + nregname(sub_wd) + " -" + nreg(sub_cor) + "\n");
 		box_putf(box, "\\h'-" + nreg(sub_cor) + "u'");
 		box_putf(box, "\\v'" + nreg(sub_fall) + "u'" + box_toreg(sub) + "\\v'-" + nreg(sub_fall) + "u'");
@@ -441,7 +482,10 @@ box_over(box, num, den: ref Box)
 		bargap = e_fracgapd;
 	if(!TS_DX(box.style) && e_fracgapt)
 		bargap = e_fracgapt;
-	box_beforeput(box, T_INNER, 0);
+	ftyp := T_INNER;
+	if(e_fracord)
+		ftyp = T_ORD;
+	box_beforeput(box, ftyp, 0);
 	box_italiccorrection(num);
 	box_italiccorrection(den);
 	tok_dim(box_toreg(num), num_wd, 0, num_dp);
@@ -486,7 +530,7 @@ box_over(box, num, den: ref Box)
 	box_putf(box, "\\v'" + nreg(den_fall) + "u'" + box_toreg(den) + "\\v'-" + nreg(den_fall) + "u'");
 	box_putf(box, "\\h'(-" + nreg(den_wd) + "u+" + nreg(all_wd) + "u)/2u'");
 	box_putf(box, "\\h'" + nreg(box.szreg) + "p*" + string e_nulldelim + "u/100u'");
-	box_afterput(box, T_INNER);
+	box_afterput(box, ftyp);
 	box_toreg(box);
 	nregrm(num_wd);
 	nregrm(num_dp);
@@ -538,12 +582,20 @@ box_bracketmk(dst, ln: int, top, mid, bot, cen: string)
 		cenlen = blen_mk(cen);
 	# the mid pieces to cover it
 	if(cen == nil){
-		printf(".nr " + nregname(mid_cnt) + " " + nreg(ln) + "*2-" + nreg(toplen[1]) + "-" + nreg(botlen[1]) +
-			"*11/10/" + nreg(midlen[1]) + "\n");
+		if(e_delimfactor)	# (enough to reach it: TeX's)
+			printf(".nr " + nregname(mid_cnt) + " " + nreg(ln) + "*2-" + nreg(toplen[1]) + "-" + nreg(botlen[1]) +
+				"+" + nreg(midlen[1]) + "-1/" + nreg(midlen[1]) + "\n");
+		else
+			printf(".nr " + nregname(mid_cnt) + " " + nreg(ln) + "*2-" + nreg(toplen[1]) + "-" + nreg(botlen[1]) +
+				"*11/10/" + nreg(midlen[1]) + "\n");
 		printf(".if " + nreg(mid_cnt) + "<0 .nr " + nregname(mid_cnt) + " 0\n");
 	}else{	# a bracket with a centre, as {
-		printf(".nr " + nregname(cen_pos) + " " + nreg(ln) + "-(" + nreg(cenlen[1]) + "+" + nreg(toplen[1]) + "+" +
-			nreg(botlen[1]) + "/2)*11/10/" + nreg(midlen[1]) + "\n");
+		if(e_delimfactor)
+			printf(".nr " + nregname(cen_pos) + " " + nreg(ln) + "-(" + nreg(cenlen[1]) + "+" + nreg(toplen[1]) + "+" +
+				nreg(botlen[1]) + "/2)+" + nreg(midlen[1]) + "-1/" + nreg(midlen[1]) + "\n");
+		else
+			printf(".nr " + nregname(cen_pos) + " " + nreg(ln) + "-(" + nreg(cenlen[1]) + "+" + nreg(toplen[1]) + "+" +
+				nreg(botlen[1]) + "/2)*11/10/" + nreg(midlen[1]) + "\n");
 		printf(".if " + nreg(cen_pos) + "<0 .nr " + nregname(cen_pos) + " 0\n");
 		printf(".nr " + nregname(mid_cnt) + " 0" + nreg(cen_pos) + "*2\n");
 	}
@@ -595,11 +647,48 @@ box_bracket(box: ref Box, brac: string, ht, dp: int)
 	sizes := def_sizes(brac);
 	printf(".ds " + sregname(dst) + " \"\n");
 	(top, mid, bot, cen) := def_pieces(brac);
-	box_bracketsel(dst, ht, dp, sizes, mid == nil, 1);
-	if(mid != nil){
-		printf(".if '" + sreg(dst) + "'' \\{\\\n");
-		box_bracketmk(dst, ln, top, mid, bot, cen);
-		printf(".  \\}\n");
+	if(e_delimfactor){
+		# TeX's: the smallest of the sizes that reaches what is needed
+		# (by a flag: a size's \\N'...' is no string for .if '...''),
+		# else one built to it, else the largest
+		need := nregmk();
+		t := nregmk();
+		fnd := nregmk();
+		ax := "(" + string e_axisheight + "m/100u)";
+		printf(".nr " + nregname(need) + " 0" + nreg(ht) + "-" + ax + "\n");
+		printf(".nr " + nregname(t) + " 0" + nreg(dp) + "+" + ax + "\n");
+		printf(".if " + nreg(t) + ">" + nreg(need) + " .nr " + nregname(need) + " 0" + nreg(t) + "\n");
+		printf(".nr " + nregname(t) + " 0" + nreg(need) + "*2-(" + string e_delimshort + "m/100u)\n");
+		printf(".nr " + nregname(need) + " " + nreg(need) + "*2*" + string e_delimfactor + "/1000\n");
+		printf(".if " + nreg(t) + ">" + nreg(need) + " .nr " + nregname(need) + " 0" + nreg(t) + "\n");
+		printf(".nr " + nregname(fnd) + " 0\n");
+		for(i := 0; i < len sizes && sizes[i] != nil; i++){
+			printf(".if !" + nreg(fnd) + " .if \\w'" + sizes[i] + "' .if " + nreg(need) + "<=(-\\n[bbury]+\\n[bblly]) .ds " +
+				sregname(dst) + " \"" + sizes[i] + "\n");
+			printf(".if !" + nreg(fnd) + " .if \\w'" + sizes[i] + "' .if " + nreg(need) + "<=(-\\n[bbury]+\\n[bblly]) .nr " +
+				nregname(fnd) + " 1\n");
+		}
+		if(mid != nil){
+			printf(".nr " + nregname(ln) + " 0" + nreg(need) + "/2\n");
+			printf(".if !" + nreg(fnd) + " \\{\\\n");
+			box_bracketmk(dst, ln, top, mid, bot, cen);
+			printf(".nr " + nregname(fnd) + " 1\n");
+			printf(".  \\}\n");
+		}
+		while(--i >= 0){
+			printf(".if !" + nreg(fnd) + " .if \\w'" + sizes[i] + "' .ds " + sregname(dst) + " \"" + sizes[i] + "\n");
+			printf(".if !" + nreg(fnd) + " .if \\w'" + sizes[i] + "' .nr " + nregname(fnd) + " 1\n");
+		}
+		nregrm(need);
+		nregrm(t);
+		nregrm(fnd);
+	}else{
+		box_bracketsel(dst, ht, dp, sizes, mid == nil, 1);
+		if(mid != nil){
+			printf(".if '" + sreg(dst) + "'' \\{\\\n");
+			box_bracketmk(dst, ln, top, mid, bot, cen);
+			printf(".  \\}\n");
+		}
 	}
 	# its length
 	parlen := blen_mk(sreg(dst));
@@ -636,6 +725,24 @@ bracsign(brac: string, left: int): string
 # large brackets; the font set up before
 box_wrap(box, sub: ref Box, left, right: string)
 {
+	# TeX's \\left ... \\right: one inner atom, spaced as one
+	if(e_texatoms){
+		inner := box_alloc(box.szreg, 0, box.style);
+		box_wrap1(inner, sub, left, right);
+		box_beforeput(box, T_INNER, 0);
+		box_toreg(box);
+		box_put(box, box_toreg(inner));
+		if(!box.tbeg)
+			box.tbeg = T_INNER;
+		box_afterput(box, T_INNER);
+		box_free(inner);
+		return;
+	}
+	box_wrap1(box, sub, left, right);
+}
+
+box_wrap1(box, sub: ref Box, left, right: string)
+{
 	sublen := blen_mk(box_toreg(sub));
 	printf(".ps " + nreg(box.szreg) + "\n");
 	if(left != nil){
@@ -661,7 +768,10 @@ sqrt_rad(dst, ln, wd: int)
 	rn_dx := nregmk();	# \(rn's displacement
 	len2 := nregmk();
 	rad := sregmk();
-	printf(".nr " + nregname(len2) + " 0" + nreg(ln) + "/2*11/10\n");
+	if(e_radgap)	# the font's: as large as it needs
+		printf(".nr " + nregname(len2) + " 0" + nreg(ln) + "/2\n");
+	else
+		printf(".nr " + nregname(len2) + " 0" + nreg(ln) + "/2*11/10\n");
 	printf(".ds " + sregname(rad) + " \"\n");
 	# a radical of the size
 	(top, mid, bot, nil) := def_pieces("\\(sr");
@@ -708,6 +818,13 @@ sqrt_rad(dst, ln, wd: int)
 
 box_sqrt(box, sub: ref Box)
 {
+	box_root(box, nil, sub);
+}
+
+# a radical, its degree deg if not nil: raised by part of the sign's
+# height, kerned into it (the font's, as TeX's \\sqrt[n])
+box_root(box, deg, sub: ref Box)
+{
 	rad := sregmk();
 	rad_rise := nregmk();
 	min_ht := nregmk();
@@ -718,16 +835,55 @@ box_sqrt(box, sub: ref Box)
 	xh := e_rulethickness;
 	if(TS_DX(box.style))
 		xh = e_xheight;
-	# 11
-	printf(".nr " + nregname(min_ht) + " 0" + nreg(sublen[2]) + "+" + nreg(sublen[3]) + "+(2*" +
-		string e_rulethickness + "m/100u)+(" + string xh + "m/100u/4)\n");
-	sqrt_rad(rad, min_ht, sublen[0]);
+	if(e_radgap){
+		# the font's gap and rule
+		gap := e_radgap;
+		if(TS_DX(box.style))
+			gap = e_radgapd;
+		rule := e_radrule;
+		if(!rule)
+			rule = e_rulethickness;
+		printf(".nr " + nregname(min_ht) + " 0" + nreg(sublen[2]) + "+" + nreg(sublen[3]) + "+" + m100(gap + rule) + "\n");
+		sqrt_rad(rad, min_ht, sublen[0]);
+	}else{
+		# 11
+		printf(".nr " + nregname(min_ht) + " 0" + nreg(sublen[2]) + "+" + nreg(sublen[3]) + "+(2*" +
+			string e_rulethickness + "m/100u)+(" + string xh + "m/100u/4)\n");
+		sqrt_rad(rad, min_ht, sublen[0]);
+	}
 	radlen := blen_mk(sreg(rad));
-	printf(".nr " + nregname(rad_rise) + " 0(" + string e_rulethickness + "m/100u)+(" + string xh + "m/100u/4)\n");
+	if(e_radgap){
+		gap := e_radgap;
+		if(TS_DX(box.style))
+			gap = e_radgapd;
+		rule := e_radrule;
+		if(!rule)
+			rule = e_rulethickness;
+		printf(".nr " + nregname(rad_rise) + " 0" + m100(gap + rule) + "\n");
+	}else
+		printf(".nr " + nregname(rad_rise) + " 0(" + string e_rulethickness + "m/100u)+(" + string xh + "m/100u/4)\n");
 	printf(".if " + nreg(radlen[3]) + ">(" + nreg(sublen[2]) + "+" + nreg(sublen[3]) + "+" + nreg(rad_rise) +
 		") .nr " + nregname(rad_rise) + " (" + nreg(rad_rise) + "+" + nreg(radlen[3]) + "-" + nreg(sublen[2]) +
 		"-" + nreg(sublen[3]) + ")/2\n");
 	printf(".nr " + nregname(rad_rise) + " +" + nreg(sublen[2]) + "\n");
+	# the degree: its bottom raised by part of the sign's height, kerned
+	# before and after (overlapping the sign); no further left than
+	# where it begins
+	if(deg != nil){
+		deglen := blen_mk(box_toreg(deg));
+		dk := nregmk();
+		printf(".nr " + nregname(dk) + " " + m100(e_raddegkb) + "+" + nreg(deglen[0]) + "+" + m100(e_raddegka) + "\n");
+		draise := nregmk();
+		printf(".nr " + nregname(draise) + " 0-" + nreg(rad_rise) + "+" + nreg(radlen[3]) + "-(" + nreg(radlen[3]) +
+			"*" + string e_raddegraise + "/100)-" + nreg(deglen[3]) + "\n");
+		box_putf(box, "\\h'" + m100(e_raddegkb) + "'\\v'" + nreg(draise) + "u'" + box_toreg(deg) +
+			"\\v'-" + nreg(draise) + "u'\\h'" + m100(e_raddegka) + "'");
+		# (the degree narrower than the kerns take back: no further left)
+		box_putf(box, "\\h'(0-" + nreg(dk) + "u)*(" + nreg(dk) + "u<0u)'");
+		blen_rm(deglen);
+		nregrm(dk);
+		nregrm(draise);
+	}
 	# the radical
 	box_putf(box, "\\v'-" + nreg(rad_rise) + "u'" + sreg(rad) + "\\v'" + nreg(rad_rise) + "u'\\h'-" +
 		nreg(sublen[0]) + "u'" + box_toreg(sub));
@@ -958,6 +1114,10 @@ box_pile(box: ref Box, pile: array of ref Box, adj, rowspace: int)
 
 box_matrix(box: ref Box, ncols: int, cols: array of array of ref Box, adj: array of int, colspace, rowspace: int)
 {
+	if(e_texarrays){
+		box_array(box, ncols, cols, adj, colspace, rowspace);
+		return;
+	}
 	plen := array[NPILES] of array of array of int;
 	wd := array[NPILES] of int;
 	ht := array[NPILES] of int;
@@ -1005,4 +1165,179 @@ box_matrix(box: ref Box, ncols: int, cols: array of array of ref Box, adj: array
 		nregrm(wd[i]);
 	nregrm(max_wd);
 	nregrm(max_ht);
+}
+
+# a matrix as TeX sets an array: each column as wide as its widest
+# cell, each row as high and deep as its highest and deepest (a
+# strut's, .7 and .3 of the baseline, at least; the baseline 1.2 ems,
+# stretched as the text's lines are, the register .eqnbs's thousandths),
+# the rows one under the other by their depths and heights, the whole
+# centred on the axis
+box_array(box: ref Box, ncols: int, cols: array of array of ref Box, adj: array of int, colspace, rowspace: int)
+{
+	plen := array[NPILES] of array of array of int;
+	wd := array[NPILES] of int;
+	nrows := 0;
+	box_beforeput(box, T_INNER, 0);
+	for(i := 0; i < ncols; i++)
+		if(box_colnrows(cols[i]) > nrows)
+			nrows = box_colnrows(cols[i]);
+	if(nrows == 0)
+		return;
+	for(i = 0; i < ncols; i++){
+		wd[i] = nregmk();
+		for(j := 0; j < nrows; j++)
+			if(cols[i][j] != nil)
+				box_italiccorrection(cols[i][j]);
+		plen[i] = array[NPILES] of array of int;
+		for(j = 0; j < nrows; j++){
+			s := "";
+			if(cols[i][j] != nil)
+				s = box_toreg(cols[i][j]);
+			plen[i][j] = blen_mk(s);
+		}
+		printf(".nr " + nregname(wd[i]) + " 0" + nreg(plen[i][0][0]) + "\n");
+		for(j = 1; j < nrows; j++)
+			printf(".if " + nreg(plen[i][j][0]) + ">" + nreg(wd[i]) + " .nr " + nregname(wd[i]) + " 0+" + nreg(plen[i][j][0]) + "\n");
+	}
+	# the strut: its height and depth
+	bs := nregmk();
+	sh := nregmk();
+	sd := nregmk();
+	printf(".nr " + nregname(bs) + " " + nreg(box.szreg) + "p*12u/10u\n");
+	printf(".if \\n[.eqnbs] .nr " + nregname(bs) + " " + nreg(bs) + "*\\n[.eqnbs]/1000\n");
+	printf(".nr " + nregname(sh) + " " + nreg(bs) + "*7/10\n");
+	printf(".nr " + nregname(sd) + " " + nreg(bs) + "*3/10\n");
+	# each row's height, depth and baseline
+	ht := array[nrows] of int;
+	dp := array[nrows] of int;
+	y := array[nrows] of int;
+	for(j := 0; j < nrows; j++){
+		ht[j] = nregmk();
+		dp[j] = nregmk();
+		y[j] = nregmk();
+		printf(".nr " + nregname(ht[j]) + " 0+" + nreg(sh) + "\n");
+		printf(".nr " + nregname(dp[j]) + " 0+" + nreg(sd) + "\n");
+		for(i = 0; i < ncols; i++){
+			printf(".if " + nreg(plen[i][j][2]) + ">" + nreg(ht[j]) + " .nr " + nregname(ht[j]) + " 0+" + nreg(plen[i][j][2]) + "\n");
+			printf(".if " + nreg(plen[i][j][3]) + ">" + nreg(dp[j]) + " .nr " + nregname(dp[j]) + " 0+" + nreg(plen[i][j][3]) + "\n");
+		}
+		if(j == 0)
+			printf(".nr " + nregname(y[j]) + " 0\n");
+		else
+			printf(".nr " + nregname(y[j]) + " 0+" + nreg(y[j - 1]) + "+" + nreg(dp[j - 1]) + "+" + nreg(ht[j]) +
+				"+(" + nreg(box.szreg) + "p*" + string rowspace + "u/100u)\n");
+	}
+	# centred on the axis: the shift from the first row's baseline
+	sft := nregmk();
+	printf(".nr " + nregname(sft) + " 0-(" + nreg(box.szreg) + "p*" + string e_axisheight + "u/100u)-((" +
+		nreg(y[nrows - 1]) + "+" + nreg(dp[nrows - 1]) + "-" + nreg(ht[0]) + ")/2)\n");
+	for(i = 0; i < ncols; i++){
+		if(i)	# space between them
+			box_putf(box, "\\h'" + nreg(box.szreg) + "p*" + string (e_columnsep + colspace) + "u/100u'");
+		for(j = 0; j < nrows; j++){
+			if(cols[i][j] == nil)
+				continue;
+			pre := "";
+			post := "\\h'-" + nreg(plen[i][j][0]) + "u'";
+			if(adj[i] == 'c'){
+				pre = "\\h'" + nreg(wd[i]) + "u-" + nreg(plen[i][j][0]) + "u/2u'";
+				post = "\\h'-" + nreg(wd[i]) + "u+(" + nreg(wd[i]) + "u-" + nreg(plen[i][j][0]) + "u/2u)'";
+			}
+			if(adj[i] == 'r'){
+				pre = "\\h'" + nreg(wd[i]) + "u-" + nreg(plen[i][j][0]) + "u'";
+				post = "\\h'-" + nreg(wd[i]) + "u'";
+			}
+			v := nreg(y[j]) + "u+" + nreg(sft) + "u";
+			box_putf(box, pre + "\\v'" + v + "'" + box_toreg(cols[i][j]) + "\\v'-(" + v + ")'" + post);
+		}
+		box_putf(box, "\\h'" + nreg(wd[i]) + "u'");
+	}
+	box_afterput(box, T_INNER);
+	box_toreg(box);
+	for(i = 0; i < ncols; i++){
+		for(j = 0; j < nrows; j++)
+			blen_rm(plen[i][j]);
+		nregrm(wd[i]);
+	}
+	for(j = 0; j < nrows; j++){
+		nregrm(ht[j]);
+		nregrm(dp[j]);
+		nregrm(y[j]);
+	}
+	nregrm(bs);
+	nregrm(sh);
+	nregrm(sd);
+	nregrm(sft);
+}
+
+# a brace over (or under) what is under (or over) it, as TeX's
+# \overbrace and \underbrace: the font's smallest wide enough, else one
+# made of its pieces (an OpenType math font's horizontal variants and
+# assembly: U+23DE and U+23DF, as Libertinus Math names them); a gap
+# between them (StretchStackGapBelowMin, above it); the whole a big
+# operator, its label a limit (to over it, from under it)
+BRACEWD := array[] of {621, 1001, 1501, 1771, 2181, 2601};
+BRACEPC := array[] of {431, 432, 893, 431, 144};	# lt, ex, md, rt, overlap
+
+box_brace(box, sub: ref Box, over: int)
+{
+	g := "uni23DE";
+	if(!over)
+		g = "uni23DF";
+	br := sregmk();
+	ex := nregmk();
+	rise := nregmk();
+	allwd := nregmk();
+	box_italiccorrection(sub);
+	box_beforeput(box, T_BIGOP, 0);
+	sublen := blen_mk(box_toreg(sub));
+	printf(".ps " + nreg(box.szreg) + "\n");
+	# the smallest wide enough, by a flag (a string holding \\N'...'
+	# cannot be compared with .if '...'')
+	fnd := nregmk();
+	printf(".nr " + nregname(fnd) + " 0\n");
+	for(i := 0; i < len BRACEWD; i++){
+		v := g;
+		if(i)
+			v += ".size" + string i;
+		printf(".if !" + nreg(fnd) + " .if " + nreg(sublen[0]) + "<=(" + string BRACEWD[i] + "m/1000u) .ds " +
+			sregname(br) + " \"\\N'" + v + "'\n");
+		printf(".if !" + nreg(fnd) + " .if " + nreg(sublen[0]) + "<=(" + string BRACEWD[i] + "m/1000u) .nr " +
+			nregname(fnd) + " 1\n");
+	}
+	# the pieces: each extender half of what the ends and middle leave
+	(lt, exw, md, rt, ov) := (BRACEPC[0], BRACEPC[1], BRACEPC[2], BRACEPC[3], BRACEPC[4]);
+	printf(".nr " + nregname(ex) + " (" + nreg(sublen[0]) + "-(" + string (lt + md + rt - 4 * ov) + "m/1000u))/2\n");
+	printf(".if " + nreg(ex) + "<(" + string exw + "m/1000u) .nr " + nregname(ex) + " " + string exw + "m/1000u\n");
+	# (\\N for a glyph by name, which troff looks for in the special
+	# fonts; \\l takes a character, so the extender is made one)
+	o := "\\h'-" + string ov + "m/1000u'";
+	exc := "eqn" + g + "ex";
+	printf(".char \\[" + exc + "] \\N'" + g + ".ex'\n");
+	# (\\l leaves what is not a whole extender as space at its start:
+	# one put there first, under it)
+	exs := "\\N'" + g + ".ex'\\h'-" + string exw + "m/1000u'\\l'" + nreg(ex) + "u\\[" + exc + "]'";
+	printf(".if !" + nreg(fnd) + " .ds " + sregname(br) + " \"\\N'" + g + ".lt'" + o + exs + o +
+		"\\N'" + g + ".md'" + o + exs + o + "\\N'" + g + ".rt'\n");
+	brlen := blen_mk(sreg(br));
+	roff_max(allwd, sublen[0], brlen[0]);
+	# how far it is moved: its ink a gap from what it is over or under
+	if(over)
+		printf(".nr " + nregname(rise) + " 0" + nreg(sublen[2]) + "+(" + string e_stretchgap + "m/100u)+" + nreg(brlen[3]) + "\n");
+	else
+		printf(".nr " + nregname(rise) + " 0-" + nreg(sublen[3]) + "-(" + string e_stretchgap + "m/100u)-" + nreg(brlen[2]) + "\n");
+	box_putf(box, "\\h'" + nreg(allwd) + "u-" + nreg(sublen[0]) + "u/2u'" + box_toreg(sub) +
+		"\\h'-" + nreg(sublen[0]) + "u-(" + nreg(allwd) + "u-" + nreg(sublen[0]) + "u/2u)'");
+	box_putf(box, "\\h'" + nreg(allwd) + "u-" + nreg(brlen[0]) + "u/2u'\\v'-" + nreg(rise) + "u'" + sreg(br) +
+		"\\v'" + nreg(rise) + "u'\\h'-" + nreg(brlen[0]) + "u-(" + nreg(allwd) + "u-" + nreg(brlen[0]) + "u/2u)'\\h'" + nreg(allwd) + "u'");
+	box_afterput(box, T_BIGOP);
+	box_toreg(box);
+	blen_rm(sublen);
+	blen_rm(brlen);
+	sregrm(br);
+	nregrm(ex);
+	nregrm(rise);
+	nregrm(allwd);
+	nregrm(fnd);
 }

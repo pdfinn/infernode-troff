@@ -335,6 +335,67 @@ e_texdrop := 0;
 # thickness (not Neateqn's)
 e_fracgapd := 0;
 e_fracgapt := 0;
+# a matrix as TeX's array: each column its own width, each row its own
+# height and depth (a strut's, .7 and .3 of 1.2 ems stretched as the
+# text's lines are, at least), the whole centred on the axis; 0,
+# Neateqn's: every column the widest's width, every row the tallest's
+# (not Neateqn's)
+e_texarrays := 0;
+# an OpenType math font's own script limits (its MATH table's), in
+# hundredths of an em: the least gap between a subscript and a
+# superscript set together (SubSuperscriptGapMin; 0, TeX's: four rules'
+# thickness), the highest a superscript's bottom is raised to make it
+# (SuperscriptBottomMaxWithSubscript; 0, TeX's: 4/5 of the x-height),
+# the lowest a superscript's bottom may be (SuperscriptBottomMin; 0,
+# TeX's: 1/4 of the x-height), the highest a subscript's top may be
+# (SubscriptTopMax; 0, TeX's: 4/5 of the x-height)
+# atoms as TeX's: an empty group, {}, an ordinary atom (so that {} = b
+# spaces its relation as TeX's does), and a relation at a box's start
+# still a relation (only a binary operator made ordinary there); 0,
+# Neateqn's: {} nothing, a leading relation ordinary
+e_texatoms := 0;
+# capital Greek upright, lower-case italic, as TeX sets them; 0,
+# Neateqn's: both in gfont
+e_texgreek := 0;
+# a fraction an ordinary atom, as LaTeX's \\frac makes it (a group,
+# {a \\over b}); 0, TeX's \\over: an inner atom, a thin space beside it
+e_fracord := 0;
+# fractions as TeX's: the numerator and denominator in TeX's styles for
+# them (in text style a fraction's parts in script size, in a script
+# in scriptscript size), displaystyle and textstyle to ask for a
+# display's or text's (\\dfrac, \\cfrac); 0, Neateqn's: in the size
+# around
+e_texfrac := 0;
+# a radical as an OpenType math font gives it (its MATH table's), in
+# hundredths of an em: the gap above what is under it, in text and in a
+# display (RadicalVerticalGap, RadicalDisplayStyleVerticalGap), its
+# rule's thickness (RadicalRuleThickness); its degree's bottom raised by
+# a percentage of its height (RadicalDegreeBottomRaisePercent), the
+# kerns before and after its degree (RadicalKernBeforeDegree,
+# RadicalKernAfterDegree); 0, Neateqn's: TeX's rule 11, a sign a tenth
+# larger than it needs
+# a delimiter as TeX sizes one: as tall as \\delimiterfactor
+# thousandths of what it encloses about the axis, and no more than
+# \\delimitershortfall (hundredths of an em) short of it; 0, Neateqn's:
+# covering it, a tenth to spare
+e_delimfactor := 0;
+e_delimshort := 0;
+# the gap between a brace and what it is over or under, in hundredths
+# of an em (an OpenType math font's StretchStackGapBelowMin)
+e_stretchgap := 7;
+e_radgap := 0;
+e_radgapd := 0;
+e_radrule := 0;
+e_raddegraise := 60;
+e_raddegkb := 5;
+e_raddegka := -30;
+# the kern before a base's scripts, in hundredths of an em (Neateqn's
+# 5; TeX's none)
+e_scriptkern := 5;
+e_subsupgap := 0;
+e_supbotmaxsub := 0;
+e_supbotmin := 0;
+e_subtopmax := 0;
 
 S_S1(): int	{ return e_thinspace; }
 S_S2(): int	{ return e_mediumspace; }
@@ -377,6 +438,25 @@ def_set(name: string, val: int)
 	"script_percent_scale_down" =>	e_scriptpct = val;
 	"script_script_percent_scale_down" =>	e_scriptscriptpct = val;
 	"tex_script_drop" =>	e_texdrop = val;
+	"tex_arrays" =>	e_texarrays = val;
+	"script_kern" =>	e_scriptkern = val;
+	"tex_atoms" =>	e_texatoms = val;
+	"tex_greek" =>	e_texgreek = val;
+	"fraction_ord" =>	e_fracord = val;
+	"tex_fractions" =>	e_texfrac = val;
+	"stretch_stack_gap" =>	e_stretchgap = val;
+	"delimiter_factor" =>	e_delimfactor = val;
+	"delimiter_shortfall" =>	e_delimshort = val;
+	"radical_vertical_gap" =>	e_radgap = val;
+	"radical_display_vertical_gap" =>	e_radgapd = val;
+	"radical_rule_thickness" =>	e_radrule = val;
+	"radical_degree_bottom_raise_percent" =>	e_raddegraise = val;
+	"radical_kern_before_degree" =>	e_raddegkb = val;
+	"radical_kern_after_degree" =>	e_raddegka = val;
+	"sub_superscript_gap_min" =>	e_subsupgap = val;
+	"superscript_bottom_max_with_subscript" =>	e_supbotmaxsub = val;
+	"superscript_bottom_min" =>	e_supbotmin = val;
+	"subscript_top_max" =>	e_subtopmax = val;
 	"fraction_display_gap" =>	e_fracgapd = val;
 	"fraction_gap" =>	e_fracgapt = val;
 	}

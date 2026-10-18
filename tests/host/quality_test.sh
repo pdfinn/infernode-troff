@@ -192,8 +192,11 @@ check(0.75 < ratio < 0.9, "a superscript 80% of the text's size", (ratio, two[:1
 integ = [w for w in words if w[4] == '∫']
 zero = [w for w in words if w[4] == '0']
 inf = [w for w in words if w[4] == '∞']
-beside = integ and zero and inf and zero[-1][0] > integ[-1][2] - 1 and inf[-1][0] > integ[-1][2] - 1
-check(bool(beside), "an integral's limits beside it", (integ, zero[-1:], inf[-1:]))
+# (the lower limit under the integral's tail, by its italic correction,
+# as TeX sets it; the upper at its right)
+beside = (integ and zero and inf and zero[-1][0] > (integ[-1][0] + integ[-1][2]) / 2 and
+          inf[-1][0] > integ[-1][2] - 1 and zero[-1][0] < inf[-1][0])
+check(bool(beside), "an integral's limits beside it, the lower under its tail", (integ, zero[-1:], inf[-1:]))
 sys.exit(fail)
 PY
 

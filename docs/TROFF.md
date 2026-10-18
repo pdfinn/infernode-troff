@@ -395,6 +395,26 @@ tex_script_drop 1`); a fraction's numerator and denominator keep the
 font's gaps from its bar, larger in a display (`set fraction_gap` and
 `set fraction_display_gap`).
 
+Set against XeLaTeX (`unicode-math`, Libertinus Math, 11 points) on
+displays known to be hard (`tests/eqn/hard.ms`: continued fractions,
+nested and indexed radicals, Euler–Maclaurin, Vandermonde and Hessian
+matrices, cases, aligned systems, braces, towers of scripts), eqnrc's
+settings put each part where TeX puts it, to a fraction of a point:
+matrices as TeX's arrays, each column its own width and each row its
+own height (`set tex_arrays 1`); scripts within the font's limits
+(`set sub_superscript_gap_min` and the rest); an integral's lower limit
+under its tail by its italic correction (`type op icorr`); fractions'
+parts in TeX's styles (`set tex_fractions 1`), so a fraction in an
+exponent is in scriptscript size, `displaystyle` for `\dfrac` and
+`\cfrac`; `{}` an ordinary atom, as TeX's (`set tex_atoms 1`); capital
+Greek upright; operators and relations from the math font (`gsfont S`);
+radicals by the font's gaps, and `root n x` for an indexed one;
+`overbrace` and `underbrace`, the font's sizes or pieces; delimiters as
+TeX sizes them (`set delimiter_factor 901`). Its scripts are 9 points
+where TeX's are 8.8 (troff's sizes are whole points). The 22 displays
+take 0.75 seconds, emu's start included; one XeLaTeX pass takes 2.
+`tests/host/maths_test.sh` checks each against TeX's placement.
+
 Glyphs' heights and depths come from the fonts' descriptions: `mkfn`
 reads each glyph's bounding box from its outline, CFF's (Libertinus's)
 as well as TrueType's.

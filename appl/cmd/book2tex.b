@@ -1298,7 +1298,7 @@ edisplay := 0;
 eexpand := 0;
 edefs: list of (string, string);
 
-FROM, SUB: con 1 << iota;
+FROM, SUB, NOLIM: con 1 << iota;	# NOLIM: no from or to of its own (a brace's)
 
 eqn(s: string, disp: int): string
 {
@@ -1575,9 +1575,23 @@ eleft(flg: int): string
 	}else if(t == "sqrt"){
 		enext();
 		core = "\\sqrt{" + eleft(0) + "}";
+	}else if(t == "root"){
+		enext();
+		n := eleft(0);
+		core = "\\sqrt[" + n + "]{" + eleft(0) + "}";
+	}else if(t == "overbrace" || t == "underbrace"){
+		enext();
+		core = "\\" + t + "{" + eleft(NOLIM) + "}";
+	}else if(t == "displaystyle" || t == "textstyle"){
+		enext();
+		core = "{\\" + t + " " + eleft(flg) + "}";
 	}else if(t == "type"){
 		enext();
 		enext();
+		if(epk() == "icorr"){	# an operator's italic correction: LaTeX's font has it
+			enext();
+			enext();
+		}
 		core = eleft(flg);
 	}else if(t == "pile" || t == "cpile"){
 		core = epile("c");
@@ -1666,17 +1680,25 @@ eleft(flg: int): string
 		if(sups != nil)
 			core += "^{" + sups + "}";
 	}
-	if(epk() == "from"){
+	if(!(flg & NOLIM) && epk() == "from"){
 		enext();
 		froms = eleft(FROM);
 	}
-	if((froms != nil || !(flg & FROM)) && epk() == "to"){
+	if(!(flg & NOLIM) && (froms != nil || !(flg & FROM)) && epk() == "to"){
 		enext();
 		tos = eleft(0);
 	}
 	if(froms != nil || tos != nil){
+		# a big operator's limits, and a brace's label, as _ and ^
+		bigop := 0;
 		case core {
 		"\\sum" or "\\prod" or "\\bigcup" or "\\bigcap" or "\\lim" or "\\max" or "\\min" or "\\int" or "\\coprod" =>
+			bigop = 1;
+		}
+		if(len core > 12 && (core[0:11] == "\\overbrace{" || core[0:12] == "\\underbrace{"))
+			bigop = 1;
+		case bigop {
+		1 =>
 			if(froms != nil)
 				core += "_{" + froms + "}";
 			if(tos != nil)

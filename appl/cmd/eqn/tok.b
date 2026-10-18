@@ -15,9 +15,9 @@ kwds := array[] of {
 	"pile", "lpile", "cpile", "rpile", "above",
 	"matrix", "col", "ccol", "lcol", "rcol",
 	"delim", "define",
-	"gfont", "grfont", "gbfont", "gsize", "set", "chartype",
+	"gfont", "grfont", "gbfont", "gsfont", "gsize", "set", "chartype",
 	"mark", "lineup", "bracketsizes", "bracketpieces", "breakcost",
-	"nolimits",
+	"nolimits", "icorr", "displaystyle", "textstyle", "root", "overbrace", "underbrace",
 };
 
 tok_eqen := 0;		# within .EQ and .EN
@@ -426,8 +426,78 @@ char_type(s: string): int
 	return T_LETTER;
 }
 
+# tokens recorded, to be read again (not Neateqn's): a fraction's
+# numerator, set before its over is read, set again in TeX's style for a
+# numerator; each the token and what tok_read leaves of it
+Tokrec: adt {
+	tok:	string;
+	typ:	int;
+	cursep:	int;
+	prevsep:	int;
+};
+tok_rec: array of Tokrec;	# what was read since the first mark
+tok_nrec := 0;
+tok_recs := 0;		# the marks open
+tok_replay: list of Tokrec;	# what is to be read again
+
+tok_recput()
+{
+	if(tok_nrec == len tok_rec){
+		r := array[2 * len tok_rec + 64] of Tokrec;
+		r[0:] = tok_rec[0:tok_nrec];
+		tok_rec = r;
+	}
+	tok_rec[tok_nrec++] = Tokrec(tok, tok_curtype, tok_cursep, tok_prevsep);
+}
+
+# where the token now read is: what follows is recorded from it
+tok_mark(): int
+{
+	# (within a mark the token now read is the last recorded)
+	if(tok_recs++ == 0){
+		tok_nrec = 0;
+		tok_recput();
+	}
+	return tok_nrec - 1;
+}
+
+tok_unmark()
+{
+	if(--tok_recs == 0)
+		tok_nrec = 0;
+}
+
+# back to the token read at mark m: what was read since read again
+tok_rewind(m: int)
+{
+	l: list of Tokrec;
+	for(i := tok_nrec - 1; i > m; i--)
+		l = tok_rec[i] :: l;
+	tok_replay = l;
+	tok_nrec = m + 1;
+	r := tok_rec[m];
+	(tok, tok_curtype, tok_cursep, tok_prevsep) = (r.tok, r.typ, r.cursep, r.prevsep);
+}
+
 # the next token; non-zero at the end
 tok_read(): int
+{
+	if(tok_replay != nil){
+		r := hd tok_replay;
+		tok_replay = tl tok_replay;
+		(tok, tok_curtype, tok_cursep, tok_prevsep) = (r.tok, r.typ, r.cursep, r.prevsep);
+		tok_count++;
+		if(tok_recs)
+			tok_recput();
+		return tok == "";
+	}
+	ret := tok_read0();
+	if(tok_recs)
+		tok_recput();
+	return ret;
+}
+
+tok_read0(): int
 {
 	tok_count++;
 	e := LNLEN - 2;
@@ -457,7 +527,7 @@ tok_read(): int
 			c2 := tok_next();
 			if(c2 >= '1' && c2 <= '9' && !src_arg(c2 - '0')){
 				tok_cursep = 1;
-				return tok_read();
+				return tok_read0();
 			}
 			tok_back(c2);
 		}
@@ -469,7 +539,7 @@ tok_read(): int
 		}
 		if(!tok_expand()){
 			tok_cursep = 1;
-			return tok_read();
+			return tok_read0();
 		}
 		c = tok_next();
 	}

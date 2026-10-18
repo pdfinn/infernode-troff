@@ -10,9 +10,13 @@
 .char \(rn \f[S]\N'uni23AF'
 .\" Libertinus Math's own parameters (its MATH table's), for TeX's from
 .\" Computer Modern: hundredths of an em, as LuaTeX maps them;
-.\" the names of functions operators, as TeX's: a thin space each side
+.\" characters' classes as TeX's (! and ? closing, . ordinary, : a
+.\" relation); the names of functions operators, as TeX's: a thin space each side
 .\" (none before a parenthesis), limits under lim and max in a display;
-.\" an integral's limits beside it, as TeX's
+.\" an integral's limits beside it, as TeX's, its lower limit under its
+.\" tail by its italic correction (the MATH table's); TeX's names for its dots,
+.\" nabla and h-bar (eqn's own: ..., cdot, del, grad) and its triple and
+.\" contour integrals
 .EQ
 set text_limits 1
 set script_percent_scale_down 80
@@ -39,6 +43,31 @@ set script_space 4
 set tex_script_drop 1
 set fraction_display_gap 20
 set fraction_gap 7
+set tex_arrays 1
+set script_kern 0
+set over_hang 0
+set null_delimiter_space 11
+set tex_atoms 1
+set tex_greek 1
+gsfont S
+set fraction_ord 1
+set tex_fractions 1
+set radical_vertical_gap 9
+set radical_display_vertical_gap 17
+set radical_rule_thickness 4
+set radical_degree_bottom_raise_percent 50
+set radical_kern_before_degree 9
+set radical_kern_after_degree -38
+set delimiter_factor 901
+set delimiter_shortfall 45
+chartype close "!"
+chartype close "?"
+chartype ord "."
+chartype rel ":"
+set sub_superscript_gap_min 15
+set superscript_bottom_max_with_subscript 38
+set superscript_bottom_min 12
+set subscript_top_max 36
 bracketsizes ( 13 "(" "\N'parenleft.size1'" "\N'parenleft.size2'" "\N'parenleft.size3'" "\N'parenleft.size4'" "\N'parenleft.size5'" "\N'parenleft.size6'" "\N'parenleft.size7'" "\N'parenleft.size8'" "\N'parenleft.size9'" "\N'parenleft.size10'" "\N'parenleft.size11'" "\N'parenleft.size12'"
 bracketsizes ) 13 ")" "\N'parenright.size1'" "\N'parenright.size2'" "\N'parenright.size3'" "\N'parenright.size4'" "\N'parenright.size5'" "\N'parenright.size6'" "\N'parenright.size7'" "\N'parenright.size8'" "\N'parenright.size9'" "\N'parenright.size10'" "\N'parenright.size11'" "\N'parenright.size12'"
 bracketsizes [ 13 "[" "\N'bracketleft.size1'" "\N'bracketleft.size2'" "\N'bracketleft.size3'" "\N'bracketleft.size4'" "\N'bracketleft.size5'" "\N'bracketleft.size6'" "\N'bracketleft.size7'" "\N'bracketleft.size8'" "\N'bracketleft.size9'" "\N'bracketleft.size10'" "\N'bracketleft.size11'" "\N'bracketleft.size12'"
@@ -67,11 +96,20 @@ bracketpieces \(sr "\N'radical.tp'" "\N'radical.md'" "\N'radical.bt'" ""
 define sum @ifdisplay {type op vcenter roman "\N'summation.size1'"} {type op vcenter roman "\N'summation'"}@
 define prod @ifdisplay {type op vcenter roman "\N'product.size1'"} {type op vcenter roman "\N'product'"}@
 define coprod @ifdisplay {type op vcenter roman "\N'uni2210.size1'"} {type op vcenter roman "\N'uni2210'"}@
-define int @nolimits ifdisplay {type op vcenter roman "\N'integral.size1'"} {type op vcenter roman "\N'integral'"}@
-define iint @nolimits ifdisplay {type op vcenter roman "\N'uni222C.size1'"} {type op vcenter roman "\N'uni222C'"}@
-define oint @nolimits ifdisplay {type op vcenter roman "\N'uni222E.size1'"} {type op vcenter roman "\N'uni222E'"}@
+define int @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'integral.size1'"} {type op icorr 15 vcenter roman "\N'integral'"}@
+define iint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222C.size1'"} {type op icorr 15 vcenter roman "\N'uni222C'"}@
+define oint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222E.size1'"} {type op vcenter roman "\N'uni222E'"}@
 define bigcup @ifdisplay {type op vcenter roman "\N'uni22C3.size1'"} {type op vcenter roman "\N'uni22C3'"}@
 define bigcap @ifdisplay {type op vcenter roman "\N'uni22C2.size1'"} {type op vcenter roman "\N'uni22C2'"}@
+define iiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222D.size1'"} {type op icorr 15 vcenter roman "\N'uni222D'"}@
+define oiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni222F.size1'"} {type op vcenter roman "\N'uni222F'"}@
+define oiiint @nolimits ifdisplay {type op icorr 25 vcenter roman "\N'uni2230.size1'"} {type op vcenter roman "\N'uni2230'"}@
+define cdots @roman "\N'uni22EF'"@
+define ldots @roman "\N'ellipsis'"@
+define vdots @roman "\N'uni22EE'"@
+define ddots @roman "\N'uni22F1'"@
+define nabla @roman "\N'gradient'"@
+define hbar @roman "\N'uni210F'"@
 define sin @type op roman "sin"@
 define cos @type op roman "cos"@
 define tan @type op roman "tan"@
