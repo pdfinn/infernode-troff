@@ -854,6 +854,9 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			eqn_skip();
 		box_merge(box, inner, 0);
 		box_free(inner);
+	}else if(!tok_jmp("strut")){
+		# TeX's \\strut (a keyword under tex_fractions)
+		box_strut(box);
 	}else if(!tok_jmp("{")){
 		eqn_boxuntil(box, sz, fnt, "}");
 		if(e_texatoms && !box.atoms)	# TeX's {}: an ordinary atom
@@ -986,8 +989,10 @@ eqn_box(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 	densz := -1;
 	for(;;){
 		tok_blanks();
-		if(tok_type() != T_KEYWORD || tok_get() != "over")
+		# choose: TeX's \\binom (a keyword under tex_fractions)
+		if(tok_type() != T_KEYWORD || tok_get() != "over" && tok_get() != "choose")
 			break;
+		choose := tok_get() == "choose";
 		numst := ts_num(style);
 		if(e_texfrac && first && TS_SZ(numst) != TS_SZ(style)){
 			tok_rewind(m);
@@ -999,7 +1004,7 @@ eqn_box(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			box = eqn_left((flg & ~EQN_TSMASK) | numst, pre, numsz, fn0);
 		}
 		first = 0;
-		tok_jmp("over");
+		tok_pop();
 		sub_num := box;
 		sub_den: ref Box;
 		if(e_texfrac){
@@ -1015,7 +1020,10 @@ eqn_box(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			ptcur = pre.tcur;
 		box = box_alloc(sz0, ptcur, style);
 		printf(".ft " + grfont + "\n");
-		box_over(box, sub_num, sub_den);
+		if(choose)
+			box_choose(box, sub_num, sub_den);
+		else
+			box_over(box, sub_num, sub_den);
 		box_free(sub_num);
 		box_free(sub_den);
 	}

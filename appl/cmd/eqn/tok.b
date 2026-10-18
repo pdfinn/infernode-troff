@@ -181,6 +181,8 @@ tok_keyword(): int
 	for(i := 0; i < len kwds; i++)
 		if(kwds[i] == tok)
 			return 0;
+	if(e_texfrac && (tok == "choose" || tok == "strut"))	# TeX's \binom and \strut; Neateqn's words
+		return 0;
 	tok_unpreview(tok);
 	return 1;
 }

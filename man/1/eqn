@@ -130,6 +130,36 @@ and
 set what follows in a display's or text's style
 .RB ( \edfrac ,
 .BR \ecfrac );
+under
+.BR "set tex_fractions 1" ,
+.I n
+.B choose
+.I k
+is TeX's
+.BR \ebinom :
+.I n
+over
+.I k
+with no bar, by the stack's shifts and least gap
+.RB ( "set stack_top_display_shift_up" ,
+.BR stack_top_shift_up ,
+.BR stack_bottom_display_shift_down ,
+.BR stack_bottom_shift_down ,
+.BR stack_display_gap_min ,
+.BR stack_gap_min ),
+in parentheses of
+.B "set delim1"
+or
+.B delim2
+(TeX's 239 and 101), an ordinary atom; and
+.B strut
+is TeX's
+.BR \estrut ,
+as high and deep as .7 and .3 of the baseline, no ink, so that
+.B "{strut q} over ..."
+is
+.BR \ecfrac 's
+numerator;
 .B "type op icorr"
 .I n
 gives an operator its italic correction, in hundredths of an em, for

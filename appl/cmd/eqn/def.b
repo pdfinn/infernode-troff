@@ -399,6 +399,19 @@ e_mathitalic := 0;
 # hundredths of an em), a wider variant over more than one glyph, bar
 # over one glyph a macron; 0, Neateqn's: troff's characters, centred
 e_texaccents := 0;
+# TeX's \atop and \binom (choose, under tex_fractions): the shifts of a
+# stack's top and bottom and their least gap, in display style and
+# otherwise (TeX's num1, num3, denom1, denom2, 7 and 3 rule widths;
+# OpenType's Stack constants), and the size of its delimiters (TeX's
+# delim1 and delim2), in hundredths of an em
+e_stacktopd := 0;
+e_stacktop := 0;
+e_stackbotd := 0;
+e_stackbot := 0;
+e_stackgapd := 0;
+e_stackgap := 0;
+e_delim1 := 239;
+e_delim2 := 101;
 e_accentbase := 45;
 # the kern before a base's scripts, in hundredths of an em (Neateqn's
 # 5; TeX's none)
@@ -456,6 +469,14 @@ def_set(name: string, val: int)
 	"fraction_ord" =>	e_fracord = val;
 	"math_italic" =>	e_mathitalic = val;
 	"tex_accents" =>	e_texaccents = val;
+	"stack_top_display_shift_up" =>	e_stacktopd = val;
+	"stack_top_shift_up" =>	e_stacktop = val;
+	"stack_bottom_display_shift_down" =>	e_stackbotd = val;
+	"stack_bottom_shift_down" =>	e_stackbot = val;
+	"stack_display_gap_min" =>	e_stackgapd = val;
+	"stack_gap_min" =>	e_stackgap = val;
+	"delim1" =>	e_delim1 = val;
+	"delim2" =>	e_delim2 = val;
 	"accent_base_height" =>	e_accentbase = val;
 	"tex_fractions" =>	e_texfrac = val;
 	"stretch_stack_gap" =>	e_stretchgap = val;

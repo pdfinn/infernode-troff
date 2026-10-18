@@ -82,6 +82,12 @@ accent dotdot 1 uni0308 "-210" 0
 accent vec 1 uni20D7 210 421
 accent dyad 1 uni20E1 320 641
 set tex_fractions 1
+set stack_top_display_shift_up 75
+set stack_top_shift_up 47
+set stack_bottom_display_shift_down 70
+set stack_bottom_shift_down 38
+set stack_display_gap_min 33
+set stack_gap_min 20
 set radical_vertical_gap 9
 set radical_display_vertical_gap 17
 set radical_rule_thickness 4

@@ -12,11 +12,13 @@ Box: adt {
 	tcur:	int;
 	style:	int;		# TeX's style
 	tomark:	string;		# a register for its width
+	sht:	int;		# registers of a strut's height and depth in
+	sdp:	int;		# it (TeX's \strut), its ink aside; 0 if none
 };
 
 box_alloc(szreg, pre, style: int): ref Box
 {
-	box := ref Box("", szreg, 0, 0, 0, 0, 0, style, nil);
+	box := ref Box("", szreg, 0, 0, 0, 0, 0, style, nil, 0, 0);
 	if(pre)
 		box.tcur = pre;
 	return box;
@@ -28,6 +30,48 @@ box_free(box: ref Box)
 		sregrm(box.reg);
 	if(box.szown)
 		nregrm(box.szreg);
+	if(box.sht){
+		nregrm(box.sht);
+		nregrm(box.sdp);
+	}
+}
+
+# a strut at least ht high and dp deep (registers) in a box
+box_strutput(box: ref Box, ht, dp: int)
+{
+	if(!box.sht){
+		box.sht = nregmk();
+		box.sdp = nregmk();
+		printf(".nr " + nregname(box.sht) + " 0+" + nreg(ht) + "\n");
+		printf(".nr " + nregname(box.sdp) + " 0+" + nreg(dp) + "\n");
+		return;
+	}
+	printf(".if " + nreg(ht) + ">" + nreg(box.sht) + " .nr " + nregname(box.sht) + " 0+" + nreg(ht) + "\n");
+	printf(".if " + nreg(dp) + ">" + nreg(box.sdp) + " .nr " + nregname(box.sdp) + " 0+" + nreg(dp) + "\n");
+}
+
+# a box's height and depth (registers) at least its strut's
+box_strutdim(box: ref Box, ht, dp: int)
+{
+	if(!box.sht)
+		return;
+	if(ht)
+		printf(".if " + nreg(box.sht) + ">" + nreg(ht) + " .nr " + nregname(ht) + " 0+" + nreg(box.sht) + "\n");
+	if(dp)
+		printf(".if " + nreg(box.sdp) + ">" + nreg(dp) + " .nr " + nregname(dp) + " 0+" + nreg(box.sdp) + "\n");
+}
+
+# TeX's \strut: .7 and .3 of the baseline (strut, under tex_fractions)
+box_strut(box: ref Box)
+{
+	ht := nregmk();
+	dp := nregmk();
+	printf(".ps " + nreg(box.szreg) + "\n");
+	printf(".nr " + nregname(ht) + " \\n(.v*7/10\n");
+	printf(".nr " + nregname(dp) + " \\n(.v*3/10\n");
+	box_strutput(box, ht, dp);
+	nregrm(ht);
+	nregrm(dp);
 }
 
 box_put(box: ref Box, s: string)
@@ -166,6 +210,8 @@ box_puttext(box: ref Box, typ: int, s: string)
 
 box_merge(box, sub: ref Box, breakable: int)
 {
+	if(sub.sht)	# (a strut alone is empty)
+		box_strutput(box, sub.sht, sub.sdp);
 	if(box_empty(sub))
 		return;
 	box_beforeput(box, sub.tbeg, breakable);
@@ -491,7 +537,9 @@ box_over(box, num, den: ref Box)
 	box_italiccorrection(num);
 	box_italiccorrection(den);
 	tok_dim(box_toreg(num), num_wd, 0, num_dp);
+	box_strutdim(num, 0, num_dp);
 	tok_dim(box_toreg(den), den_wd, den_ht, 0);
+	box_strutdim(den, den_ht, 0);
 	roff_max(all_wd, num_wd, den_wd);
 	printf(".ps " + nreg(box.szreg) + "\n");
 	tok_len("\\(ru", bar_wd, 0, bar_ht, bar_dp);
@@ -534,6 +582,20 @@ box_over(box, num, den: ref Box)
 	box_putf(box, "\\h'" + nreg(box.szreg) + "p*" + string e_nulldelim + "u/100u'");
 	box_afterput(box, ftyp);
 	box_toreg(box);
+	# the struts in its parts, where they are now
+	if(num.sht || den.sht){
+		sht := nregmk();
+		sdp := nregmk();
+		tok_dim(box_toreg(num), tmp_15d, sht, 0);
+		box_strutdim(num, sht, 0);
+		tok_dim(box_toreg(den), tmp_15d, 0, sdp);
+		box_strutdim(den, 0, sdp);
+		printf(".nr " + nregname(sht) + " +" + nreg(num_rise) + "\n");
+		printf(".nr " + nregname(sdp) + " +" + nreg(den_fall) + "\n");
+		box_strutput(box, sht, sdp);
+		nregrm(sht);
+		nregrm(sdp);
+	}
 	nregrm(num_wd);
 	nregrm(num_dp);
 	nregrm(den_wd);
@@ -1443,4 +1505,94 @@ box_texaccent(box: ref Box, vars: array of Accvar, one: int, gl: string)
 	nregrm(ac_x);
 	nregrm(ac_pos);
 	sregrm(ac_gl);
+}
+
+# n choose k: TeX's \binom, a stack without a bar (rule 15, 15c) in
+# parentheses of TeX's delim1 or delim2, an ordinary atom
+box_choose(box, num, den: ref Box)
+{
+	num_wd := nregmk();
+	num_dp := nregmk();
+	den_wd := nregmk();
+	den_ht := nregmk();
+	all_wd := nregmk();
+	num_rise := nregmk();
+	den_fall := nregmk();
+	gap := nregmk();
+	br_ht := nregmk();
+	br_dp := nregmk();
+	box_beforeput(box, T_ORD, 0);
+	box_italiccorrection(num);
+	box_italiccorrection(den);
+	tok_dim(box_toreg(num), num_wd, 0, num_dp);
+	tok_dim(box_toreg(den), den_wd, den_ht, 0);
+	roff_max(all_wd, num_wd, den_wd);
+	printf(".ps " + nreg(box.szreg) + "\n");
+	# 15b: the shifts; 15c: the least gap
+	up := e_stacktop;
+	down := e_stackbot;
+	clr := e_stackgap;
+	delim := e_delim2;
+	if(TS_DX(box.style)){
+		up = e_stacktopd;
+		down = e_stackbotd;
+		clr = e_stackgapd;
+		delim = e_delim1;
+		if(!up)
+			up = e_num1;
+		if(!down)
+			down = e_denom1;
+		if(!clr)
+			clr = 7 * e_rulethickness;
+	}else{
+		if(!up)
+			up = e_num2;
+		if(!down)
+			down = e_denom2;
+		if(!clr)
+			clr = 3 * e_rulethickness;
+	}
+	printf(".nr " + nregname(num_rise) + " 0+" + m100(up) + "\n");
+	printf(".nr " + nregname(den_fall) + " 0+" + m100(down) + "\n");
+	printf(".nr " + nregname(gap) + " (" + nreg(num_rise) + "-" + nreg(num_dp) + ")-(" + nreg(den_ht) + "-" +
+		nreg(den_fall) + ")\n");
+	printf(".if " + nreg(gap) + "<" + m100(clr) + " .nr " + nregname(num_rise) + " +(" + m100(clr) + "-" +
+		nreg(gap) + ")/2\n");
+	printf(".if " + nreg(gap) + "<" + m100(clr) + " .nr " + nregname(den_fall) + " +(" + m100(clr) + "-" +
+		nreg(gap) + ")/2\n");
+	# the parentheses: TeX's delim1 or delim2 about the axis (what
+	# box_bracket's delimiter factor asks of that), else the stack's
+	if(e_delimfactor){
+		ax := "(" + string e_axisheight + "m/100u)";
+		half := "(" + string delim + "m/100u*500/" + string e_delimfactor + ")";
+		printf(".nr " + nregname(br_ht) + " 0+" + ax + "+" + half + "\n");
+		printf(".nr " + nregname(br_dp) + " 0+" + half + "-" + ax + "\n");
+	}else{
+		tok_dim(box_toreg(num), gap, br_ht, 0);
+		tok_dim(box_toreg(den), gap, 0, br_dp);
+		printf(".nr " + nregname(br_ht) + " +" + nreg(num_rise) + "\n");
+		printf(".nr " + nregname(br_dp) + " +" + nreg(den_fall) + "\n");
+	}
+	printf(".ft " + grfont + "\n");
+	box_bracket(box, "(", br_ht, br_dp);
+	# the numerator, the denominator, each centred
+	# (troff's expressions are read left to right)
+	box_putf(box, "\\h'" + nreg(all_wd) + "u/2u'\\h'-" + nreg(num_wd) + "u/2u'");
+	box_putf(box, "\\v'-" + nreg(num_rise) + "u'" + box_toreg(num) + "\\v'" + nreg(num_rise) + "u'");
+	box_putf(box, "\\h'-" + nreg(num_wd) + "u/2u'\\h'-" + nreg(den_wd) + "u/2u'");
+	box_putf(box, "\\v'" + nreg(den_fall) + "u'" + box_toreg(den) + "\\v'-" + nreg(den_fall) + "u'");
+	box_putf(box, "\\h'" + nreg(all_wd) + "u/2u'\\h'-" + nreg(den_wd) + "u/2u'");
+	box_bracket(box, ")", br_ht, br_dp);
+	box_afterput(box, T_ORD);
+	box_toreg(box);
+	nregrm(num_wd);
+	nregrm(num_dp);
+	nregrm(den_wd);
+	nregrm(den_ht);
+	nregrm(all_wd);
+	nregrm(num_rise);
+	nregrm(den_fall);
+	nregrm(gap);
+	nregrm(br_ht);
+	nregrm(br_dp);
 }

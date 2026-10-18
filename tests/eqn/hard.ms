@@ -19,7 +19,7 @@ x = {- b +- sqrt {b sup 2 - 4 a c}} over {2 a}
 .bp
 .\" 2. Rogers–Ramanujan continued fraction
 .EQ
-R ( q ) = {q sup {1/5}} over {1 + displaystyle {q over {1 + displaystyle {{q sup 2} over {1 + displaystyle {{q sup 3} over {1 + cdots}}}}}}}
+R ( q ) = {strut q sup {1/5}} over {1 + displaystyle {{strut q} over {1 + displaystyle {{strut q sup 2} over {1 + displaystyle {{strut q sup 3} over {1 + cdots}}}}}}}
 .EN
 .bp
 .\" 3. Ramanujan's series for 1/π
@@ -120,4 +120,9 @@ bold H sub f = left [ matrix { ccol {displaystyle {{partial sup 2 f} over {parti
 .\" 22. Limits and isotopes
 .EQ
 lim from {x -> 0} {sin x} over x = 1 ~~~~ "" sub 6 sup 14 roman C -> "" sub 7 sup 14 roman N + e sup - + nu bar sub e
+.EN
+.bp
+.\" 23. Binomial coefficients and a wide accent
+.EQ
+{n choose k} = {n !} over {k ! ^ ( n - k ) !} ~~~~ {x y z} hat
 .EN

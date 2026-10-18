@@ -1496,10 +1496,12 @@ elist(stops: list of string): (string, string)
 ebox(): string
 {
 	b := eleft(0);
-	while(epk() == "over"){
-		enext();
+	while(epk() == "over" || epk() == "choose"){
+		f := "\\frac{";
+		if(enext() == "choose")	# (eqnrc's: TeX's \\binom)
+			f = "\\binom{";
 		d := eleft(0);
-		b = "\\frac{" + b + "}{" + d + "}";
+		b = f + b + "}{" + d + "}";
 	}
 	return b;
 }
@@ -1508,7 +1510,7 @@ ebox(): string
 estructural(t: string): int
 {
 	case t {
-	"over" or "sub" or "sup" or "from" or "to" or "above" or "right" or "}" or
+	"over" or "choose" or "sub" or "sup" or "from" or "to" or "above" or "right" or "}" or
 	"ccol" or "lcol" or "rcol" or "col" =>
 		return 1;
 	}
@@ -1582,6 +1584,9 @@ eleft(flg: int): string
 	}else if(t == "overbrace" || t == "underbrace"){
 		enext();
 		core = "\\" + t + "{" + eleft(NOLIM) + "}";
+	}else if(t == "strut"){
+		enext();
+		core = "\\strut";
 	}else if(t == "displaystyle" || t == "textstyle"){
 		enext();
 		core = "{\\" + t + " " + eleft(flg) + "}";

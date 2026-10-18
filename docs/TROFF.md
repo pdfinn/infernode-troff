@@ -414,9 +414,12 @@ variants over more (`set tex_accents 1`, `accent`, `accentpos`), `bar`
 over one letter a macron, as `\bar`; delimiters' first sizes the math
 font's, as TeX's; operators and relations from the math font (`gsfont S`);
 radicals by the font's gaps, and `root n x` for an indexed one;
-`overbrace` and `underbrace`, the font's sizes or pieces; delimiters as
+`overbrace` and `underbrace`, the font's sizes or pieces; `n choose k`
+as `\binom` (the font's stack shifts, parentheses of TeX's delim1 and
+delim2); `strut` as `\strut`, so that a continued fraction written with
+one in each numerator is spaced as `\cfrac`'s; delimiters as
 TeX sizes them (`set delimiter_factor 901`). Its scripts are 9 points
-where TeX's are 8.8 (troff's sizes are whole points). The 22 displays
+where TeX's are 8.8 (troff's sizes are whole points). 22 of the displays
 take 0.75 seconds, emu's start included; one XeLaTeX pass takes 2.
 `tests/host/maths_test.sh` checks each against TeX's placement.
 

@@ -17,8 +17,12 @@
 #	a fraction in an exponent in scriptscript size (TeX's styles for a
 #	fraction's parts);
 #	braces over and under, of the font's sizes and pieces;
-#	the 22 displays on 22 pages, nothing said on the standard error;
-#	book2tex: root, overbrace, underbrace and displaystyle as LaTeX's.
+#	the 23 displays on 23 pages, nothing said on the standard error;
+#	a continued fraction's levels apart by their numerators' struts;
+#	n choose k in parentheses of TeX's delim1 (2.39 ems), a wide hat
+#	the font's variant;
+#	book2tex: root, overbrace, underbrace, displaystyle, choose and strut
+#	as LaTeX's.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -61,7 +65,7 @@ def pg(n):
 def h(w):
     return w[3] - w[1]
 
-check(len(pages) == 22 and not err, 'the 22 displays on 22 pages, nothing said', (len(pages), err[:200]))
+check(len(pages) == 23 and not err, 'the 23 displays on 23 pages, nothing said', (len(pages), err[:200]))
 
 # 5: root 3 {...}: its degree small, its bottom above the base line's
 p = pg(5)
@@ -128,10 +132,23 @@ check(ic and all(int(b) >= 0.34 * int(a) for a, b in ic), "f's italic correction
 # 7: f hat, the font's accent (U+0302), not troff's ^
 check('GID=uni0302' in tr, "an accent the math font's", sorted(set(re.findall(r'GID=uni03[0-9A-F]+[.a-z0-9]*', tr))))
 
+# 2: the continued fraction, its numerators strutted (\\cfrac's): from
+# the top of q^(1/5) to the foot of 1 + ... as XeLaTeX's (87 points)
+p = pg(2)
+span = max(w[3] for w in p) - min(w[1] for w in p) if p else 0
+check(84 < span < 92, "a continued fraction's levels apart as \\cfrac's", span)
+
+# 23: n choose k, its parentheses of the font's sizes at least 2.39 ems
+# (a size variant); xyz's hat the font's wider variant
+p23 = tr[tr.find('\np23\n'):] if '\np23\n' in tr else ''
+check(re.search(r'GID=parenleft\.size[2-9]', p23) and re.search(r'GID=parenright\.size[2-9]', p23) and
+      re.search(r'GID=uni0302\.size[1-9]', p23), "n choose k's parentheses, a wide hat",
+      sorted(set(re.findall(r'GID=(?:paren|uni0302)[.a-z0-9]*', p23))))
+
 # book2tex: the same in LaTeX's
 tex = open(d + '/hard.tex', encoding='utf-8').read() if __import__('os').path.exists(d + '/hard.tex') else ''
 check('\\sqrt[3]{' in tex and re.search(r'\\underbrace\{.*\}_\{', tex) and re.search(r'\\overbrace\{.*\}\^\{', tex) and
-      '\\displaystyle' in tex, 'book2tex: root, braces and displaystyle as LaTeX\'s',
+      '\\displaystyle' in tex and '\\binom{n}{k}' in tex and '\\strut' in tex, 'book2tex: root, braces, displaystyle, choose and strut as LaTeX\'s',
       [l for l in tex.split('\n') if 'brace' in l or 'sqrt[' in l][:3])
 sys.exit(fail)
 PY
