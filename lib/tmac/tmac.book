@@ -1557,11 +1557,12 @@
 .\" an entry: at the indent $1, its number $3 in a box $2 wide, its
 .\" title $4; a title too long for one line (with room for leaders and
 .\" its page) filled to 2.55 ems short of the page's measure, as LaTeX's
-.\" contents are, hung after the number, the leaders to its page $5 from
-.\" its last line; the whole a link to $6
+.\" contents are, hung after the number; the leaders from its last line
+.\" to its page $5's box, 1.55 ems at the margin (LaTeX's \@pnumwidth);
+.\" the whole a link to $6
 .de book-tocent1
 .in \\$1
-.ta \\n[book-ll]u-\\$1-2.55m \\n[book-ll]u-\\$1R
+.ta \\n[book-ll]u-\\$1-1.55m \\n[book-ll]u-\\$1R
 .ie \w'\\$3\h'\\$2-\w'\\$3'u'\\$4'<(\\n[book-ll]-\\$1-4.5m) \\*[book-tl \\$6]\\$3\h'\\$2-\w'\\$3'u'\\$4\a\t\\$5
 .el \{\
 .	in \\$1+\\$2
@@ -1580,9 +1581,9 @@
 .	if (\\n[book-tly]>0)&(\\n[book-tly]<(2*\\n[.v])) .nr book-tlw -(\\$2)
 .	\" (and short of the leaders' stop, else the tab passes it: a line
 .	\" its spaces shrank to fit is narrower than \n[.n] says)
-.	if \\n[book-tlw]>(\\n[book-ll]-\\$1-\\$2-2.55m) .nr book-tlw \\n[book-ll]-\\$1-\\$2-2.55m-1
+.	if \\n[book-tlw]>(\\n[book-ll]-\\$1-\\$2-1.55m) .nr book-tlw \\n[book-ll]-\\$1-\\$2-1.55m-1
 .	sp -1v
-.	ta \\n[book-ll]u-\\$1-\\$2-2.55m \\n[book-ll]u-\\$1-\\$2R
+.	ta \\n[book-ll]u-\\$1-\\$2-1.55m \\n[book-ll]u-\\$1-\\$2R
 \h'\\n[book-tlw]u'\a\t\\$5
 .	ad pb
 .\}

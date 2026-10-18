@@ -11,7 +11,8 @@
 #	the text's last line clear of the notes' rule on every page;
 #	three letters at least after a hyphen;
 #	the contents: a long title filled short of the page's number and
-#	hung after its number, no entry past the margin, a subsection
+#	hung after its number, no entry past the margin, its leaders apart
+#	from its title (run to the page's number's box), a subsection
 #	further in than a section; .subsubsection neither numbered nor in
 #	the contents;
 #	lists (.list, .item, .endlist), numbered and not, nested, their
@@ -183,10 +184,13 @@ long = [w for w in cont if w[4] in ('Filled', 'Over')]
 sec = [w for w in cont if w[4] == '1.1']
 sub = [w for w in cont if w[4] == '1.2.15']
 toc = ' '.join(w[4] for w in cont)
-check(nums and max(w[2] for w in nums) <= right + 1 and len(set(round(w[3]) for w in long)) >= 1 and
+# leaders apart from the title they follow (a dot against its last word
+# reads as a full stop), as LaTeX's run to its page's box
+glued = [w[4] for w in cont if re.search(r'[A-Za-z]\.$', w[4])]
+check(nums and max(w[2] for w in nums) <= right + 1 and not glued and len(set(round(w[3]) for w in long)) >= 1 and
       sub and sec and sub[0][0] > sec[0][0] + 5 and 'Deeper' not in toc and 'Sub' in toc,
-      'the contents: long titles filled, none past the margin, subsections further in, no subsubsections',
-      (right, nums[-3:], sec[:1], sub[:1], toc[:200]))
+      'the contents: long titles filled, none past the margin, leaders apart from titles, subsections further in, no subsubsections',
+      (right, nums[-3:], glued, sec[:1], sub[:1], toc[:200]))
 check(any(w[4] == 'Deeper' for p in pages for w in p) and not re.search(r'\d\.\d\.\d\s+Deeper', '\n'.join(lay)),
       'a subsubsection not numbered', '')
 
