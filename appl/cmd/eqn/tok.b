@@ -26,7 +26,7 @@ kwds := array[] of {
 	"matrix", "col", "ccol", "lcol", "rcol",
 	"delim", "define",
 	"gfont", "grfont", "gbfont", "gsfont", "gsize", "set", "chartype", "accent", "accentpos", "mathital", "italcorr", "bracesizes", "bracepieces",
-	"mark", "lineup", "bracketsizes", "bracketpieces", "breakcost",
+	"mark", "lineup", "bracketsizes", "bracketheights", "bracketpieces", "breakcost",
 	"nolimits", "icorr", "displaystyle", "textstyle", "root", "overbrace", "underbrace",
 };
 

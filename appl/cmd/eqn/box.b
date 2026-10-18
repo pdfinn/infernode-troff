@@ -636,6 +636,10 @@ box_over(box, num, den: ref Box)
 box_bracketsel(dst, ht, dp: int, br: array of string, any, both: int)
 {
 	i: int;
+	if((hts := def_heights(bracketof(br))) != nil){
+		box_bracketselht(dst, ht, dp, br, hts, any, both);
+		return;
+	}
 	for(i = 0; i < len br && br[i] != nil; i++){
 		s := ".if '" + sreg(dst) + "'' ";
 		s += ".if \\w'" + br[i] + "' ";	# is it there?
@@ -651,6 +655,51 @@ box_bracketsel(dst, ht, dp: int, br: array of string, any, both: int)
 	if(any)	# the largest, if none is large enough
 		while(--i >= 0)
 			printf(".if '" + sreg(dst) + "'' .if \\w'" + br[i] + "' .ds " + sregname(dst) + " \"" + br[i] + "\n");
+}
+
+# box_bracketsel, its sizes' heights known (bracketheights): each size
+# tested by its number, not set by troff to measure it; one request a
+# size (.ie ... .el .ie ...)
+box_bracketselht(dst, ht, dp: int, br: array of string, hts: array of int, any, both: int)
+{
+	n := len hts;
+	if(n == 0)
+		return;
+	for(i := 0; i < n; i++){
+		h := inkht(hts[i]);
+		cond: string;
+		if(both)
+			cond = "((" + nreg(ht) + "-(" + string e_rulethickness + "m/100)*2)<=(" + h + "+(" +
+				string e_axisheight + "m/100*2)))&((" + nreg(dp) + "*2)<=(" + h + "-(" +
+				string e_axisheight + "m/100*2)))";
+		else
+			cond = "(" + nreg(ht) + "+" + nreg(dp) + ")<=" + h;
+		pre := ".el .ie ";
+		if(i == 0)
+			pre = ".ie ";
+		if(i == n - 1 && !any)
+			pre = ".el .if ";
+		if(i == 0 && i == n - 1 && !any)
+			pre = ".if ";
+		printf(pre + cond + " .ds " + sregname(dst) + " \"" + br[i] + "\n");
+	}
+	if(any)	# the largest, if none is large enough
+		printf(".el .ds " + sregname(dst) + " \"" + br[n - 1] + "\n");
+}
+
+# a size's height, as a troff expression
+inkht(h: int): string
+{
+	return "(" + string h + "m/1000u)";
+}
+
+# the sign whose sizes br are
+bracketof(br: array of string): string
+{
+	for(i := 0; i < len bracketsizes; i++)
+		if(bracketsizes[i][1] == br[0])
+			return bracketsizes[i][0];
+	return nil;
 }
 
 # a bracket built of its pieces
@@ -731,6 +780,7 @@ box_bracket(box: ref Box, brac: string, ht, dp: int)
 	fall := nregmk();
 	roff_max(ln, ht, dp);
 	sizes := def_sizes(brac);
+	hts := def_heights(brac);
 	printf(".ds " + sregname(dst) + " \"\n");
 	(top, mid, bot, cen) := def_pieces(brac);
 	if(e_delimfactor){
@@ -748,7 +798,20 @@ box_bracket(box: ref Box, brac: string, ht, dp: int)
 		printf(".nr " + nregname(need) + " " + nreg(need) + "*2*" + string e_delimfactor + "/1000\n");
 		printf(".if " + nreg(t) + ">" + nreg(need) + " .nr " + nregname(need) + " 0" + nreg(t) + "\n");
 		printf(".nr " + nregname(fnd) + " 0\n");
-		for(i := 0; i < len sizes && sizes[i] != nil; i++){
+		i := 0;
+		if(hts != nil){
+			# its sizes' heights known: one request a size
+			for(i = 0; i < len hts; i++){
+				pre := ".el .ie ";
+				if(i == 0)
+					pre = ".ie ";
+				printf(pre + nreg(need) + "<=" + inkht(hts[i]) + " .ds " + sregname(dst) + " \"" + sizes[i] + "\n");
+			}
+			printf(".el .nr " + nregname(fnd) + " 1\n");
+			# fnd is 1 if none was found: the other way round
+			printf(".nr " + nregname(fnd) + " 1-" + nreg(fnd) + "\n");
+		}
+		for(; hts == nil && i < len sizes && sizes[i] != nil; i++){
 			printf(".if !" + nreg(fnd) + " .if \\w'" + sizes[i] + "' .if " + nreg(need) + "<=(-\\n[bbury]+\\n[bblly]) .ds " +
 				sregname(dst) + " \"" + sizes[i] + "\n");
 			printf(".if !" + nreg(fnd) + " .if \\w'" + sizes[i] + "' .if " + nreg(need) + "<=(-\\n[bbury]+\\n[bblly]) .nr " +
@@ -761,7 +824,9 @@ box_bracket(box: ref Box, brac: string, ht, dp: int)
 			printf(".nr " + nregname(fnd) + " 1\n");
 			printf(".  \\}\n");
 		}
-		while(--i >= 0){
+		if(hts != nil && i > 0)	# the largest
+			printf(".if !" + nreg(fnd) + " .ds " + sregname(dst) + " \"" + sizes[i - 1] + "\n");
+		else while(--i >= 0){
 			printf(".if !" + nreg(fnd) + " .if \\w'" + sizes[i] + "' .ds " + sregname(dst) + " \"" + sizes[i] + "\n");
 			printf(".if !" + nreg(fnd) + " .if \\w'" + sizes[i] + "' .nr " + nregname(fnd) + " 1\n");
 		}

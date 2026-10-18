@@ -4,10 +4,11 @@
 # parameters, glyphs and sizes, as TeX does by unicode-math's: its
 # constants (set), its maths italic letters (mathital) with their
 # italic corrections (italcorr) and top accent attachments (accentpos),
-# its accents and their wider variants (accent), its delimiters' sizes
-# and pieces (bracketsizes, bracketpieces), its braces' (bracesizes,
-# bracepieces), its big operators' display sizes and italic corrections
-# (define), the glyphs of the symbols eqnrc names (define)
+# its accents and their wider variants (accent), its delimiters' sizes,
+# their heights and pieces (bracketsizes, bracketheights,
+# bracketpieces), its braces' (bracesizes, bracepieces), its big
+# operators' display sizes and italic corrections (define), the glyphs
+# of the symbols eqnrc names (define)
 #
 
 mathfont := "S";	# its troff name (-t)
@@ -59,6 +60,13 @@ cglyph(c: int): int
 hund(v: int): int
 {
 	return per(v, 100);
+}
+
+# a glyph's ink, its top to its bottom, as its font description has
+# it at -r7200 (thousandths of an em): what troff's \w gives as -bbury+bblly
+inkht(g: int): int
+{
+	return owid(glyph_bbox[4 * g + 3]) - owid(glyph_bbox[4 * g + 1]);
 }
 
 thou(v: int): int
@@ -372,6 +380,7 @@ math_write(otf: ref Otf)
 		if(ch[0] < 16r80)
 			first = f + ch + "\\f[P]";
 		s := " \"" + first + "\"";
+		hs := " " + string inkht(g);
 		n := 1;
 		cn := construction(g, 0);
 		if(cn != nil)
@@ -379,10 +388,12 @@ math_write(otf: ref Otf)
 				(vg, nil) := cn.vars[j];
 				if(vg != g){
 					s += " \"" + fgn(vg) + "\"";
+					hs += " " + string inkht(vg);
 					n++;
 				}
 			}
 		out("bracketsizes " + delims[i] + " " + string n + s + "\n");
+		out("bracketheights " + delims[i] + " " + string n + hs + "\n");
 	}
 	for(i = 0; i < len delims; i += 2){
 		cn := construction(cglyph(delims[i + 1][0]), 0);

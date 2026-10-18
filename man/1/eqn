@@ -241,7 +241,13 @@ TeX puts it, for troff's
 .B bracepieces
 .RB over | under
 .I "lt ltw ex exw md mdw rt rtw overlap"
-are the braces' sizes and pieces; all as
+are the braces' sizes and pieces;
+.B bracketheights
+.I "sign n h"
+\&... the heights of the ink of a delimiter's
+.B bracketsizes
+(as many), in thousandths of an em, so that a size is chosen by them and
+troff does not set each to measure it; all as
 .IR mkfn (1)'s
 .B -M
 writes them from a font's MATH table;

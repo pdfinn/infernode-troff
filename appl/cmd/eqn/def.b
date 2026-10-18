@@ -159,6 +159,7 @@ bracketpieces_init := array[] of {
 };
 
 bracketsizes: array of array of string;
+bracketheights := array[32] of array of int;	# their ink's, in thousandths of an em
 bracketpieces: array of array of string;
 
 # the tables, their UTF-8 bytes a character each
@@ -285,6 +286,29 @@ def_sizesput(sign: string, sizes: array of string)
 	bracketsizes[idx][0] = sign;
 	for(i := 1; i < NSIZES; i++)
 		bracketsizes[idx][i] = sizes[i - 1];
+	bracketheights[idx] = nil;
+}
+
+# a bracket's sizes' heights (bracketheights), as many as its sizes;
+# nil if not given, its sizes then measured by troff
+def_heights(sign: string): array of int
+{
+	idx := sizes_find(sign);
+	if(idx < 0)
+		return nil;
+	return bracketheights[idx];
+}
+
+def_heightsput(sign: string, hts: array of int)
+{
+	idx := sizes_find(sign);
+	if(idx < 0)
+		return;
+	n := 0;
+	while(n < NSIZES - 1 && bracketsizes[idx][n + 1] != nil)
+		n++;
+	if(len hts == n)
+		bracketheights[idx] = hts;
 }
 
 # TeX's parameters, in hundredths of an em

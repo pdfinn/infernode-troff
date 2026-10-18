@@ -517,8 +517,15 @@ wb_put(wb: ref Wb, c: string)
 		wb_flush(wb);
 	if(wb.sub_collect){
 		if(font_find(dev_font(wb.f), c) != nil || c_hymark(c)){
-			if(wb.sub_c == nil)
-				wb.sub_c = array[WORDLEN] of string;
+			# made small, and larger as a word needs: a word buffer
+			# is made for each word and \w, and an array of
+			# WORDLEN strings is zeroed when made and walked when
+			# freed
+			if(wb.sub_n == len wb.sub_c){
+				nc := array[2 * wb.sub_n + 16] of string;
+				nc[0:] = wb.sub_c[0:wb.sub_n];
+				wb.sub_c = nc;
+			}
 			wb.sub_c[wb.sub_n++] = c;
 		}
 		else

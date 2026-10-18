@@ -112,6 +112,8 @@ read_string(): (string, int)
 	while(c > 0 && c != '\n'){
 		if(c != c_ni)
 			sb[len sb] = c;
+		if((r := in_cprun()) != nil)
+			sb += r;
 		c = cp_next();
 	}
 	if(c >= 0)

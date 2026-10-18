@@ -406,6 +406,18 @@ eqn_bracketsizes()
 	def_sizesput(sign, sizes);
 }
 
+# bracketheights sign n h ...: the heights of a bracket's sizes' ink,
+# in thousandths of an em, so that troff need not set each to measure it
+eqn_bracketheights()
+{
+	sign := cut(tok_quotes(tok_poptext(1)), BRLEN);
+	n := atoi(tok_poptext(1));
+	hts := array[n] of int;
+	for(i := 0; i < n; i++)
+		hts[i] = atoi(tok_quotes(tok_poptext(1)));
+	def_heightsput(sign, hts);
+}
+
 # accentpos n glyph pos ...: glyphs' top accent attachments
 eqn_accentpos()
 {
@@ -574,6 +586,10 @@ eqn_commands(): int
 	}
 	if(!tok_jmp("bracketsizes")){
 		eqn_bracketsizes();
+		return 0;
+	}
+	if(!tok_jmp("bracketheights")){
+		eqn_bracketheights();
 		return 0;
 	}
 	if(!tok_jmp("bracketpieces")){

@@ -126,8 +126,9 @@ and top accent attachments
 .RB ( accentpos );
 its accents and their wider variants
 .RB ( accent );
-its delimiters' and radical's sizes and pieces
+its delimiters' and radical's sizes, their heights and pieces
 .RB ( bracketsizes ,
+.BR bracketheights ,
 .BR bracketpieces );
 its braces' over and under
 .RB ( bracesizes ,
