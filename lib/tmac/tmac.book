@@ -1257,18 +1257,34 @@
 ..
 .\"
 .\" ---------------------------------------------------------------
-.\" an image, JPEG or PNG: .image file width height, centred, kept on
+.\" an image, JPEG or PNG: .image file [width [height]], centred, kept on
 .\" one page, described for a tagged PDF by .alt as a picture is (tr2pdf
-.\" places it, x X image)
+.\" places it, x X image). What is not given (or given as "") is the
+.\" image's own: its proportions; with neither, its size at its
+.\" resolution (72 to the inch if it says none, as pdfTeX's); the whole
+.\" no wider than the line.
 .\"
 .de image
 .book-begin
 .br
-.ie (\\$2+0)*(\\$3+0) \{\
-.	nr book-iw (\\$2)
-.	nr book-ih (\\$3)
+.imgsize \\$1
+.nr book-iw 0
+.nr book-ih 0
+.if !'\\$2'' .nr book-iw (\\$2)
+.if !'\\$3'' .nr book-ih (\\$3)
+.if (\\n[imgw]>0)&(\\n[imgh]>0) \{\
+.	nr book-ires \\n[imgres]
+.	if !\\n[book-ires] .nr book-ires 72
+.	if !\\n[book-iw]:\\n[book-ih] \{\
+.		nr book-iw \\n[imgw]*1i/\\n[book-ires]
+.		nr book-ih \\n[imgh]*1i/\\n[book-ires]
+.	\}
+.	if !\\n[book-iw] .nr book-iw \\n[book-ih]*\\n[imgw]/\\n[imgh]
+.	if !\\n[book-ih] .nr book-ih \\n[book-iw]*\\n[imgh]/\\n[imgw]
+.\}
+.ie (\\n[book-iw]>0)&(\\n[book-ih]>0) \{\
 .	if \\n[book-iw]>(\\n[.l]-\\n[.i]) \{\
-.		nr book-ih \\n[book-ih]*(\\n[.l]-\\n[.i])/\\n[book-iw]
+.		nr book-ih \\n[book-ih]/10*(\\n[.l]-\\n[.i])/(\\n[book-iw]/10)
 .		nr book-iw \\n[.l]-\\n[.i]
 .	\}
 .	book-tag end
@@ -1286,7 +1302,7 @@
 .	fi
 .	book-tag pop
 .\}
-.el .tm book: .image \\$1 \\$2 \\$3: its width and height wanted (at \\n[.c] of \\n[.F])
+.el .tm book: .image \\$1: no size given, and none read from it (at \\n[.c] of \\n[.F])
 ..
 .\"
 .\" ---------------------------------------------------------------

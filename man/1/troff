@@ -162,6 +162,15 @@ With
 not zero, a character no font has is said on the standard error
 (once), not dropped without a word.
 .TP
+.BI .imgsize " file"
+An image's size in pixels and its resolution in dots to the inch (0 if
+it says none), from its header (a PNG's, a JPEG's), in the registers
+.BR imgw ,
+.B imgh
+and
+.BR imgres ;
+all 0 if it cannot be read.
+.TP
 .B \en[.pend]
 The lines the text not yet set will take, were the paragraph to end
 here.

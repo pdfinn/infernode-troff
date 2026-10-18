@@ -1002,9 +1002,15 @@ request(s: string)
 		o := "";
 		if(arg(a, 1) != "")
 			o = "width=" + dimen(arg(a, 1));
-		if(arg(a, 2) != "")
-			o += ",height=" + dimen(arg(a, 2));
-		centrein("\\includegraphics[" + o + "]{" + f + "}");
+		if(arg(a, 2) != ""){
+			if(o != "")
+				o += ",";
+			o += "height=" + dimen(arg(a, 2));
+		}
+		# (neither: its own size, as troff's; LaTeX's needs no options)
+		if(o != "")
+			o = "[" + o + "]";
+		centrein("\\includegraphics" + o + "{" + f + "}");
 	"listoffigures" =>
 		block("\\listoffigures");
 	"listoftables" =>

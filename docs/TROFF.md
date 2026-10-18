@@ -52,7 +52,7 @@ LaTeX without being LaTeX.
 | `.section "Title" [label]`, `.subsection`, `.subsubsection` | `\section`, `\subsection`, `\subsubsection` |
 | `.list 1` (or `a`, `i`) ... `.item` ... `.endlist` | `enumerate` with `\item` |
 | `.list` (or `bullet`, `dash`) ... `.item` ... `.endlist` | `itemize` with `\item` |
-| `.image file width height` | `\includegraphics[width=...,height=...]{file}` |
+| `.image file [width [height]]` | `\includegraphics[width=...,height=...]{file}` |
 | a blank line, or `.p` | a paragraph |
 | `.quote` ... `.endquote` | `quotation` |
 | `.epigraph` ... `.attrib "Source"` `.endepigraph` | `\epigraph{...}{Source}` |

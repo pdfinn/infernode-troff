@@ -332,6 +332,84 @@ tr_ad(args: array of string)
 	}
 }
 
+# .imgsize file: an image's size in pixels and its resolution in dots to
+# the inch (0 if it says none) in the registers imgw, imgh and imgres,
+# from its header (a PNG's, a JPEG's); all 0 if it cannot be read (not
+# Neatroff's)
+tr_imgsize(args: array of string)
+{
+	(w, h, r) := (0, 0, 0);
+	if(len args > 1)
+		(w, h, r) = imgsize(args[1]);
+	num_set(map("imgw"), w);
+	num_set(map("imgh"), h);
+	num_set(map("imgres"), r);
+}
+
+imgsize(path: string): (int, int, int)
+{
+	fd := sys->open(path, Sys->OREAD);
+	if(fd == nil)
+		return (0, 0, 0);
+	b := array[1 << 19] of byte;
+	n := 0;
+	while(n < len b && (k := sys->read(fd, b[n:], len b - n)) > 0)
+		n += k;
+	b = b[0:n];
+	if(n >= 24 && b[0] == byte 16r89 && string b[1:4] == "PNG"){
+		w := be32(b, 16);
+		h := be32(b, 20);
+		r := 0;
+		for(i := 8; i + 8 <= n; ){
+			l := be32(b, i);
+			t := string b[i + 4:i + 8];
+			if(t == "pHYs" && i + 17 <= n && b[i + 16] == byte 1)	# per metre
+				r = (be32(b, i + 8) * 254 + 5000) / 10000;
+			if(t == "IDAT" || l < 0)
+				break;
+			i += 12 + l;
+		}
+		return (w, h, r);
+	}
+	if(n >= 4 && b[0] == byte 16rFF && b[1] == byte 16rD8){
+		r := 0;
+		for(i := 2; i + 4 <= n; ){
+			if(b[i] != byte 16rFF){
+				i++;
+				continue;
+			}
+			m := int b[i + 1];
+			if(m == 16rFF || m == 16rD8 || m == 16r01 || (m >= 16rD0 && m <= 16rD7)){
+				i += 2;
+				continue;
+			}
+			l := be16(b, i + 2);
+			if(m == 16rE0 && i + 16 <= n && string b[i + 4:i + 8] == "JFIF"){
+				u := int b[i + 11];
+				d := be16(b, i + 12);
+				if(u == 1)
+					r = d;
+				else if(u == 2)
+					r = (d * 254 + 50) / 100;
+			}
+			if(m >= 16rC0 && m <= 16rCF && m != 16rC4 && m != 16rC8 && m != 16rCC && i + 9 <= n)
+				return (be16(b, i + 7), be16(b, i + 5), r);
+			i += 2 + l;
+		}
+	}
+	return (0, 0, 0);
+}
+
+be16(b: array of byte, i: int): int
+{
+	return (int b[i] << 8) | int b[i + 1];
+}
+
+be32(b: array of byte, i: int): int
+{
+	return (int b[i] << 24) | (int b[i + 1] << 16) | (int b[i + 2] << 8) | int b[i + 3];
+}
+
 tr_tm(args: array of string)
 {
 	errmsg(arg(args, 1) + "\n");
@@ -1325,6 +1403,7 @@ cmds := array[] of {
 	Cmd("ie", A_NULL),
 	Cmd("if", A_NULL),
 	Cmd("ig", A_REQ),
+	Cmd("imgsize", A_REQ),
 	Cmd("in", A_REQ),
 	Cmd("in2", A_REQ),
 	Cmd("it", A_REQ),
@@ -1455,6 +1534,7 @@ cmd_run(i: int, args: array of string)
 	"ie" =>		tr_if(args);
 	"if" =>		tr_if(args);
 	"ig" =>		tr_ig(args);
+	"imgsize" =>	tr_imgsize(args);
 	"in" =>		tr_in(args);
 	"in2" =>	tr_in2(args);
 	"it" =>		tr_it(args);
