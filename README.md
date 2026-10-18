@@ -47,6 +47,9 @@ gained `pinned` and `viewing` then.
   screen reader would speak it ("x equals the fraction with numerator
   minus b plus or minus the square root of b squared minus 4 a c, end
   root, and denominator 2 a").
+- **Logic.** Formulas with the logical and modal symbols, truth
+  tables, and proofs by tableau with their countermodels, as a logic
+  text sets them.
 - **Chess.** Diagrams from a position in Forsyth–Edwards notation, and
   moves in figurine notation (♘f3) in the text, by `chess`.
 - **LaTeX for a publisher.** `book2tex` writes the same book as LaTeX,
@@ -157,6 +160,24 @@ Zoom+, Zoom−, Fit, PrevPage and NextPage move about the document, and
 its text can be searched. The screenshot is in Xenith's Glenda theme
 (`xenith -t glenda`). Setting Xenith up for it is under
 [Xenith](#xenith) below.
+
+## Logic
+
+Logic is set with the same tools: formulas by eqn, with the logical
+and modal symbols from Libertinus Math (`$□ ( p → q ) , ~ □ p ~ ⊢ ~ □ q$`),
+truth tables and countermodels by tbl, and proof trees by pic. The
+trees here are written by `tableau` in
+[infernode-wwb](https://github.com/pdfinn/infernode-wwb), from the
+proofs its `prove -P` finds: each line numbered, with the line it came
+from beside it, a closed branch marked ×, an open one ↑, followed by
+the countermodel it describes. Each tree is a figure described in
+words in the tagged PDF.
+
+![Two pages of a chapter on proof by tableau: the tableau for axiom K in modal logic, an open tableau with its countermodel as a table, and a closed tableau in deontic logic](docs/images/logic.png)
+
+*Pages 3 and 4 of [`examples/logic.ms`](examples/logic.ms) (`book
+logic.ms`; [the PDF](examples/logic.pdf)): modus ponens, axiom K, why
+□p does not give ◇p in K, and why O p gives P p in KD.*
 
 ## Chess
 
