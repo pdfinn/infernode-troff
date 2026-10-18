@@ -225,9 +225,12 @@ fmt_extractline(f: ref Fmt, end: int, str: int): int
 	# font expansion: the line's glyphs take their share of what it
 	# lacks or has too much of, as the give of theirs and its spaces'
 	# divide it, in steps of .mtep, within .mtes and .mtek
+	# (a ragged line too, if it is too long: the breaks counted on its
+	# glyphs narrowing as on its spaces shrinking)
 	ex := 0;
 	exd := 0;	# what it adds to the line
-	if(end > 0 && FMT_BOTH(f) && (llen < w || str) && (nr(R_mtes) || nr(R_mtek))){
+	rag := FMT_FILL(f) && !FMT_BOTH(f) && llen < w;
+	if(end > 0 && (FMT_BOTH(f) && (llen < w || str) || rag) && (nr(R_mtes) || nr(R_mtek))){
 		gsum := f.words[end - 1].totgw - f.words[0].totgw + f.words[0].gw + f.words[end - 1].hy;
 		d := llen - w;
 		sw := fmt_totswid(f, end);
@@ -254,7 +257,18 @@ fmt_extractline(f: ref Fmt, end: int, str: int): int
 		}
 	}
 	nspc := fmt_scnt(f, end);
-	if(nspc && FMT_BOTH(f) && (llen < w || str)){
+	# a ragged line (or centred, or set right) that fits only as its
+	# spaces shrink has them shrunk too, not set past the measure: by
+	# what its glyphs did not take (their narrowing is in steps) of what
+	# the breaks counted on, .ssh of its spaces and .mtek of its glyphs
+	shr := 0;
+	if(nspc && rag && llen < w){
+		gs := 0;
+		if(end > 0)
+			gs = f.words[end - 1].totgw - f.words[0].totgw + f.words[0].gw + f.words[end - 1].hy;
+		shr = w - llen <= fmt_totswid(f, end) * nr(R_ssh) / 100 + int (big gs * big nr(R_mtek) / big 1000);
+	}
+	if(nspc && (FMT_BOTH(f) && (llen < w || str) || shr)){
 		fmt_div := (llen - w) / nspc;
 		fmt_rem := (llen - w) % nspc;
 		if(fmt_rem < 0){
