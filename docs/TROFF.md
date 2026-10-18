@@ -500,6 +500,7 @@ and biber). What it asked for:
     .endlist
     .alt "What the figure shows"
     .image fig.jpg 5i 1.9i       \" a JPEG or a PNG, its width and height
+    .image plot.pdf 4i           \" a PDF's first page, in vectors
 
 A note within a note (`.fn` ... `.fe` inside one, as LaTeX's `\footnote`
 may be) is numbered after it, its mark in it, and set below it.
@@ -512,7 +513,9 @@ subsections further in than sections, as LaTeX sets them; a running
 head too long to sit beside its page's number is said, and the
 chapter's number set instead. `tr2pdf` places images (`x X image file
 w h`), and the document views paint them there (`tr2img` one page): a JPEG's data as it is, a PNG decoded, its alpha a soft mask, its
-palette an indexed colour space; tagged, each is a Figure described by
+palette an indexed colour space; a PDF's first page a form, its
+vectors and fonts as they were (pdfTeX's, LuaTeX's and Ghostscript's
+compressed object streams read); tagged, each is a Figure described by
 `.alt`. Two registers set a thesis as LaTeX's book class does by
 default: `book-plain` 1, no running heads and every page's number
 centred at its foot; `book-chlatex` 1, a chapter headed by

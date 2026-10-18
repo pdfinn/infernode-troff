@@ -356,6 +356,8 @@ imgsize(path: string): (int, int, int)
 	while(n < len b && (k := sys->read(fd, b[n:], len b - n)) > 0)
 		n += k;
 	b = b[0:n];
+	if(n >= 5 && string b[0:5] == "%PDF-")
+		return pdfsize(fd, b);
 	if(n >= 24 && b[0] == byte 16r89 && string b[1:4] == "PNG"){
 		w := be32(b, 16);
 		h := be32(b, 20);
@@ -398,6 +400,33 @@ imgsize(path: string): (int, int, int)
 		}
 	}
 	return (0, 0, 0);
+}
+
+# a PDF's first page's size (its crop box, as viewers show it), in
+# tenths of a point: 720 to the inch
+pdfsize(fd: ref Sys->FD, b: array of byte): (int, int, int)
+{
+	n := len b;
+	for(;;){
+		if(n == len b){
+			nb := array[2 * len b] of byte;
+			nb[0:] = b;
+			b = nb;
+		}
+		if((k := sys->read(fd, b[n:], len b - n)) <= 0)
+			break;
+		n += k;
+	}
+	if(pdfmod == nil)
+		pdfmod = load PDF PDF->PATH;
+	if(pdfmod == nil || pdfmod->init(nil) != nil)
+		return (0, 0, 0);
+	(doc, nil) := pdfmod->open(b[0:n], "");
+	if(doc == nil || doc.pagecount() < 1)
+		return (0, 0, 0);
+	(w, h) := doc.pagesize(1);
+	doc.close();
+	return (int (w * 10.0), int (h * 10.0), 720);
 }
 
 be16(b: array of byte, i: int): int

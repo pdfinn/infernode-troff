@@ -51,8 +51,16 @@ Besides the text and drawing, it reads troff's device controls
 .BI "papersize " w x h
 The page's size, in points.
 .TP
-.BI "pdf " "file height"
-Include a page of a PDF.
+.BI "pdf " "file w h"
+A PDF's first page as a form, scaled to
+.I w
+by
+.I h
+(troff's units; one of them 0, its proportions give it), its
+resources and what they refer to copied; its objects found in a
+cross-reference table or (as pdfTeX, LuaTeX and Ghostscript write them)
+streams, and in object streams, its page in a tree of pages, its
+contents one stream or several.
 .TP
 .BI "link " "target width height"
 A link, from here, to a URI or
@@ -79,7 +87,7 @@ The PDF's information
 Neatpost's: a destination and a bookmark at a page and place given.
 .TP
 .BI "image " "file w h"
-A JPEG or PNG image, its lower left corner here,
+A JPEG or PNG image, or a PDF, its lower left corner here,
 .I w
 by
 .I h
@@ -88,6 +96,11 @@ JPEG's data as it is, a PNG's decoded and compressed again, its alpha a
 soft mask, its palette an indexed colour space (not an interlaced PNG,
 which is said).
 Each image is one object, however many pages show it.
+A PDF's first page is shown as
+.B "x X pdf"
+shows it, but its lower left corner here (not its box's 0 0), ink of the
+.B Figure
+that holds it, and one object however many pages show it.
 .TP
 .BI "vstretch " w
 The space after the line set last may stretch, by

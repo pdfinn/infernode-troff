@@ -33,6 +33,9 @@ include "bufio.m";
 	Iobuf: import bufio;
 include "daytime.m";
 	daytime: Daytime;
+include "pdf.m";
+	pdfmod: PDF;
+	Doc: import pdfmod;
 
 Troff: module
 {

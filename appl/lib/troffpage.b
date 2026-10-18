@@ -30,6 +30,8 @@ include "bufio.m";
 include "imagefile.m";
 include "imgload.m";
 	imgload: Imgload;
+include "pdf.m";
+	pdfmod: PDF;
 
 include "troffpage.m";
 
@@ -80,6 +82,7 @@ Img: adt {
 	path:	string;
 	im:	ref Image;	# as read, RGBA32; nil if it cannot be
 	scaled:	ref Image;
+	pdf:	ref PDF->Doc;	# a PDF's, its first page drawn at each size
 };
 
 docs: array of ref State;
@@ -1079,7 +1082,22 @@ image(w: ref Walk, f: string, h, v, iw, ih: int)
 	if(r.dx() <= 0 || r.dy() <= 0 || !r.Xrect(w.clip))
 		return;
 	img := readimg(w.st, f);
-	if(img == nil || img.im == nil)
+	if(img == nil)
+		return;
+	if(img.pdf != nil && (img.scaled == nil || img.scaled.r.dx() != r.dx() || img.scaled.r.dy() != r.dy())){
+		# drawn again at the size it is shown, its lines sharp
+		im := pdfpage(img.pdf, r.dx());
+		img.im = nil;
+		if(im != nil){
+			img.im = display.newimage(im.r, Draw->RGBA32, 0, Draw->Transparent);
+			if(img.im != nil)
+				img.im.draw(img.im.r, im, nil, im.r.min);
+		}
+		img.scaled = nil;
+		if(img.im != nil && img.im.r.dx() == r.dx() && img.im.r.dy() == r.dy())
+			img.scaled = img.im;
+	}
+	if(img.im == nil)
 		return;
 	if(img.scaled == nil || img.scaled.r.dx() != r.dx() || img.scaled.r.dy() != r.dy())
 		img.scaled = scale(img.im, r.dx(), r.dy());
@@ -1092,7 +1110,7 @@ readimg(st: ref State, f: string): ref Img
 	for(l := st.imgs; l != nil; l = tl l)
 		if((hd l).path == f)
 			return hd l;
-	img := ref Img(f, nil, nil);
+	img := ref Img(f, nil, nil, nil);
 	st.imgs = img :: st.imgs;
 	if(imgload == nil){
 		imgload = load Imgload Imgload->PATH;
@@ -1103,6 +1121,13 @@ readimg(st: ref State, f: string): ref Img
 	path := f;
 	if(st.dir != nil && f != nil && f[0] != '/' && f[0] != '#')
 		path = st.dir + "/" + f;
+	if(ispdf(path)){
+		if(pdfmod == nil && (pdfmod = load PDF PDF->PATH) != nil && pdfmod->init(display) != nil)
+			pdfmod = nil;
+		if(pdfmod != nil && (data := readfile(path)) != nil)
+			(img.pdf, nil) = pdfmod->open(data, "");
+		return img;
+	}
 	(im, nil) := imgload->readimage(path);
 	if(im == nil)
 		return img;
@@ -1111,6 +1136,29 @@ readimg(st: ref State, f: string): ref Img
 	if(img.im != nil)
 		img.im.draw(img.im.r, im, nil, im.r.min);
 	return img;
+}
+
+# a PDF's first page drawn dx pixels wide (or near it)
+pdfpage(d: ref PDF->Doc, dx: int): ref Image
+{
+	Doc: import pdfmod;
+	(pw, nil) := d.pagesize(1);
+	dpi := 72;
+	if(pw > 0.0)
+		dpi = int (real dx * 72.0 / pw);
+	if(dpi < 1)
+		dpi = 1;
+	(im, nil) := d.renderpage(1, dpi);
+	return im;
+}
+
+ispdf(path: string): int
+{
+	fd := sys->open(path, Sys->OREAD);
+	if(fd == nil)
+		return 0;
+	b := array[5] of byte;
+	return sys->readn(fd, b, 5) == 5 && string b == "%PDF-";
 }
 
 # an image scaled to dx by dy, its nearest pixel each

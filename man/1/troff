@@ -164,7 +164,9 @@ not zero, a character no font has is said on the standard error
 .TP
 .BI .imgsize " file"
 An image's size in pixels and its resolution in dots to the inch (0 if
-it says none), from its header (a PNG's, a JPEG's), in the registers
+it says none), from its header (a PNG's, a JPEG's), or a PDF's first
+page's in tenths of a point (720 to the inch; its crop box, or media
+box), in the registers
 .BR imgw ,
 .B imgh
 and

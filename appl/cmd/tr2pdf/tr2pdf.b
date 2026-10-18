@@ -486,7 +486,9 @@ postps()
 			vwid = v[1];
 		if(path != "" && cmd == "pdf")
 			outpdf(path, hwid, vwid);
-		if(path != "" && cmd == "image")
+		if(path != "" && cmd == "image" && ispdf(path))
+			outpdffig(path, hwid, vwid);
+		else if(path != "" && cmd == "image")
 			outimage(path, hwid, vwid);
 	"name" =>
 		(desc, spec) := strcut(arg);

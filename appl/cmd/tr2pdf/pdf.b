@@ -929,6 +929,52 @@ outpdf(path: string, hwid, vwid: int)
 	p_v = -1;
 }
 
+# a PDF's first page as a figure (x X image file.pdf w h): ink of the
+# Figure that holds it, written once however often it is shown, w by h
+# (either 0, as its proportions give it; both, its own size)
+fig_path: list of string;
+fig_xobj: list of int;
+fig_w: list of int;
+fig_h: list of int;
+
+outpdffig(path: string, hwid, vwid: int)
+{
+	i := -1;
+	for((pl, xl, wl, hl) := (fig_path, fig_xobj, fig_w, fig_h); pl != nil; (pl, xl, wl, hl) = (tl pl, tl xl, tl wl, tl hl))
+		if(hd pl == path && hd wl == hwid && hd hl == vwid)
+			i = hd xl;
+	if(i < 0){
+		data := readfile(path);
+		if(data == nil)
+			data = array[0] of byte;
+		if((i = pdfext(data, hwid, vwid)) < 0){
+			sys->fprint(sys->fildes(2), "tr2pdf: %s: no page of a PDF read from it\n", path);
+			return;
+		}
+		(fig_path, fig_xobj, fig_w, fig_h) = (path :: fig_path, i :: fig_xobj, hwid :: fig_w, vwid :: fig_h);
+	}
+	o_flush();
+	out_fontup();
+	if(!compat){
+		tag_content(1);
+		textend();
+		pg += "q 1 0 0 1 " + pdfpos(o_h, o_v) + " cm /FO" + string i + " Do Q\n";
+	}else
+		pg += "ET q 1 0 0 1 " + pdfpos(o_h, o_v) + " cm /FO" + string i + " Do Q BT\n";
+	p_h = -1;
+	p_v = -1;
+}
+
+# whether the file is a PDF
+ispdf(path: string): int
+{
+	fd := sys->open(path, Sys->OREAD);
+	if(fd == nil)
+		return 0;
+	b := array[5] of byte;
+	return sys->readn(fd, b, 5) == 5 && string b == "%PDF-";
+}
+
 outlink(lnk: string, hwid, vwid: int)
 {
 	if(ann_n == len ann)

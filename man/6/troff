@@ -110,14 +110,15 @@ A list: numbered, lettered, in roman numerals, or marked, its marks
 hung before its items' text; lists nest, each further in.
 .TP
 .BI ".image " "file \fR[\fPwidth \fR[\fPheight\fR]]"
-A JPEG or PNG image, centred, kept on one page
+A JPEG or PNG image, or a PDF's first page (a figure in vectors),
+centred, kept on one page
 .RI ( tr2pdf (1)'s
 .BR "x X image" ).
 What is not given (or given as
 .BR \(dq\(dq )
 is the image's own: the other by its proportions; with neither, its size
-at its resolution, 72 to the inch if it says none; and no wider than the
-line.
+at its resolution, 72 to the inch if it says none (a PDF's, its page's);
+and no wider than the line.
 .TP
 .BI ".alt " text
 The next picture's or image's description, for those who cannot see
