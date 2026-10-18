@@ -649,6 +649,10 @@ tr_ti2(args: array of string)
 ren_ft(s: string)
 {
 	fnt: int;
+	# position 0 names no font: troff has always let \f0 (a few of
+	# Inferno's pages write it) change nothing, without a word
+	if(s == "0")
+		return;
 	if(s == nil || s == "P")
 		fnt = nr(R_f0);
 	else
