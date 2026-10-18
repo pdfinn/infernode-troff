@@ -730,5 +730,31 @@ The toolchain's own pages are `troff(1)`, `eqn(1)`, `tbl(1)`, `pic(1)`,
 
 ## Still to come
 
-Nothing on the list. A test book like the one this was made for
-(its notes, index, tables, equations and Greek) is the next measure.
+Speed at a book's length, where XeLaTeX is faster (see Speed; the
+measure is `tools/mathbook.py`'s 245 pages: `book` 14.7 seconds from
+nothing, XeLaTeX 2.4 a pass). In order of what each would save:
+- eqn's boxes measured once. eqn measures a box by having troff set it
+  (`\w'\*(xx'`), and each level of an equation sets again what is in
+  it: 45,000 measurements for 1,800 equations, 1.6 of troff's 5.6
+  seconds a pass, and most of eqn's 7.4 MB of output. TeX keeps each
+  box's width, height and depth and adds them up. eqn could keep them in
+  registers beside each box (as a box keeps its strut, `sht` and
+  `sdp`), measuring only atoms, and compute a merge's, a fraction's or
+  a script's from its parts', with the motions it puts in. The output
+  must stay Neateqn's without eqnrc (eqn_test), so this is TeX's way,
+  under a setting. Measured before and after on mathbook.ms; the 23
+  displays' placement (maths_test) must not move.
+- Deflate in C. tr2pdf's deflate is Limbo (`/dis/lib/deflate.dis`),
+  two thirds of tr2pdf's 1.8 seconds; a builtin module in emu (zlib's
+  or miniz's deflate) would make it a few hundredths. That is a change
+  to InferNode's emu, not this package.
+- troff's text. 1.9 seconds for 186 pages of text, a pass: the profile
+  is flat (Dis's reference counting, frames and allocation); see the
+  note on profiling compiled code above for how to look further.
+- Measured and found not worth keeping: a cache of `\w`'s widths by the
+  string measured (a fifth of eqn's measurements are of a string seen
+  before, and those mostly where an equation is repeated); deflate at
+  level 1 (a fifth of its time for a file a sixth larger).
+
+A test book like the one this was made for (its notes, index, tables,
+equations and Greek) is the next measure.
