@@ -24,7 +24,12 @@
 .\"
 .\" The PDF (tr2pdf's) is read on a screen too: the contents' lines,
 .\" references, notes' marks and the index's pages are links where they
-.\" lead, the headings bookmarks, the pages labelled as numbered.
+.\" lead, the headings bookmarks, the pages labelled as numbered.  It is
+.\" tagged (x X tag), for those who hear it read or reflow it: its
+.\" headings, paragraphs, quotations, notes, contents, bibliography and
+.\" index are its structure, read in order; its running heads and folios
+.\" are not.  .alt "text" describes the next picture (pic's) for those
+.\" who cannot see it; the string book-lang is its language (en).
 .\"
 .\" The page: .papersize W H (6i 9i), .margins top bottom inner outer;
 .\" the type: registers book-ps (point size, in points) and book-vs.
@@ -53,6 +58,20 @@
 .de book-size
 .nr book-sz \\n[book-ps]*\\$1/\\$2
 .ps \\n[book-sz]
+..
+.\" tagged PDF: an element of the structure, for tr2pdf (x X tag), given
+.\" after a break, where the text before it has gone out; in a diversion,
+.\" kept there, to be given when what was diverted goes out
+.de book-tag
+.ie '\\n[.z]'' .dv tag \\$*
+.el \{\
+\\!.book-tag \\$*
+.\}
+..
+.ds book-lang en
+.ds book-alt
+.de alt
+.ds book-alt \\$*
 ..
 .de papersize
 .nr book-pw (\\$1)
@@ -117,6 +136,7 @@
 ..
 .de book-begin1
 .nr book-begun 1
+.dv lang \\*[book-lang]
 .pl \\n[book-ph]u
 .ll \\n[book-pw]u-\\n[book-im]u-\\n[book-om]u
 .lt \\n[.l]u
@@ -225,6 +245,7 @@
 .ev hd
 .ps \\n[book-ps]-1
 .lt \\n[book-ll]u
+.book-tag art
 .if !\\n[book-blank] \{\
 .	ie \\n[book-nohead] \{\
 '	sp |\\n[.p]u-\\n[book-bm]u+0.4i
@@ -236,6 +257,7 @@
 .	el .tl '\X^folio \\n%^\X^dest pg-\\n% page^\\n%''\f[SC]\\*[book-lh]\fP'
 .	\}
 .\}
+.book-tag endart
 .ev
 .nr book-nohead 0
 .nr book-blank 0
@@ -248,6 +270,7 @@
 .nr book-noindent 1	\" the next paragraph is not indented (after a heading)
 .de p
 .br
+.book-tag P
 .ie \\n[book-noindent] .ti 0
 .el .ti \\n[book-pi]u
 .nr book-noindent 0
@@ -283,25 +306,31 @@
 .sp 2i
 .ce 1
 .book-size 2 1
+.book-tag H1
 \f[B]\\*[book-title]\fP
 .ps
 .if !'\\*[book-subtitle]'' \{\
 .	sp 0.3i
 .	ce 1
 .	book-size 14 10
+.	book-tag P
 \f[I]\\*[book-subtitle]\fP
 .	ps
 .\}
 .sp 1i
 .ce 1
 .book-size 14 10
+.book-tag P
 \\*[book-author]
 .ps
 .if !'\\*[book-date]'' \{\
 .	sp 0.3i
 .	ce 1
+.	book-tag P
 \\*[book-date]
 .\}
+.br
+.book-tag end
 .book-newpage 1 0
 ..
 .\" a new page (none if this one is still empty), a right-hand one if $1
@@ -349,7 +378,10 @@
 .ce 1
 .book-size 16 10
 .nr book-hn +1
+.book-tag H1
 \X^dest book-h\\n[book-hn]^\X^outline 0 \\$1^\f[B]\\$1\fP
+.br
+.book-tag end
 .ps
 .tm aux:.book-tocent part "" "\\$1" \\n% book-h\\n[book-hn]
 .book-newpage 1 0
@@ -372,6 +404,7 @@
 .ds book-en-chapter
 .rs
 .sp 1.25i
+.book-tag H1
 .\" the heading a destination (for the contents and references) and a
 .\" bookmark, at its first line
 .nr book-hn +1
@@ -401,6 +434,7 @@
 .ps
 .vs
 .sp 0.6i
+.book-tag end
 .if !'\\$3'' .book-label \\$3
 .nr book-noindent 1
 .nr book-en-new 1
@@ -417,8 +451,10 @@
 .nr book-hn +1
 .ds book-hx \X^dest book-h\\n[book-hn]^\X^outline 2 \\*[book-cur] \\$1^
 .if !'\\$2'' .as book-hx \X^dest lab-\\$2^
+.book-tag H2
 \\*[book-hx]\f[B]\\$1\fP
 .br
+.book-tag end
 .ad b
 .sp 0.5v
 .tm aux:.book-tocent section "\\*[book-cur]" "\\$1" \\n% book-h\\n[book-hn]
@@ -437,8 +473,10 @@
 .nr book-hn +1
 .ds book-hx \X^dest book-h\\n[book-hn]^\X^outline 3 \\*[book-cur] \\$1^
 .if !'\\$2'' .as book-hx \X^dest lab-\\$2^
+.book-tag H3
 \\*[book-hx]\f[I]\\$1\fP
 .br
+.book-tag end
 .ad b
 .sp 0.25v
 .tm aux:.book-tocent subsection "\\*[book-cur]" "\\$1" \\n% book-h\\n[book-hn]
@@ -453,6 +491,7 @@
 .de quote
 .book-begin
 .br
+.book-tag push BlockQuote
 .sp 0.5v
 .ev quote
 .evc 0
@@ -466,6 +505,7 @@
 ..
 .de endquote
 .br
+.book-tag pop
 .ev
 .sp 0.5v
 .nr book-noindent 1
@@ -473,6 +513,7 @@
 .de epigraph
 .book-begin
 .br
+.book-tag push BlockQuote
 .ev quote
 .evc 0
 .ps \\n[book-ps]-1
@@ -485,12 +526,14 @@
 ..
 .de attrib
 .br
+.book-tag P
 .ad r
 \(em\ \\$*
 .br
 ..
 .de endepigraph
 .br
+.book-tag pop
 .ev
 .sp 1v
 .nr book-noindent 1
@@ -635,6 +678,8 @@
 .		di
 .		book-fnrest
 .	\}
+.\"	a note the foot was reached in, continued (as itself) on the next page
+.	book-tag close Note
 .	fi
 .	ev
 .\}
@@ -654,8 +699,10 @@
 .de book-fnout
 .if \\$1>\\n[fn-first] .sp 0.3v
 .nr fn-cur \\$1
+.book-tag push Note fn-\\$1
 .fn-p\\$1
 .if !\\n[fn-over] \{\
+.	book-tag pop
 .	rm fn-p\\$1
 .	nr fn-qf \\$1+1
 .	if \\n[fn-qf]<=\\n[fn-qp] .book-fnout \\n[fn-qf]
@@ -726,10 +773,13 @@
 .\"	kept with its notes when they are set, not while they are gathered
 \\!.ne 3v
 .	in 0
+.	book-tag H2
 \f[I]\\*[book-en-chapter]\fP
 .	sp 0.5v
+.	book-tag end
 .	nr book-en-new 0
 .\}
+.book-tag push Note en-\\n[en-tot]
 .\" a hanging indent: the numbers right-aligned in a field of their own,
 .\" each note's lines aligned past them, however many digits
 .in 2.2m
@@ -738,6 +788,7 @@
 ..
 .de ee
 .br
+.book-tag pop
 .di
 .fi
 .ev
@@ -813,6 +864,14 @@
 .de PS
 .book-begin
 .br
+.book-tag end
+.book-tag push Figure
+.ie '\\*[book-alt]'' \{\
+.	tm book: a picture with no .alt (at \\n[.c] of \\n[.F])
+.	book-tag alt Picture
+.\}
+.el .book-tag alt \\*[book-alt]
+.ds book-alt
 .\" pic gives the picture's height and width
 .ie \\$1>0 \{\
 .	sp 0.35v
@@ -823,6 +882,8 @@
 .ne \\$1
 ..
 .de PE
+.br
+.book-tag pop
 .in
 .if \\n[book-pich] .sp 0.65v
 .nr book-noindent 1
@@ -849,12 +910,14 @@
 ..
 .de ]be
 .br
+.book-tag P
 .in 2m
 .ti -2m
 .sp 0.25v
 ..
 .de ]bz
 .br
+.book-tag end
 .in 0
 .ad b
 .hy \\n[book-hy0]
@@ -898,7 +961,10 @@
 .nr book-ncol 2
 .nr book-balance 1
 .book-colbal
+.book-tag push Index
 .book-ixd
+.br
+.book-tag pop
 .rm book-ixd
 .nr book-balance 0
 .\" one column again, or the last page's foot would move to the next
@@ -923,6 +989,7 @@
 .\" after the first indented past the deepest
 .de book-ix
 .br
+.book-tag P
 .in 3m
 .ti \\$1m
 ..
@@ -975,6 +1042,7 @@
 .char \[book-ld] \h'0.18m'.\h'0.18m'
 .de book-tocline
 .nf
+.book-tag TOCI
 .in 0
 .ti 0
 .lc \[book-ld]
@@ -1002,7 +1070,9 @@
 .book-chapterhead 0 "Contents"
 .if \\n[toc-set] \{\
 .	ad l
+.	book-tag push TOC
 .	toc-calls
+.	book-tag pop
 .	in 0
 .	ad b
 .\}

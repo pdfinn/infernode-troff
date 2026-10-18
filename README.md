@@ -89,7 +89,7 @@ documents only.
 
 ## Use
 
-    book -p works.bib book.ms               # book.pdf
+    book -p works.bib book.ms               # book.pdf, tagged (PDF/UA-1)
     troff -ms paper.ms | tr2pdf >paper.pdf
     troff -man /man/1/troff | tr2pdf >troff.pdf
 

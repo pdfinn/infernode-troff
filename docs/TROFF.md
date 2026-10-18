@@ -192,6 +192,63 @@ put it. Each page's folio (`x X folio`) gives its label and its
 destination for the index (`pg-` and the folio). `mkindex -l`, as
 `book` runs it, writes each page as a link (`\*[book-pl folio shown]`).
 
+## Heard as well as read: a tagged PDF (PDF/UA-1)
+
+`book`'s PDF is tagged, for those who hear it read (a screen reader) or
+have it reflowed: its structure is the book's, in reading order, and it
+claims PDF/UA-1 (ISO 14289-1). veraPDF finds it conforms.
+- **Structure.** The title page, headings (`H1` for the title, each
+  chapter, the contents, notes, bibliography and index; `H2` and `H3`
+  for sections), paragraphs, quotations and epigraphs (`BlockQuote`),
+  footnotes and endnotes (`Note`, each with its ID, a note continued on
+  the next page one note), the contents (`TOC`, each line a `TOCI`),
+  the bibliography's entries, the index (`Index`).
+- **Equations.** Each a `Formula`, described by its eqn as written
+  (`x sup 2 + y sub i sup 2`); a display a block of its own.
+- **Tables.** Each a `Table` of rows (`TR`) of cells (`TD`); the rows
+  above the first rule, if rows follow it, headings (`TH`, `Scope`); a
+  cell spanning columns says so (`ColSpan`); a text block (`T{ T}`) is
+  its cell's.
+- **Pictures.** Each a `Figure`, described by `.alt "text"` before
+  `.PS`. One with none is said (`book: a picture with no .alt`), and the
+  PDF is tagged but no longer claims PDF/UA: what a picture shows is
+  for its author to say.
+- **Links.** Each a `Link` element, its annotation its object, described
+  by the text it is on (`1.1 The Argument of the Good 2`).
+- **Not read.** Running heads, folios, the notes' rule, a table's
+  rules: artifacts.
+- **Language and title.** `en`, or the string `book-lang`; the title
+  shown as the window's, and in the metadata (XMP).
+
+The tags are troff's device controls, as the links are: `x X tag P`
+begins a paragraph, `x X tag push Note fn-3` a note in it, `x X tag
+pop` ends it (tr2pdf(1) has them all). `-mbook` gives them with
+`.dv` once the text before has gone out, after a break; in a diversion
+(a note waiting for its page's foot, the endnotes gathered, the index
+before it is set in columns) the tag is kept there (`\!`) and given
+when the diversion goes out, so a tag lands where its text is set, not
+where it was written. eqn and tbl, given `-t` (as `book` gives it),
+put theirs inline (`\X`), in the line with the equation or the row.
+Without it their output stays Neateqn's and Plan 9's, byte for byte.
+
+tr2pdf builds the structure tree from them, marks each glyph and line
+with its element's MCID (or as an artifact) and writes the parent tree,
+the IDs' tree, `MarkInfo`, `Lang`, `DisplayDocTitle` and the metadata.
+Marked content is kept out of text objects: tr2pdf now begins a text
+object (`BT`) when text is set and ends it for what is drawn, where
+Neatpost drew within one. troff's output with no `x X tag` is a PDF
+with no structure, as before; `-c` writes Neatpost's whatever it is
+given.
+
+Where a note falls: a note is set at its page's foot, so it is in the
+structure where its paragraph was when the foot came, a `Note` inside
+that `P`. `-ms` and `-man`
+documents are not yet tagged; their equations and tables are, through
+`eqn -t` and `tbl -t`.
+
+`tests/host/tagged_test.sh` checks a book's structure, its marking and
+parent tree, its links' descriptions, and (where veraPDF is) PDF/UA-1.
+
 ## Citations: `refer -S chicago`
 
 Works are cited by their keys, from a BibTeX database (`works.bib`) or

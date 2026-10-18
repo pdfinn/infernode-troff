@@ -18,6 +18,8 @@ Esrc: adt {
 
 esrc: ref Esrc;
 srcin: ref Iobuf;
+src_cap := "";		# what was read of the input file (its bytes), as written
+
 lineno := 1;
 esrc_depth := 0;
 
@@ -53,6 +55,8 @@ src_stdin(): int
 	c := srcin.getb();
 	if(c == '\n')
 		lineno++;
+	if(c > 0)
+		src_cap[len src_cap] = c;
 	return c;
 }
 
@@ -70,6 +74,15 @@ src_next(): int
 			return esrc.buf[esrc.pos++];
 		src_pop();
 	}
+}
+
+# what is captured begun again: with what was read and put back, unread
+src_capreset()
+{
+	src_cap = "";
+	if(esrc.prev == nil)
+		for(l := esrc.unbuf; l != nil; l = tl l)
+			src_cap[len src_cap] = hd l;
 }
 
 src_back(c: int)

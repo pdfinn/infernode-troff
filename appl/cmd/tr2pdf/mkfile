@@ -7,6 +7,7 @@ MODULES=\
 	pdf.b\
 	pdfext.b\
 	cffsub.b\
+	tag.b\
 
 SYSMODULES= \
 	bufio.m\

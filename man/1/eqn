@@ -55,6 +55,14 @@ reads it first.
 .TP
 .BI -c " chars"
 The characters an equation within a line may be broken after.
+.TP
+.B -t
+Each equation a
+.B Formula
+for a tagged PDF
+.RI ( tr2pdf (1)),
+described by its eqn, as written; a display a block of its own.
+The output is then no longer Neateqn's.
 .SH FILES
 .B /lib/troff/eqnrc
 .SH SOURCE

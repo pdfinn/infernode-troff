@@ -69,6 +69,22 @@ Read the macros first.
 .TP
 .B -TX
 For a printer without fractional motions.
+.TP
+.B -t
+Each table a
+.B Table
+for a tagged PDF
+.RI ( tr2pdf (1)):
+each row a
+.BR TR ,
+each cell a
+.B TD
+(a
+.BR TH ,
+in the rows above the table's first rule, if rows follow it), a cell
+spanning columns its
+.BR ColSpan .
+The output is then no longer Plan 9's.
 .SH SOURCE
 .B /appl/cmd/tbl
 .SH SEE ALSO

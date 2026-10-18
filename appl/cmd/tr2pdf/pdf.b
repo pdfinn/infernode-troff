@@ -206,6 +206,8 @@ pfont_writecid(ps: ref Pfont)
 	s += "  /CIDSystemInfo <</Ordering(Identity)/Registry(Adobe)/Supplement 0>>\n";
 	s += "  /FontDescriptor " + string ps.des + " 0 R\n";
 	s += "  /DW 1000\n";
+	if(!ps.cff && !compat)	# a TrueType font's glyphs, by their CIDs (PDF/UA asks it said)
+		s += "  /CIDToGIDMap /Identity\n";
 	s += "  /W [ " + string ps.gbeg + " [";
 	for(i := ps.gbeg; i <= ps.gend; i++)
 		s += " " + string wid1000(font_glget(fnt, i).wid);
@@ -322,6 +324,12 @@ utf16hex(s: string): string
 # a stream object, compressed; its dictionary's entries in dict
 writestream(dict: string, data: array of byte): int
 {
+	if(len data == 0){	# (a blank page's) deflate makes no stream of nothing
+		id := obj_beg(0);
+		pdfout("<<\n  /Length 0\n" + dict + ">>\nstream\n\nendstream\n");
+		obj_end();
+		return id;
+	}
 	z := zip(data);
 	id := obj_beg(0);
 	pdfout("<<\n  /Filter /FlateDecode\n  /Length " + string len z + "\n" + dict + ">>\nstream\n");
@@ -730,6 +738,10 @@ dec3(n: int): string
 
 o_queue(g: ref Glyph)
 {
+	if(!compat){
+		tag_glyph(g);
+		textbeg();
+	}
 	if(o_v != p_v){
 		o_flush();
 		pg += "1 0 0 1 " + pdfpos(o_h, o_v) + " Tm\n";
@@ -851,7 +863,11 @@ outpdf(path: string, hwid, vwid: int)
 	xobj_id := pdfext(data, hwid, vwid);
 	o_flush();
 	out_fontup();
-	if(xobj_id >= 0)
+	if(xobj_id >= 0 && !compat){
+		tag_content(0);
+		textend();
+		pg += "/FO" + string xobj_id + " Do\n";
+	}else if(xobj_id >= 0)
 		pg += "ET /FO" + string xobj_id + " Do BT\n";
 	p_h = -1;
 	p_v = -1;
@@ -862,6 +878,17 @@ outlink(lnk: string, hwid, vwid: int)
 	if(ann_n == len ann)
 		return;
 	o_flush();
+	if(tagged){
+		s := "<<\n  /Type /Annot\n  /Subtype /Link\n";
+		s += "  /Rect [" + pdfpos(o_h, o_v) + " " + pdfpos(o_h + hwid, o_v + vwid) + "]\n";
+		s += "  /Border [0 0 0]\n";
+		if(lnk[0] == '#')
+			s += "  /A << /S /GoTo /D /" + pdfname(lnk[1:]) + " >>\n";
+		else
+			s += "  /A << /S /URI /URI " + pdftext_static(lnk) + " >>\n";
+		if(tag_link(s, hwid, vwid))
+			return;
+	}
 	ann[ann_n++] = obj_beg(0);
 	s := "<<\n  /Type /Annot\n  /Subtype /Link\n";
 	s += "  /Rect [" + pdfpos(o_h, o_v);
@@ -1059,6 +1086,10 @@ drawbeg()
 {
 	o_flush();
 	out_fontup();
+	if(!compat){
+		tag_content(1);
+		textend();
+	}
 	pg += pdfpos(o_h, o_v) + " m\n";
 }
 
@@ -1268,9 +1299,17 @@ doctrailer(nil: int)
 		s += " " + string page_id[i] + " 0 R";
 	pdfout(s + " ]\n>>\n");
 	obj_end();
+	# the structure, and the metadata
+	tagent := tag_done();
+	meta := 0;
+	if(tagent != nil)
+		meta = tag_metadata();
 	# the root
 	obj_beg(pdf_root);
 	s = "<<\n  /Type /Catalog\n";
+	s += tagent;
+	if(meta)
+		s += "  /Metadata " + string meta + " 0 R\n";
 	s += "  /Pages " + string pdf_pages + " 0 R\n";
 	if(pdf_dests > 0)
 		s += "  /Dests " + string pdf_dests + " 0 R\n";
@@ -1313,13 +1352,45 @@ doctrailer(nil: int)
 
 docpagebeg(nil: int)
 {
-	pg = "BT\n";
+	if(compat){
+		pg = "BT\n";
+		return;
+	}
+	# text objects begun as text is set, ended for what is drawn and
+	# for marked content (not Neatpost's: it drew in one)
+	pg = "";
+	tag_pagebeg();
+}
+
+textbeg()
+{
+	if(in_text)
+		return;
+	pg += "BT\n";
+	in_text = 1;
+	p_v = -16r40000000;	# the text matrix the identity again
+}
+
+textend()
+{
+	o_flush();
+	if(!in_text)
+		return;
+	pg += "ET\n";
+	in_text = 0;
+	p_v = -16r40000000;
 }
 
 docpageend(nil: int)
 {
-	o_flush();
-	pg += "ET\n";
+	tagent: string;
+	if(compat){
+		o_flush();
+		pg += "ET\n";
+	}else{
+		tagent = tag_pageend();
+		textend();
+	}
 	# the page's contents
 	b := array of byte pg;
 	cont_id: int;
@@ -1356,6 +1427,7 @@ docpageend(nil: int)
 	}
 	s += "  >>\n";
 	s += "  /Contents " + string cont_id + " 0 R\n";
+	s += tagent;
 	if(ann_n){
 		s += "  /Annots [";
 		for(i = 0; i < ann_n; i++)

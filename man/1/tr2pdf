@@ -20,6 +20,8 @@ tr2pdf \- troff's output as PDF
 ] [
 .B -W
 ] [
+.B -u
+] [
 .B -c
 ] [
 .I file
@@ -71,6 +73,90 @@ The PDF's information
 .TP
 .BI "mark " "title page offset level"
 Neatpost's: a destination and a bookmark at a page and place given.
+.TP
+.BI "tag " "..."
+The document's structure, for a tagged PDF (below).
+.TP
+.BI "lang " l
+The document's language
+.RB ( en ,
+.BR de-CH ).
+.PP
+Given
+.B tag
+controls, the PDF is tagged (ISO 32000-1, 14.7 and 14.8), for those who
+hear it read or have it reflowed: its elements, as troff's output gives
+them, are its structure, and everything it sets is marked as an
+element's or as an artifact:
+.TP
+.BI "tag push " "S \fR[\fPid\fR] [\fPKey\fB=\fPvalue\fR ...]\fP"
+An element of type
+.I S
+.RB ( BlockQuote ,
+.BR Note ,
+.BR Formula ,
+.BR Table ,
+.BR TR ...)
+in the one open; a grouping one (as
+.BR BlockQuote )
+after the block open is closed.
+.I Id
+opens again the element given it: a note continued on the next page is
+one note.
+Attributes
+.RB ( ColSpan=2 ,
+.BR Scope=Column )
+are the element's.
+.TP
+.B "tag pop"
+The element pushed last closed, and all open in it.
+.TP
+.BI "tag close " S
+Those open closed, through the innermost
+.IR S .
+.TP
+.BI "tag " "S \fR[\fPid\fR] [\fPKey\fB=\fPvalue\fR ...]\fP"
+A block
+.RB ( P ,
+.BR H1 ,
+.BR TOCI ,
+.BR TD ...):
+the block open closed,
+.I S
+opened in its place.
+.TP
+.B "tag end"
+The block open closed.
+.TP
+.B "tag art\fR, \fPtag endart"
+What is set between them is an artifact: running heads, folios.
+.TP
+.BI "tag alt " text
+The open element's alternate description (a picture's, an equation's).
+.TP
+.BI "tag lang " l
+The open element's language.
+.PP
+Text set where only a grouping element is open is a paragraph of its
+own; lines drawn are artifacts, but in a
+.B Figure
+or a
+.BR Formula ;
+a link is a
+.B Link
+element, the text in its rectangle its content and, read out, its
+annotation's description.
+The catalogue says the PDF is tagged, its language, and that a viewer
+show its title; its metadata (XMP) has its title and author.
+.IR Troff (6)'s
+.B -mbook
+gives a book's structure;
+.IR eqn (1)
+and
+.IR tbl (1)
+with
+.B -t
+give their equations' and tables'.
 .PP
 The options:
 .TP
@@ -101,8 +187,12 @@ Set a device variable.
 .B -W
 Embed fonts whole, not subset.
 .TP
+.B -u
+Claim conformance to PDF/UA-1 (ISO 14289-1), in the metadata: for a
+document whose structure is given whole, its pictures described.
+.TP
 .B -c
-Write what Neatpost writes.
+Write what Neatpost writes (no structure).
 .SH SOURCE
 .B /appl/cmd/tr2pdf
 .SH SEE ALSO

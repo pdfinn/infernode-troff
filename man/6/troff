@@ -80,6 +80,9 @@ The index, its entries makeindex's
 .BR |( ...
 .BR |) ).
 .TP
+.BI ".alt " text
+The next picture's description, for those who cannot see it.
+.TP
 .BI ".papersize " "w h"
 .TP
 .BI ".margins " "top bottom inner outer"
@@ -87,12 +90,21 @@ The page (6 by 9 inches); the registers
 .B book-ps
 and
 .B book-vs
-the type (11 on 14 points).
+the type (11 on 14 points); the string
+.B book-lang
+its language
+.RB ( en ).
 .PP
 Notes are set at the foot of their marks' pages, in order, a long one
 split between pages; widows and orphans are kept from pages' edges; the
 PDF's contents, references, notes' marks and index are links, its
 headings bookmarks.
+The PDF is tagged
+.RB ( "x X tag" ,
+for
+.IR tr2pdf (1)):
+the book's parts, read in order, are its structure; its running heads
+and folios are artifacts.
 .SS -man
 A manual page, as Plan 9's are written and set:
 .BR .TH ,

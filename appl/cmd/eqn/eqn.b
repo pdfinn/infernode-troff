@@ -133,6 +133,10 @@ init(nil: ref Draw->Context, args: list of string)
 		a := hd args;
 		if(len a < 2 || a[0] != '-')
 			break;
+		if(a == "-t"){
+			tagging = 1;
+			continue;
+		}
 		if(a[1] == 'c'){
 			v: string;
 			if(len a > 2)
@@ -145,7 +149,8 @@ init(nil: ref Draw->Context, args: list of string)
 		}else{
 			sys->fprint(sys->fildes(2), "usage: eqn [options] <input >output\n\n" +
 				"options:\n" +
-				"  -c chars  \tcharacters that chop equations\n");
+				"  -c chars  \tcharacters that chop equations\n" +
+				"  -t        \teach equation tagged, for a tagged PDF\n");
 			raise "fail:usage";
 		}
 	}
@@ -158,6 +163,7 @@ init(nil: ref Draw->Context, args: list of string)
 		while(!tok_eqn()){
 			reg_reset();
 			eqn_mk = 0;
+			src_capreset();
 			tok_pop();
 			printf(".nr " + EQNSZ + " \\n(.s\n");
 			printf(".nr " + EQNFN + " \\n(.f\n");
