@@ -32,6 +32,22 @@ init(): string
 	return nil;
 }
 
+british := 0;	# quotation marks single, double within; punctuation after them
+nodoi := 0;	# no DOI (biblatex's doi=false)
+nourl := 0;	# no URL (url=false)
+
+options(o: list of string): string
+{
+	for(; o != nil; o = tl o)
+		case hd o {
+		"british" =>	british = 1;
+		"nodoi" =>	nodoi = 1;
+		"nourl" =>	nourl = 1;
+		* =>	return "no option " + hd o + " (british, nodoi, nourl)";
+		}
+	return nil;
+}
+
 get(r: ref Ref, f: string): string
 {
 	for(l := r.fields; l != nil; l = tl l)
@@ -44,6 +60,13 @@ note(r: ref Ref, first: int, loc: string): string
 {
 	if(loc != nil)
 		loc = locator(loc);
+	# an article or a chapter cited whole, the first time: its pages (as
+	# biblatex-chicago gives them)
+	if(loc == nil && first && (p := get(r, "pages")) != nil)
+		case r.typ {
+		"article" or "incollection" or "inbook" or "inproceedings" =>
+			loc = locator(p);
+		}
 	if(classical(r))
 		return clean(classicalnote(r, first, loc));
 	if(!first)
@@ -88,24 +111,36 @@ bib(r: ref Ref): string
 	return clean(s);
 }
 
+# the bibliography's order, the Manual's: by the first author's name; a
+# work by that author alone before those by that author with others;
+# those by the names of the others, in order; then by title (an article
+# aside). An editor stands for an author where there is none.
 sortkey(r: ref Ref): string
 {
+	SEP: con "\u0001";	# before any letter: a name before a longer one it begins
+	names := r.author;
+	if(len names == 0)
+		names = r.editor;
 	k := "";
-	if(len r.author > 0)
-		k = r.author[0].last + " " + r.author[0].first;
-	else if(len r.editor > 0)
-		k = r.editor[0].last + " " + r.editor[0].first;
+	if(len names > 0){
+		k = fold(names[0].last + " " + names[0].first) + SEP;
+		if(len names == 1)
+			k += "0" + SEP;
+		else{
+			k += "1" + SEP;
+			for(i := 1; i < len names; i++)
+				k += fold(names[i].last + " " + names[i].first) + SEP;
+		}
+	}
 	t := get(r, "title");
 	for(a := array[] of {"The ", "A ", "An "}; len a > 0; a = a[1:])
 		if(len t > len a[0] && t[0:len a[0]] == a[0]){
 			t = t[len a[0]:];
 			break;
 		}
-	if(k == "")
-		k = t;
-	else
-		k += " " + t;
-	return fold(k);
+	if(k == "")	# by its title, among the names
+		return fold(t);
+	return k + SEP + fold(t);
 }
 
 #
@@ -140,6 +175,9 @@ chapternote(r: ref Ref, loc: string): string
 {
 	s := notenames(r.author);
 	s = comma(s, quote(title(r), ","));
+	# its chapter's number, if the work gives it, as biblatex-chicago
+	if((ch := get(r, "chapter")) != nil)
+		s += " chap. " + ch;
 	s += " in " + ital(get(r, "booktitle"));
 	if(len r.editor > 0)
 		s += ", ed. " + notenames(r.editor);
@@ -467,10 +505,26 @@ issuedate(r: ref Ref): string
 {
 	y := year(r);
 	if((m := get(r, "month")) != nil)
-		return m + " " + y;
+		return monthname(m) + " " + y;
 	if((s := get(r, "season")) != nil)
 		return s + " " + y;
 	return y;
+}
+
+# a month as the Manual names it: 6 or 06 June (biblatex's months are numbers)
+monthname(m: string): string
+{
+	names := array[] of {"January", "February", "March", "April", "May", "June",
+		"July", "August", "September", "October", "November", "December"};
+	n := 0;
+	for(i := 0; i < len m; i++){
+		if(m[i] < '0' || m[i] > '9')
+			return m;
+		n = 10 * n + m[i] - '0';
+	}
+	if(n >= 1 && n <= 12)
+		return names[n - 1];
+	return m;
 }
 
 year(r: ref Ref): string
@@ -565,11 +619,13 @@ site(r: ref Ref): string
 # a DOI as a URL, else the URL
 link(r: ref Ref): string
 {
-	if((d := get(r, "doi")) != nil){
+	if((d := get(r, "doi")) != nil && !nodoi){
 		if(len d > 4 && d[0:4] == "http")
 			return d;
 		return "https://doi.org/" + d;
 	}
+	if(nourl)
+		return nil;
 	return get(r, "url");
 }
 
@@ -586,14 +642,21 @@ ital(s: string): string
 	return "\\fI" + replace(s, "\\fI", "\\fR") + "\\fP";
 }
 
-# s in quotation marks, punct within them (none after ? or !); quotations within it single
+# s in quotation marks, punct within them (none after ? or !); quotations within it single.
+# British: the marks single, quotations within double, punct after them
 quote(s, punct: string): string
 {
 	if(s == nil)
 		return "";
-	s = replace(replace(s, "“", "‘"), "”", "’");
 	# a period, not a comma, gives way to a ? or ! ending the title
 	# (the Manual's 6.134 since its 17th edition)
+	if(british){
+		s = replace(replace(s, "‘", "“"), "’", "”");
+		if(punct == "." && (endsq(s) || endsin(s, ".")))
+			punct = "";
+		return "‘" + s + "’" + punct;
+	}
+	s = replace(replace(s, "“", "‘"), "”", "’");
 	if(punct == "." && (endsq(s) || endsin(s, ".")))
 		punct = "";
 	return "“" + s + punct + "”";

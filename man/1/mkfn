@@ -22,6 +22,8 @@ mkfn \- describe a font for troff
 ] [
 .B -c
 ] [
+.B -M
+] [
 .BI -p " name"
 ] [
 .BI -t " name"
@@ -109,6 +111,39 @@ Say what of the font is not supported.
 .TP
 .B -c
 Write as Neatmkfn writes.
+.TP
+.B -M
+Write not the font's description but its MATH table (an OpenType math
+font's), as
+.IR eqn (1)'s
+settings for it, mounted as the font
+.B -t
+names (S): its constants; its maths italic letters' glyphs
+.RB ( mathital ),
+italic corrections
+.RB ( italcorr )
+and top accent attachments
+.RB ( accentpos );
+its accents and their wider variants
+.RB ( accent );
+its delimiters' and radical's sizes, their heights and pieces
+.RB ( bracketsizes ,
+.BR bracketheights ,
+.BR bracketpieces );
+its braces' over and under
+.RB ( bracesizes ,
+.BR bracepieces );
+its big operators, each its display size and italic correction, and the
+symbols eqnrc names
+.RB ( define ).
+.B /lib/troff/eqnrc
+holds what it writes for Libertinus Math; for another math font, put
+what it writes for that one there instead:
+.IP
+.EX
+mkfn -b -l -o -s -r7200 -tS -f/fonts/lm/latinmodern-math.otf /fonts/lm/latinmodern-math.otf >S
+mkfn -M /fonts/lm/latinmodern-math.otf >math.rc
+.EE
 .SH SOURCE
 .B /appl/cmd/mkfn
 .SH SEE ALSO

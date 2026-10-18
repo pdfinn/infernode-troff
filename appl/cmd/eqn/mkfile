@@ -7,6 +7,7 @@ MODULES=\
 	def.b\
 	src.b\
 	tok.b\
+	speak.b\
 
 SYSMODULES= \
 	bufio.m\

@@ -47,6 +47,9 @@ include "font.b";
 include "pdf.b";
 include "pdfext.b";
 include "cffsub.b";
+include "tag.b";
+include "vjust.b";
+include "image.b";
 
 TROFFFDIR: con "/lib/troff";
 
@@ -85,6 +88,7 @@ usage := "usage: tr2pdf [options] [file] >output\n" +
 	"  -n      \talways draw glyphs by name (ps glyphshow)\n" +
 	"  -d x=v  \tset device-specific variables\n" +
 	"  -W      \tembed fonts whole, not subset to the glyphs used\n" +
+	"  -u      \tclaim PDF/UA-1 (with x X tag's structure)\n" +
 	"  -c      \twrite what Neatpost writes\n";
 
 init(nil: ref Draw->Context, args: list of string)
@@ -129,6 +133,8 @@ init(nil: ref Draw->Context, args: list of string)
 			compat = 1;
 		'W' =>
 			wholefonts = 1;
+		'u' =>
+			pdfua = 1;
 		* =>
 			sys->fprint(sys->fildes(2), "%s", usage);
 			raise "fail:usage";
@@ -469,7 +475,7 @@ postps()
 	case cmd {
 	"rotate" =>
 		;
-	"eps" or "pdf" =>
+	"eps" or "pdf" or "image" =>
 		(path, spec) := strcut(arg);
 		v := scanints(spec, 2);
 		hwid := 0;
@@ -480,6 +486,10 @@ postps()
 			vwid = v[1];
 		if(path != "" && cmd == "pdf")
 			outpdf(path, hwid, vwid);
+		if(path != "" && cmd == "image" && ispdf(path))
+			outpdffig(path, hwid, vwid);
+		else if(path != "" && cmd == "image")
+			outimage(path, hwid, vwid);
 	"name" =>
 		(desc, spec) := strcut(arg);
 		v := scanints(spec, 2);
@@ -571,6 +581,21 @@ postps()
 		(v, nil) := word(arg);
 		if(v != nil)
 			outmtx(int v);
+	"tag" =>
+		if(!compat)
+			tag_cmd(arg);
+	"vstretch" =>
+		v := scanints(arg, 1);
+		if(!compat && len v == 1)
+			vj_stretch(v[0]);
+	"vfoot" =>
+		v := scanints(arg, 2);
+		if(!compat && len v == 2)
+			vj_setfoot(v[0], v[1]);
+	"lang" =>
+		(l, nil) := word(arg);
+		if(l != nil)
+			doc_lang = l;
 	"papersize" =>
 		if(!compat){
 			v := scanints(arg, 1);
@@ -584,7 +609,7 @@ postps()
 # where a destination here shows the page from: a line above
 here(): int
 {
-	v := o_v - o_s * devres() / 72;
+	v := o_v - o_s * devres() / (72 * dev_szscale);
 	if(v < 0)
 		v = 0;
 	return v;

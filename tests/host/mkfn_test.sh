@@ -11,7 +11,10 @@
 #	no glyph is named by a character beyond the 16 bits of a Limbo
 #	string's (u1D400 would be read as U+D400, a Hangul syllable);
 #	a CFF glyph's bounding box is read from its charstring;
-#	troff sets μ, µ, \(*m, \(/u and \(*D as the characters they are.
+#	troff sets μ, µ, \(*m, \(/u and \(*D as the characters they are;
+#	eqnrc's settings for its math font are what mkfn -M makes of it now;
+#	another OpenType math font (Latin Modern Math, where TeX Live has it)
+#	sets the hard displays by mkfn -M's settings for it alone.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -88,5 +91,39 @@ case "$got" in
 *)
     failed "troff set: $got" ;;
 esac
+
+# eqnrc's settings for Libertinus Math are mkfn -M's
+inferno "mkfn -M /fonts/libertinus/LibertinusMath-Regular.otf" >"$tmp/math.rc"
+sed -n '/^\.\\" ---- mkfn -M/,/^\.\\" ---- end of mkfn -M/p' lib/troff/eqnrc | sed '1d;$d' >"$tmp/eqnrc.math"
+if [ -s "$tmp/math.rc" ] && cmp -s "$tmp/math.rc" "$tmp/eqnrc.math"; then
+    pass "eqnrc's math font settings are mkfn -M's"
+else
+    failed "eqnrc's math font settings differ from mkfn -M's: $(diff "$tmp/math.rc" "$tmp/eqnrc.math" | head -5)"
+fi
+
+# Latin Modern Math, by its settings alone: a device with it as S, eqnrc
+# with mkfn -M's for it
+lm=/usr/share/texmf/fonts/opentype/public/lm-math/latinmodern-math.otf
+if [ -f "$lm" ] && [ -f "$ROOT/dis/eqn.dis" ] && command -v pdfinfo >/dev/null 2>&1; then
+    mkdir "$tmp/lm" "$tmp/lm/devutf"
+    cp "$lm" "$tmp/lm/lm.otf"
+    for f in lib/troff/devutf/*; do ln -s "$ROOT/$f" "$tmp/lm/devutf/"; done
+    rm "$tmp/lm/devutf/S"
+    inferno "cd '#U*$tmp/lm'; mkfn -b -l -o -s -r7200 -tS -f'#U*$tmp/lm/lm.otf' lm.otf > devutf/S; mkfn -M lm.otf > lm.rc"
+    sed '/^\.\\" ---- mkfn -M/,$d' lib/troff/eqnrc >"$tmp/lm/eqnrc"
+    cat "$tmp/lm/lm.rc" >>"$tmp/lm/eqnrc"
+    cp tests/eqn/hard.ms "$tmp/lm/"
+    inferno "cd '#U*$tmp/lm'; eqn eqnrc hard.ms > hard.eq >[2] eqn.err; troff -F'#U*$tmp/lm' hard.eq > hard.tr >[2] troff.err; tr2pdf -F'#U*$tmp/lm' hard.tr > hard.pdf >[2] pdf.err"
+    pages=$(pdfinfo "$tmp/lm/hard.pdf" 2>/dev/null | awk '/^Pages:/{print $2}')
+    if [ "$pages" = 23 ] && [ ! -s "$tmp/lm/eqn.err" ] && [ ! -s "$tmp/lm/troff.err" ] && [ ! -s "$tmp/lm/pdf.err" ] &&
+        grep -q 'GID=parenleft\.v[0-9]' "$tmp/lm/hard.tr" && grep -q 'GID=summation\.v1' "$tmp/lm/hard.tr" &&
+        grep -q '^set script_percent_scale_down 70' "$tmp/lm/lm.rc"; then
+        pass "Latin Modern Math by mkfn -M's settings: 23 displays, its sizes and constants"
+    else
+        failed "Latin Modern Math: $pages pages; $(cat "$tmp/lm/eqn.err" "$tmp/lm/troff.err" "$tmp/lm/pdf.err" | head -3)"
+    fi
+else
+    echo "SKIP: Latin Modern Math (no font, eqn or pdfinfo)"
+fi
 
 exit $fail

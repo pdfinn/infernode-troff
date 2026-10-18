@@ -116,12 +116,18 @@ num_str(id: int): string
 			return sys->sprint("%d", in_nargs() - 1);
 		}
 	}
+	if(dev_szscale > 1 && (s == ".s" || s == ".s0"))	# points, as ever
+		return sys->sprint("%d", (nr(id) + dev_szscale / 2) / dev_szscale);
+	if(s == ".ps")	# groff's: in scaled points
+		return sys->sprint("%d", nr(R_s));
 	if(s == ".neat")
 		return "1";
 	if(s == ".pend")	# the lines the text not yet set will take (not Neatroff's)
 		return sys->sprint("%d", fmt_pending(env_fmt()));
 	if(s == ".ev")
 		return map_name(env_id);
+	if(s == ".n")	# classic troff's: the text's length on the line set last
+		return sys->sprint("%d", ren_lastw);
 	if(s == "$$")
 		return sys->sprint("%d", sys->pctl(0, nil));
 	if(s == "yr")
@@ -238,7 +244,7 @@ env_set(id: int)
 		nrset(R_j, AD_B);
 		nrset(R_l, SC_IN() * 65 / 10);
 		nrset(R_L, 1);
-		nrset(R_s, 10);
+		nrset(R_s, 10 * dev_szscale);
 		nrset(R_u, 1);
 		nrset(R_v, 12 * SC_PT());
 		nrset(R_s0, nr(R_s));

@@ -6,6 +6,7 @@ MODULES=\
 	tables.b\
 	otf.b\
 	afm.b\
+	math.b\
 
 SYSMODULES=\
 	bufio.m\

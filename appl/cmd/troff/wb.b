@@ -13,6 +13,7 @@ Wb: adt {
 	ct, sb, st:	int;	# \w registers
 	llx, lly, urx, ury:	int;	# bounding box
 	icleft:	int;		# pending left italic correction
+	lastg:	ref Glyph;	# the glyph last put, if nothing was put since (\/)
 	sub_c:	array of string;	# the collected subword
 	sub_n:	int;
 	sub_collect:	int;	# collect subwords
@@ -102,6 +103,7 @@ wb_new(): ref Wb
 wb_init(wb: ref Wb)
 {
 	wb.sbuf = "";
+	wb.lastg = nil;
 	wb.part = 0;
 	wb.cost = 0;
 	wb.els_neg = 0;
@@ -135,7 +137,7 @@ wb_init(wb: ref Wb)
 # update wb.st and wb.sb
 wb_stsb(wb: ref Wb)
 {
-	wb.st = min(wb.st, wb.v - (wb.s * SC_IN() / 72));
+	wb.st = min(wb.st, wb.v - (wb.s * SC_IN() / (72 * dev_szscale)));
 	wb.sb = max(wb.sb, wb.v);
 }
 
@@ -170,7 +172,7 @@ wb_flushfont(wb: ref Wb)
 {
 	f := R_F(wb);
 	sz := R_S(wb);
-	if(wb.f != f && wb.s != sz && sz < 100 && !nr(R_cp) && wb.m != (m := R_M(wb))){
+	if(wb.f != f && wb.s != sz && sz < 100 && dev_szscale == 1 && !nr(R_cp) && wb.m != (m := R_M(wb))){
 		if(ffs == nil || ffs_f != f || ffs_s != sz || ffs_m != m || ffs_ec != ecc()){
 			ffs = ecs() + "f(" + d2(f) + ecs() + "s(" + d2(sz) + ecs() + "m[" + clr_str(m) + "]";
 			(ffs_f, ffs_s, ffs_m, ffs_ec) = (f, sz, m, ecc());
@@ -187,7 +189,9 @@ wb_flushfont(wb: ref Wb)
 		wb.f = R_F(wb);
 	}
 	if(wb.s != R_S(wb)){
-		if(R_S(wb) < 100)
+		if(dev_szscale > 1)	# (read again from a diversion: z, scaled points)
+			wb.sbuf += sys->sprint("%ss[%dz]", ecs(), R_S(wb));
+		else if(R_S(wb) < 100)
 			wb.sbuf += ecs() + "s(" + d2(R_S(wb));
 		else
 			wb.sbuf += sys->sprint("%ss[%d]", ecs(), R_S(wb));
@@ -277,6 +281,7 @@ wb_hyprot(wb: ref Wb): int
 wb_hmov(wb: ref Wb, n: int)
 {
 	wb_flushsub(wb);
+	wb.lastg = nil;
 	wb_noprot(wb);
 	wb.h += n;
 	wb.sbuf += esch(n);
@@ -329,6 +334,8 @@ wb_putbuf(wb: ref Wb, c: string)
 	if(g != nil && !zerowidth && wb.icleft && glyph_icleft(g))
 		wb_hmov(wb, font_wid(gfont(g), wb.s, glyph_icleft(g)));
 	wb.icleft = 0;
+	if(!zerowidth)
+		wb.lastg = g;
 	if(len c <= 1 || c0 == ecc() || c0 == c_ni){
 		if(c0 == c_ni && c1 == ecc())
 			wb.sbuf += ecs() + ecs();
@@ -350,7 +357,7 @@ wb_putbuf(wb: ref Wb, c: string)
 				ury := font_wid(gf, wb.s, g.ury);
 				wb_bbox(wb, llx, lly, urx, ury);
 			}else{	# no bounding box information
-				ht := wb.s * SC_PT();
+				ht := wb.s * SC_PT() / dev_szscale;
 				urx := font_wid(gf, wb.s, g.wid);
 				lly := 0;
 				if(g.typ & 1)
@@ -510,8 +517,15 @@ wb_put(wb: ref Wb, c: string)
 		wb_flush(wb);
 	if(wb.sub_collect){
 		if(font_find(dev_font(wb.f), c) != nil || c_hymark(c)){
-			if(wb.sub_c == nil)
-				wb.sub_c = array[WORDLEN] of string;
+			# made small, and larger as a word needs: a word buffer
+			# is made for each word and \w, and an array of
+			# WORDLEN strings is zeroed when made and walked when
+			# freed
+			if(wb.sub_n == len wb.sub_c){
+				nc := array[2 * wb.sub_n + 16] of string;
+				nc[0:] = wb.sub_c[0:wb.sub_n];
+				wb.sub_c = nc;
+			}
 			wb.sub_c[wb.sub_n++] = c;
 		}
 		else
@@ -747,6 +761,9 @@ wb_prevglyph(wb: ref Wb): ref Glyph
 wb_italiccorrection(wb: ref Wb)
 {
 	g := wb_prevglyph(wb);
+	# (one put whole, not collected: a glyph from a special font, \N's)
+	if(g == nil)
+		g = wb.lastg;
 	if(g != nil && glyph_ic(g))
 		wb_hmov(wb, font_wid(gfont(g), wb.s, glyph_ic(g)));
 }

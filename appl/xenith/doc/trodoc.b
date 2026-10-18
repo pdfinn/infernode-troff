@@ -81,7 +81,8 @@ open(data: array of byte, name: string, nil: ref Style): (int, string)
 			return (-1, "troff: " + msgs);
 		}
 	}
-	(doc, e) := troffpage->open(data, nil);
+	# (its images' names are from its directory, as troff read them)
+	(doc, e) := troffpage->opendir(data, nil, dirname(name));
 	if(doc == nil)
 		return (-1, "troff: " + e);
 	if(doc.npages == 0)

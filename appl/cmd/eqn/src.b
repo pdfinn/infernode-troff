@@ -18,8 +18,12 @@ Esrc: adt {
 
 esrc: ref Esrc;
 srcin: ref Iobuf;
+src_cap := "";		# what was read of the input file (its bytes), as written
+
 lineno := 1;
 esrc_depth := 0;
+
+srcnext: list of string;	# the files still to read, after srcin ("-" standard input)
 
 src_init(f: ref Iobuf)
 {
@@ -48,11 +52,39 @@ src_pop()
 	}
 }
 
+# the input's files, in order (not Neateqn's, which reads only its
+# standard input): the first opened now, the rest when it ends
+src_files(l: list of string)
+{
+	srcnext = l;
+	srcopen();
+}
+
+srcopen(): int
+{
+	if(srcnext == nil)
+		return 0;
+	f := hd srcnext;
+	srcnext = tl srcnext;
+	if(f == "-")
+		srcin = bufio->fopen(sys->fildes(0), Bufio->OREAD);
+	else
+		srcin = bufio->open(f, Bufio->OREAD);
+	if(srcin == nil)
+		errdie(sys->sprint("eqn: cannot open %s: %r\n", f));
+	lineno = 1;
+	return 1;
+}
+
 src_stdin(): int
 {
 	c := srcin.getb();
+	while(c < 0 && srcopen())
+		c = srcin.getb();
 	if(c == '\n')
 		lineno++;
+	if(c > 0)
+		src_cap[len src_cap] = c;
 	return c;
 }
 
@@ -70,6 +102,27 @@ src_next(): int
 			return esrc.buf[esrc.pos++];
 		src_pop();
 	}
+}
+
+# what is captured begun again: with what was read and put back, unread
+# (a token looked ahead to is put back as characters, not bytes: each
+# captured as its bytes, UTF-8's)
+src_capreset()
+{
+	src_cap = "";
+	if(esrc.prev == nil)
+		for(l := esrc.unbuf; l != nil; l = tl l){
+			c := hd l;
+			if(c < 16r80){
+				src_cap[len src_cap] = c;
+				continue;
+			}
+			r := "";
+			r[0] = c;
+			b := array of byte r;
+			for(i := 0; i < len b; i++)
+				src_cap[len src_cap] = int b[i];
+		}
 }
 
 src_back(c: int)

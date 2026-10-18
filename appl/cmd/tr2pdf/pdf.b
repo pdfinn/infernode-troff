@@ -206,6 +206,8 @@ pfont_writecid(ps: ref Pfont)
 	s += "  /CIDSystemInfo <</Ordering(Identity)/Registry(Adobe)/Supplement 0>>\n";
 	s += "  /FontDescriptor " + string ps.des + " 0 R\n";
 	s += "  /DW 1000\n";
+	if(!ps.cff && !compat)	# a TrueType font's glyphs, by their CIDs (PDF/UA asks it said)
+		s += "  /CIDToGIDMap /Identity\n";
 	s += "  /W [ " + string ps.gbeg + " [";
 	for(i := ps.gbeg; i <= ps.gend; i++)
 		s += " " + string wid1000(font_glget(fnt, i).wid);
@@ -279,9 +281,37 @@ glyphtext(fnt: ref Font, g: ref Glyph): string
 			b := font_glyph(fnt, id[0:i]);
 			if(b != nil && !unnamed(b.name))
 				return troffchar(b.name);
+			id = id[0:i];
 			break;
 		}
-	return nil;
+	return aglchar(id);
+}
+
+# the character a glyph's name gives by the Adobe Glyph List's rules
+# (uni1D44, u1D465), for a glyph the description names none (beyond
+# U+FFFF, as the maths alphabets); nil if none
+aglchar(id: string): string
+{
+	if(len id > 3 && id[0:3] == "uni" && len id == 7)
+		id = id[3:];
+	else if(len id >= 5 && len id <= 7 && id[0] == 'u')
+		id = id[1:];
+	else
+		return nil;
+	c := 0;
+	for(i := 0; i < len id; i++){
+		d := id[i];
+		if(d >= '0' && d <= '9')
+			d -= '0';
+		else if(d >= 'A' && d <= 'F')
+			d -= 'A' - 10;
+		else
+			return nil;
+		c = c * 16 + d;
+	}
+	if(c == 0 || c > 16r10FFFF || c >= 16rD800 && c < 16rE000)
+		return nil;
+	return sys->sprint("%c", c);
 }
 
 # whether a glyph's name is one the description made up (c0012)
@@ -314,14 +344,26 @@ troffchar(s: string): string
 utf16hex(s: string): string
 {
 	r := "";
-	for(i := 0; i < len s; i++)
-		r += sys->sprint("%04X", s[i]);
+	for(i := 0; i < len s; i++){
+		c := s[i];
+		if(c > 16rFFFF){	# a surrogate pair
+			c -= 16r10000;
+			r += sys->sprint("%04X%04X", 16rD800 + (c >> 10), 16rDC00 + (c & 16r3FF));
+		}else
+			r += sys->sprint("%04X", c);
+	}
 	return r;
 }
 
 # a stream object, compressed; its dictionary's entries in dict
 writestream(dict: string, data: array of byte): int
 {
+	if(len data == 0){	# (a blank page's) deflate makes no stream of nothing
+		id := obj_beg(0);
+		pdfout("<<\n  /Length 0\n" + dict + ">>\nstream\n\nendstream\n");
+		obj_end();
+		return id;
+	}
 	z := zip(data);
 	id := obj_beg(0);
 	pdfout("<<\n  /Filter /FlateDecode\n  /Length " + string len z + "\n" + dict + ">>\nstream\n");
@@ -687,6 +729,10 @@ o_loadfont(g: ref Glyph): int
 pdfpos00(uh, uv: big): string
 {
 	h := int (uh * big 72 / big devres());
+	# given at the page's end (vjust.b), if of the text: what is set after
+	# it (the notes, their rule, the folio) stays where it is
+	if(!compat && !vj_foot)
+		return dec2(h) + " " + vj_place(uv);
 	v := int (big pdf_height * big 100 - uv * big 72 / big devres());
 	return dec2(h) + " " + dec2(v);
 }
@@ -708,9 +754,26 @@ pdfpos(uh, uv: int): string
 }
 
 # a troff length in thousandths of a unit of text space
+# a size in points, from the device's scaled points (8.8)
+pdfsize(sz: int): string
+{
+	if(dev_szscale == 1)
+		return string sz;
+	s := string (sz / dev_szscale);
+	f := sz % dev_szscale;
+	if(f == 0)
+		return s;
+	d := "";
+	for(m := dev_szscale; m > 1 && f; m /= 10){
+		d[len d] = '0' + f * 10 / dev_szscale;
+		f = f * 10 % dev_szscale;
+	}
+	return s + "." + d;
+}
+
 pdfunit(uh, sz: int): string
 {
-	h := int (big uh * big 1000 * big 72 / big sz / big devres());
+	h := int (big uh * big 1000 * big 72 * big dev_szscale / big sz / big devres());
 	return string h;
 }
 
@@ -730,6 +793,11 @@ dec3(n: int): string
 
 o_queue(g: ref Glyph)
 {
+	if(!compat){
+		tag_glyph(g);
+		textbeg();
+		vj_glyph();
+	}
 	if(o_v != p_v){
 		o_flush();
 		pg += "1 0 0 1 " + pdfpos(o_h, o_v) + " Tm\n";
@@ -786,9 +854,9 @@ out_fontup()
 		ps := pfonts[o_i];
 		o_flush();
 		if(ps.cid)
-			pg += "/" + ps.name + " " + string o_s + " Tf\n";
+			pg += "/" + ps.name + " " + pdfsize(o_s) + " Tf\n";
 		else
-			pg += "/" + ps.name + "." + string ps.sub + " " + string o_s + " Tf\n";
+			pg += "/" + ps.name + "." + string ps.sub + " " + pdfsize(o_s) + " Tf\n";
 		p_i = o_i;
 		p_s = o_s;
 	}
@@ -851,10 +919,60 @@ outpdf(path: string, hwid, vwid: int)
 	xobj_id := pdfext(data, hwid, vwid);
 	o_flush();
 	out_fontup();
-	if(xobj_id >= 0)
+	if(xobj_id >= 0 && !compat){
+		tag_content(0);
+		textend();
+		pg += "q 1 0 0 1 " + pdfpos(o_h, o_v) + " cm /FO" + string xobj_id + " Do Q\n";
+	}else if(xobj_id >= 0)
 		pg += "ET /FO" + string xobj_id + " Do BT\n";
 	p_h = -1;
 	p_v = -1;
+}
+
+# a PDF's first page as a figure (x X image file.pdf w h): ink of the
+# Figure that holds it, written once however often it is shown, w by h
+# (either 0, as its proportions give it; both, its own size)
+fig_path: list of string;
+fig_xobj: list of int;
+fig_w: list of int;
+fig_h: list of int;
+
+outpdffig(path: string, hwid, vwid: int)
+{
+	i := -1;
+	for((pl, xl, wl, hl) := (fig_path, fig_xobj, fig_w, fig_h); pl != nil; (pl, xl, wl, hl) = (tl pl, tl xl, tl wl, tl hl))
+		if(hd pl == path && hd wl == hwid && hd hl == vwid)
+			i = hd xl;
+	if(i < 0){
+		data := readfile(path);
+		if(data == nil)
+			data = array[0] of byte;
+		if((i = pdfext(data, hwid, vwid)) < 0){
+			sys->fprint(sys->fildes(2), "tr2pdf: %s: no page of a PDF read from it\n", path);
+			return;
+		}
+		(fig_path, fig_xobj, fig_w, fig_h) = (path :: fig_path, i :: fig_xobj, hwid :: fig_w, vwid :: fig_h);
+	}
+	o_flush();
+	out_fontup();
+	if(!compat){
+		tag_content(1);
+		textend();
+		pg += "q 1 0 0 1 " + pdfpos(o_h, o_v) + " cm /FO" + string i + " Do Q\n";
+	}else
+		pg += "ET q 1 0 0 1 " + pdfpos(o_h, o_v) + " cm /FO" + string i + " Do Q BT\n";
+	p_h = -1;
+	p_v = -1;
+}
+
+# whether the file is a PDF
+ispdf(path: string): int
+{
+	fd := sys->open(path, Sys->OREAD);
+	if(fd == nil)
+		return 0;
+	b := array[5] of byte;
+	return sys->readn(fd, b, 5) == 5 && string b == "%PDF-";
 }
 
 outlink(lnk: string, hwid, vwid: int)
@@ -862,7 +980,23 @@ outlink(lnk: string, hwid, vwid: int)
 	if(ann_n == len ann)
 		return;
 	o_flush();
-	ann[ann_n++] = obj_beg(0);
+	if(tagged){
+		s := "<<\n  /Type /Annot\n  /Subtype /Link\n";
+		s += "  /Rect [" + pdfpos(o_h, o_v) + " " + pdfpos(o_h + hwid, o_v + vwid) + "]\n";
+		s += "  /Border [0 0 0]\n";
+		if(lnk[0] == '#')
+			s += "  /A << /S /GoTo /D /" + pdfname(lnk[1:]) + " >>\n";
+		else
+			s += "  /A << /S /URI /URI " + pdftext_static(lnk) + " >>\n";
+		if(tag_link(s, hwid, vwid))
+			return;
+	}
+	id := 0;
+	if(compat)
+		id = obj_beg(0);
+	else
+		id = obj_map();	# written at the page's end, its places known
+	ann[ann_n++] = id;
 	s := "<<\n  /Type /Annot\n  /Subtype /Link\n";
 	s += "  /Rect [" + pdfpos(o_h, o_v);
 	s += " " + pdfpos(o_h + hwid, o_v + vwid) + "]\n";
@@ -874,6 +1008,10 @@ outlink(lnk: string, hwid, vwid: int)
 		s += "  /A << /S /GoTo /D /" + pdfname(lnk[1:]) + " >>\n";
 	else
 		s += "  /A << /S /URI /URI " + pdftext_static(lnk) + " >>\n";
+	if(!compat){
+		vj_annot(id, s + ">>\n");
+		return;
+	}
 	pdfout(s + ">>\n");
 	obj_end();
 }
@@ -1059,6 +1197,11 @@ drawbeg()
 {
 	o_flush();
 	out_fontup();
+	if(!compat){
+		tag_content(1);
+		textend();
+	}
+	vj_row(o_v);
 	pg += pdfpos(o_h, o_v) + " m\n";
 }
 
@@ -1070,7 +1213,7 @@ drawend(close, fill: int)
 		fill = 2;
 	if(l_page != page_n || l_size != o_s || l_wid != pdf_linewid ||
 			l_cap != pdf_linecap || l_join != pdf_linejoin){
-		lwid := pdf_linewid * o_s;
+		lwid := pdf_linewid * o_s / dev_szscale;
 		pg += sys->sprint("%d.%03d w\n", lwid / 1000, lwid % 1000);
 		pg += sys->sprint("%d J %d j\n", pdf_linecap, pdf_linejoin);
 		l_page = page_n;
@@ -1097,6 +1240,7 @@ drawend(close, fill: int)
 drawl(h, v: int)
 {
 	outrel(h, v);
+	vj_row(o_v);
 	pg += pdfpos(o_h, o_v) + " l\n";
 }
 
@@ -1268,9 +1412,17 @@ doctrailer(nil: int)
 		s += " " + string page_id[i] + " 0 R";
 	pdfout(s + " ]\n>>\n");
 	obj_end();
+	# the structure, and the metadata
+	tagent := tag_done();
+	meta := 0;
+	if(tagent != nil)
+		meta = tag_metadata();
 	# the root
 	obj_beg(pdf_root);
 	s = "<<\n  /Type /Catalog\n";
+	s += tagent;
+	if(meta)
+		s += "  /Metadata " + string meta + " 0 R\n";
 	s += "  /Pages " + string pdf_pages + " 0 R\n";
 	if(pdf_dests > 0)
 		s += "  /Dests " + string pdf_dests + " 0 R\n";
@@ -1313,13 +1465,47 @@ doctrailer(nil: int)
 
 docpagebeg(nil: int)
 {
-	pg = "BT\n";
+	if(compat){
+		pg = "BT\n";
+		return;
+	}
+	# text objects begun as text is set, ended for what is drawn and
+	# for marked content (not Neatpost's: it drew in one)
+	pg = "";
+	tag_pagebeg();
+	vj_reset();
+}
+
+textbeg()
+{
+	if(in_text)
+		return;
+	pg += "BT\n";
+	in_text = 1;
+	p_v = -16r40000000;	# the text matrix the identity again
+}
+
+textend()
+{
+	o_flush();
+	if(!in_text)
+		return;
+	pg += "ET\n";
+	in_text = 0;
+	p_v = -16r40000000;
 }
 
 docpageend(nil: int)
 {
-	o_flush();
-	pg += "ET\n";
+	tagent: string;
+	if(compat){
+		o_flush();
+		pg += "ET\n";
+	}else{
+		tagent = tag_pageend();
+		textend();
+		vj_pageend();
+	}
 	# the page's contents
 	b := array of byte pg;
 	cont_id: int;
@@ -1356,6 +1542,7 @@ docpageend(nil: int)
 	}
 	s += "  >>\n";
 	s += "  /Contents " + string cont_id + " 0 R\n";
+	s += tagent;
 	if(ann_n){
 		s += "  /Annots [";
 		for(i = 0; i < ann_n; i++)

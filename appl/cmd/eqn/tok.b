@@ -3,8 +3,18 @@
 #
 
 T_SOFTSEP: con "^~{}(),\"\n\t =:|.+-*/\\,()[]<>!";
-ESAVE: con "\\E*[.eqnbeg]\\R'" + EQNFN + "0 \\En(.f'\\R'" + EQNSZ + "0 \\En(.s'";
-ELOAD: con "\\f[\\En[" + EQNFN + "0]]\\s[\\En[" + EQNSZ + "0]]\\E*[.eqnend]";
+ESAVE(): string
+{
+	sz := "\\En(.s";
+	if(e_scaledsz)
+		sz = "\\En[.ps]";
+	return "\\E*[.eqnbeg]\\R'" + EQNFN + "0 \\En(.f'\\R'" + EQNSZ + "0 " + sz + "'";
+}
+
+ELOAD(): string
+{
+	return "\\f[\\En[" + EQNFN + "0]]\\s[\\En[" + EQNSZ + "0]" + SZU() + "]\\E*[.eqnend]";
+}
 
 kwds := array[] of {
 	"fwd", "down", "back", "up",
@@ -15,8 +25,9 @@ kwds := array[] of {
 	"pile", "lpile", "cpile", "rpile", "above",
 	"matrix", "col", "ccol", "lcol", "rcol",
 	"delim", "define",
-	"gfont", "grfont", "gbfont", "gsize", "set", "chartype",
-	"mark", "lineup", "bracketsizes", "bracketpieces", "breakcost",
+	"gfont", "grfont", "gbfont", "gsfont", "gsize", "set", "chartype", "accent", "accentpos", "mathital", "italcorr", "bracesizes", "bracepieces",
+	"mark", "lineup", "bracketsizes", "bracketheights", "bracketpieces", "breakcost",
+	"nolimits", "icorr", "displaystyle", "textstyle", "root", "overbrace", "underbrace",
 };
 
 tok_eqen := 0;		# within .EQ and .EN
@@ -180,6 +191,8 @@ tok_keyword(): int
 	for(i := 0; i < len kwds; i++)
 		if(kwds[i] == tok)
 			return 0;
+	if(e_texfrac && (tok == "choose" || tok == "strut"))	# TeX's \binom and \strut; Neateqn's words
+		return 0;
 	tok_unpreview(tok);
 	return 1;
 }
@@ -292,21 +305,107 @@ tok_eqn(): int
 			printf("\\*" + escarg(EQNS) + cstr(ln));
 			tok_part = 0;
 		}
-		if(c == '\n')
+		if(c == '\n'){
 			ln = "";
+			src_cap = "";
+		}
 	}
 	return 1;
 }
 
-# an equation's output
+tagging := 0;		# -t: tagged (not Neateqn's)
+
+# an equation's output; with -t, for a tagged PDF (tr2pdf's), a
+# Formula, its source its alternate description, a displayed one a
+# block of its own
 tok_eqnout(s: string)
 {
+	if(!tagging){
+		if(!tok_part){
+			printf(".ds " + EQNS + " \"" + ESAVE() + s + ELOAD() + "\n");
+			printf(".lf " + string (src_lineget() - 1) + "\n");
+			printf("\\&\\*" + escarg(EQNS) + "\n");
+		}else
+			printf(".as " + EQNS + " \"" + ESAVE() + s + ELOAD() + "\n");
+		return;
+	}
+	desc := tagalt(src_cap);
 	if(!tok_part){
-		printf(".ds " + EQNS + " \"" + ESAVE + s + ELOAD + "\n");
+		printf(".ds " + EQNS + " \"" + ESAVE() + s + ELOAD() + "\n");
 		printf(".lf " + string (src_lineget() - 1) + "\n");
-		printf("\\&\\*" + escarg(EQNS) + "\n");
+		printf("\\&" + tagx("tag end") + tagx("tag push Formula") + tagx("tag alt " + desc) +
+			"\\*" + escarg(EQNS) + tagx("tag pop") + "\n");
 	}else
-		printf(".as " + EQNS + " \"" + ESAVE + s + ELOAD + "\n");
+		printf(".as " + EQNS + " \"" + tagx("tag push Formula") + tagx("tag alt " + desc) +
+			ESAVE() + s + ELOAD() + tagx("tag pop") + "\n");
+}
+
+# s as troff's device control, \\X, its delimiter one s has not
+tagx(s: string): string
+{
+	ds := "'^|@#";
+	d := ds[0:1];
+	for(i := 1; i < len ds && strchr(s, d[0]) >= 0; i++)
+		d = ds[i:i + 1];
+	return "\\X" + d + s + d;
+}
+
+# an equation's source as its description: its bytes as UTF-8, on one
+# line, troff's escapes by the names of their characters (\(*a, *a)
+tagalt(src: string): string
+{
+	# not the delimiter that ended it, nor the .EN looked ahead to
+	if(src != "" && eqn_end > 0 && src[len src - 1] == eqn_end)
+		src = src[0:len src - 1];
+	for(i := len src - 1; i > 0; i--)
+		if(src[i] == '.' && src[i - 1] == '\n'){
+			if(i + 2 < len src && src[i + 1] == 'E' && src[i + 2] == 'N')
+				src = src[0:i];
+			break;
+		}
+	b := array[len src] of byte;
+	for(i = 0; i < len src; i++)
+		b[i] = byte src[i];
+	s := string b;
+	r := "";
+	sp := 0;
+	for(i = 0; i < len s; i++){
+		c := s[i];
+		if(c == '\\' && i + 1 < len s){
+			i++;
+			if(s[i] == '(' && i + 2 < len s){
+				c = s[++i];
+				r[len r] = c;
+				c = s[++i];
+			}else if(s[i] == '['){
+				while(i + 1 < len s && s[i + 1] != ']')
+					r[len r] = s[++i];
+				i++;
+				continue;
+			}else if(s[i] == '&' || s[i] == '|' || s[i] == '^')
+				continue;	# troff's spaces of no width, or thin
+			else
+				c = s[i];
+		}
+		if(c == ' ' || c == '\t' || c == '\n'){
+			sp = r != "";
+			continue;
+		}
+		if(sp)
+			r[len r] = ' ';
+		sp = 0;
+		r[len r] = c;
+	}
+	# said in words (set speech 1), as a screen reader would say it: from
+	# the source, its troff names whole
+	if(e_speech)
+		r = speak(s);
+	# as eqn's strings are, its bytes (printf writes each as one)
+	b = array of byte r;
+	r = "";
+	for(i = 0; i < len b; i++)
+		r[len r] = int b[i];
+	return r;
 }
 
 # the bytes in a UTF-8 character, from its first
@@ -343,8 +442,78 @@ char_type(s: string): int
 	return T_LETTER;
 }
 
+# tokens recorded, to be read again (not Neateqn's): a fraction's
+# numerator, set before its over is read, set again in TeX's style for a
+# numerator; each the token and what tok_read leaves of it
+Tokrec: adt {
+	tok:	string;
+	typ:	int;
+	cursep:	int;
+	prevsep:	int;
+};
+tok_rec: array of Tokrec;	# what was read since the first mark
+tok_nrec := 0;
+tok_recs := 0;		# the marks open
+tok_replay: list of Tokrec;	# what is to be read again
+
+tok_recput()
+{
+	if(tok_nrec == len tok_rec){
+		r := array[2 * len tok_rec + 64] of Tokrec;
+		r[0:] = tok_rec[0:tok_nrec];
+		tok_rec = r;
+	}
+	tok_rec[tok_nrec++] = Tokrec(tok, tok_curtype, tok_cursep, tok_prevsep);
+}
+
+# where the token now read is: what follows is recorded from it
+tok_mark(): int
+{
+	# (within a mark the token now read is the last recorded)
+	if(tok_recs++ == 0){
+		tok_nrec = 0;
+		tok_recput();
+	}
+	return tok_nrec - 1;
+}
+
+tok_unmark()
+{
+	if(--tok_recs == 0)
+		tok_nrec = 0;
+}
+
+# back to the token read at mark m: what was read since read again
+tok_rewind(m: int)
+{
+	l: list of Tokrec;
+	for(i := tok_nrec - 1; i > m; i--)
+		l = tok_rec[i] :: l;
+	tok_replay = l;
+	tok_nrec = m + 1;
+	r := tok_rec[m];
+	(tok, tok_curtype, tok_cursep, tok_prevsep) = (r.tok, r.typ, r.cursep, r.prevsep);
+}
+
 # the next token; non-zero at the end
 tok_read(): int
+{
+	if(tok_replay != nil){
+		r := hd tok_replay;
+		tok_replay = tl tok_replay;
+		(tok, tok_curtype, tok_cursep, tok_prevsep) = (r.tok, r.typ, r.cursep, r.prevsep);
+		tok_count++;
+		if(tok_recs)
+			tok_recput();
+		return tok == "";
+	}
+	ret := tok_read0();
+	if(tok_recs)
+		tok_recput();
+	return ret;
+}
+
+tok_read0(): int
 {
 	tok_count++;
 	e := LNLEN - 2;
@@ -374,7 +543,7 @@ tok_read(): int
 			c2 := tok_next();
 			if(c2 >= '1' && c2 <= '9' && !src_arg(c2 - '0')){
 				tok_cursep = 1;
-				return tok_read();
+				return tok_read0();
 			}
 			tok_back(c2);
 		}
@@ -386,7 +555,7 @@ tok_read(): int
 		}
 		if(!tok_expand()){
 			tok_cursep = 1;
-			return tok_read();
+			return tok_read0();
 		}
 		c = tok_next();
 	}

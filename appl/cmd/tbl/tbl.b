@@ -284,6 +284,8 @@ swapin(): int
 		}
 		if(a == "-TX")
 			pr1403 = 1;
+		if(a == "-t")
+			tagging = 1;
 		if(a == "-")
 			break;
 		sargs = tl sargs;
@@ -1172,8 +1174,63 @@ filler(s: Val): int
 #
 # t7.c: control to write table entries
 #
+# with -t, for a tagged PDF (tr2pdf's): the table a Table, each row a TR, each
+# cell a TD (a TH, in the rows above the first rule, if rows follow it),
+# its span its ColSpan; a cell's text block, set after its row, goes
+# back into it by its id
+tagging := 0;		# -t: tagged (not Plan 9's)
+ntables := 0;
+thrule := -1;		# the rule below the table's heading rows
+
+# the tag given where the row before has gone out, or kept in the
+# diversion the table is in (no macro: eqn, after, would take its \$
+# for its delimiter)
+tagreq(t: string)
+{
+	if(!tagging)
+		return;
+	out(".ie '\\n(.z'' .dv tag " + t + "\n.el \\{\\\n\\!.dv tag " + t + "\n.\\}\n");
+}
+
+tagstart()
+{
+	ntables++;
+	thrule = -1;
+	before := 0;
+	for(i := 0; i < nlin; i++){
+		if(instead[i] != nil)
+			continue;
+		if(fullbot[i] == 0){
+			if(thrule >= 0)
+				return;
+			before++;
+		}else if(thrule < 0 && before > 0)
+			thrule = i;
+	}
+	thrule = -1;
+}
+
+tagcell(nl, c: int): string
+{
+	typ := "TD";
+	if(nl < thrule)
+		typ = "TH";
+	t := "tag " + typ + " tbl" + string ntables + "r" + string nl + "c" + string c;
+	n := 1;
+	for(c2 := c + 1; c2 < ncol && ctype(nl, c2) == 's'; c2++)
+		n++;
+	if(n > 1)
+		t += " ColSpan=" + string n;
+	if(typ == "TH")
+		t += " Scope=Column";
+	return t;
+}
+
 runout()
 {
+	tagstart();
+	tagreq("end");
+	tagreq("push Table");
 	if(boxflg || allflg || dboxflg)
 		need();
 	if(ctrflg){
@@ -1188,6 +1245,7 @@ runout()
 	if(hasleftover)
 		yetmore();
 	out(".fc\n");
+	tagreq("pop");
 	out(".nr T. 1\n");
 	out(".T# 1\n");
 	if(ctrflg)
@@ -1418,6 +1476,7 @@ putline(i: int, nl: int)
 		out(sys->sprint(".nr %2d \\n(.f\n", S1));
 		out(sys->sprint(".af %2d 01\n", S1));
 	}
+	tagreq("push TR");
 	out("\\&");
 	vct := 0;
 	for(c = 0; c < ncol; c++){
@@ -1442,6 +1501,8 @@ putline(i: int, nl: int)
 			if(form == 'n' && table[nl][c].rcol.k != VNIL && lused[c] == 0)
 				rct = reg(c, CMID);
 			out("\\h'|\\n(" + s2(rct) + "u'");
+			if(tagging)
+				out("\\X'" + tagcell(nl, c) + "'");
 		}
 		ss = table[nl][c].col;
 		fnt := font(c, stynum[vforml]);
@@ -1578,6 +1639,7 @@ putline(i: int, nl: int)
 				topat[c] = nl;
 			}
 	}
+	tagreq("pop");
 }
 
 puttext(s: Val, fnt: string, size: string)
@@ -1622,6 +1684,7 @@ funnies(stl: int, lin: int)
 			out("\\n(" + s2(reg(c, CRIGHT)) + "u-\\n(" + s + "-u\n");
 		}
 		out(sys->sprint(".in +\\n(%du\n", SIND));
+		tagreq(tagcell(lin, c)[4:]);
 		fnt := font(c, stynum[stl]);
 		if(fnt != "")
 			out(".ft " + fnt + "\n");

@@ -42,6 +42,7 @@ Mkfn: module
 include "tables.b";
 include "otf.b";
 include "afm.b";
+include "math.b";
 
 stdout: ref Iobuf;
 
@@ -62,6 +63,7 @@ pos := 1;		# include glyph positions
 byname := 0;		# always reference glyphs by name
 dry := 0;		# write nothing
 compat := 0;		# aliases as Neatmkfn gives them
+mathout := 0;		# write the MATH table as eqn's settings (-M)
 
 # OpenType's order of features, for scripts that have one
 scriptorder := array[] of {
@@ -114,7 +116,8 @@ usage := "usage: mkfn [options] [font] >output\n" +
 	"  -L langs\tcomma-separated list of languages to include (list to list)\n" +
 	"  -F font \tfont name or index in a font collection (list to list)\n" +
 	"  -w      \twarn about unsupported font features\n" +
-	"  -c      \tgive aliases as Neatmkfn does, even names of the font's own characters\n";
+	"  -c      \tgive aliases as Neatmkfn does, even names of the font's own characters\n" +
+	"  -M      \twrite the font's MATH table as eqn's settings (its troff name -t, S)\n";
 
 init(nil: ref Draw->Context, args: list of string)
 {
@@ -161,6 +164,9 @@ init(nil: ref Draw->Context, args: list of string)
 			kmin = atoi(v);
 		'l' =>
 			noligs = 1;
+		'M' =>
+			mathout = 1;
+			afm = 0;
 		'L' =>
 			langs = v;
 			dry = langs == "list";

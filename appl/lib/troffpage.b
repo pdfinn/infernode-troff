@@ -26,6 +26,13 @@ include "outlinefont.m";
 	outlinefont: OutlineFont;
 	Face: import outlinefont;
 
+include "bufio.m";
+include "imagefile.m";
+include "imgload.m";
+	imgload: Imgload;
+include "pdf.m";
+	pdfmod: PDF;
+
 include "troffpage.m";
 
 NFONTS:	con 32;
@@ -60,10 +67,22 @@ Start: adt {
 State: adt {
 	data:	array of byte;
 	fontdir:	string;
-	uwid:	int;
+	uwid:	int;		# unitwidth times sizescale: sizes are in
+				# 1/sizescale points (DESC sizescale)
+	szscale:	int;
 	pages:	array of ref Start;
 	links:	array of array of Link;
 	names:	list of (string, int);	# named destinations: name, page
+	dir:	string;		# where its images' names are from
+	imgs:	list of ref Img;	# its images, read, and as last drawn
+};
+
+# an image (x X image file w h), as read and as last scaled
+Img: adt {
+	path:	string;
+	im:	ref Image;	# as read, RGBA32; nil if it cannot be
+	scaled:	ref Image;
+	pdf:	ref PDF->Doc;	# a PDF's, its first page drawn at each size
 };
 
 docs: array of ref State;
@@ -170,9 +189,14 @@ qword(b: array of byte, i, e: int): (string, int)
 
 open(data: array of byte, fontdir: string): (ref Doc, string)
 {
+	return opendir(data, fontdir, nil);
+}
+
+opendir(data: array of byte, fontdir, dir: string): (ref Doc, string)
+{
 	if(!istroff(data))
 		return (nil, "not troff output");
-	st := ref State(data, fontdir, 10, nil, nil, nil);
+	st := ref State(data, fontdir, 10, 1, nil, nil, nil, dir, nil);
 	d := ref Doc("utf", 720, 612, 792, 0, 0);
 	mounts := array[NFONTS] of string;
 	f := 1;
@@ -239,7 +263,8 @@ open(data: array of byte, fontdir: string): (ref Doc, string)
 	st.links = array[npages] of array of Link;
 	if(st.fontdir == nil)
 		st.fontdir = "/lib/troff/dev" + d.dev;
-	st.uwid = devuwid(st.fontdir);
+	(st.uwid, st.szscale) = devuwid(st.fontdir);
+	st.uwid *= st.szscale;
 	if(pw > 0 && ph > 0){
 		d.width = pw;
 		d.height = ph;
@@ -254,24 +279,32 @@ open(data: array of byte, fontdir: string): (ref Doc, string)
 	return (d, nil);
 }
 
-# the device's unitwidth
-devuwid(dir: string): int
+# the device's unitwidth and sizescale
+devuwid(dir: string): (int, int)
 {
 	fd := sys->open(dir + "/DESC", Sys->OREAD);
 	if(fd == nil)
-		return 10;
+		return (10, 1);
 	b := array[4096] of byte;
 	n := sys->read(fd, b, len b);
 	if(n <= 0)
-		return 10;
+		return (10, 1);
 	s := string b[0:n];
-	for(i := 0; i + 9 < len s; i++)
+	uw := 10;
+	sc := 1;
+	for(i := 0; i + 9 < len s; i++){
 		if(s[i:i+9] == "unitwidth"){
 			(u, nil) := num(b, i + 9);
 			if(u > 0)
-				return u;
+				uw = u;
 		}
-	return 10;
+		if(s[i:i+9] == "sizescale"){
+			(u, nil) := num(b, i + 9);
+			if(u > 0)
+				sc = u;
+		}
+	}
+	return (uw, sc);
 }
 
 colour(s: string): int
@@ -612,7 +645,7 @@ glyph(w: ref Walk, mounts: array of string, fpos, sz: int, c: string, h, v: int,
 		fc := f.face;
 		if(g < 0 || fc == nil)
 			return adv;
-		px := real sz * real w.d.res / 72.0 * w.k;	# the size in pixels
+		px := real sz * real w.d.res / (72.0 * real w.st.szscale) * w.k;	# the size in pixels
 		x := w.ox + real h * w.k;
 		y := w.oy + real v * w.k;
 		# a glyph wholly outside the clip is not drawn
@@ -623,7 +656,7 @@ glyph(w: ref Walk, mounts: array of string, fpos, sz: int, c: string, h, v: int,
 		fc.drawglyphm(g, array[] of {k, 0.0, 0.0, -k}, w.dst, x, y, colourimage(colour));
 	Wtext =>
 		t := chartext(f, c, i);
-		em := sz * w.d.res / 72;
+		em := sz * w.d.res / (72 * w.st.szscale);
 		if(v != w.lastv || h > w.lasth + em / 5 || h < w.lasth - em){
 			flushword(w);
 			if(w.text != nil){
@@ -761,9 +794,16 @@ devctl(w: ref Walk, mounts: array of string, b: array of byte, i, e: int, h, v, 
 		if(pos >= 0 && pos < NFONTS)
 			mounts[pos] = name;
 	"X" =>
+		(x, k) := word(b, j, e);
+		if(x == "image" && w.what == Wpaint){
+			(f, k2) := word(b, k, e);
+			(iw, k3) := num(b, k2);
+			(ih, nil) := num(b, k3);
+			image(w, f, h, v, iw, ih);
+			return;
+		}
 		if(w.what != Wlinks)
 			return;
-		(x, k) := word(b, j, e);
 		if(x != "link")
 			return;
 		(url, k2) := qword(b, k, e);
@@ -842,7 +882,7 @@ drawing(w: ref Walk, b: array of byte, i, e: int, h, v: int, sz: int, colour: in
 	if(w.what != Wpaint)
 		return (nh, nv);
 	src := colourimage(colour);
-	px := real sz * real w.d.res / 72.0 * w.k;
+	px := real sz * real w.d.res / (72.0 * real w.st.szscale) * w.k;
 	thick := int (px / 20.0);	# a twentieth of an em, as dpost draws
 	if(thick < 0)
 		thick = 0;
@@ -1031,4 +1071,118 @@ Doc.links(d: self ref Doc, n: int): array of Link
 		st.links[n] = a;
 	}
 	return st.links[n];
+}
+
+# an image (x X image file w h): its lower left at (h, v), w by h units,
+# as tr2pdf places it; read once (imgload), scaled to where it is drawn
+image(w: ref Walk, f: string, h, v, iw, ih: int)
+{
+	r := Rect((int (w.ox + real h * w.k), int (w.oy + real (v - ih) * w.k)),
+		(int (w.ox + real (h + iw) * w.k), int (w.oy + real v * w.k)));
+	if(r.dx() <= 0 || r.dy() <= 0 || !r.Xrect(w.clip))
+		return;
+	img := readimg(w.st, f);
+	if(img == nil)
+		return;
+	if(img.pdf != nil && (img.scaled == nil || img.scaled.r.dx() != r.dx() || img.scaled.r.dy() != r.dy())){
+		# drawn again at the size it is shown, its lines sharp
+		im := pdfpage(img.pdf, r.dx());
+		img.im = nil;
+		if(im != nil){
+			img.im = display.newimage(im.r, Draw->RGBA32, 0, Draw->Transparent);
+			if(img.im != nil)
+				img.im.draw(img.im.r, im, nil, im.r.min);
+		}
+		img.scaled = nil;
+		if(img.im != nil && img.im.r.dx() == r.dx() && img.im.r.dy() == r.dy())
+			img.scaled = img.im;
+	}
+	if(img.im == nil)
+		return;
+	if(img.scaled == nil || img.scaled.r.dx() != r.dx() || img.scaled.r.dy() != r.dy())
+		img.scaled = scale(img.im, r.dx(), r.dy());
+	if(img.scaled != nil)
+		w.dst.draw(r, img.scaled, nil, (0, 0));
+}
+
+readimg(st: ref State, f: string): ref Img
+{
+	for(l := st.imgs; l != nil; l = tl l)
+		if((hd l).path == f)
+			return hd l;
+	img := ref Img(f, nil, nil, nil);
+	st.imgs = img :: st.imgs;
+	if(imgload == nil){
+		imgload = load Imgload Imgload->PATH;
+		if(imgload == nil)
+			return img;
+		imgload->init(display);
+	}
+	path := f;
+	if(st.dir != nil && f != nil && f[0] != '/' && f[0] != '#')
+		path = st.dir + "/" + f;
+	if(ispdf(path)){
+		if(pdfmod == nil && (pdfmod = load PDF PDF->PATH) != nil && pdfmod->init(display) != nil)
+			pdfmod = nil;
+		if(pdfmod != nil && (data := readfile(path)) != nil)
+			(img.pdf, nil) = pdfmod->open(data, "");
+		return img;
+	}
+	(im, nil) := imgload->readimage(path);
+	if(im == nil)
+		return img;
+	# as RGBA32, its pixels read for scaling
+	img.im = display.newimage(im.r, Draw->RGBA32, 0, Draw->Transparent);
+	if(img.im != nil)
+		img.im.draw(img.im.r, im, nil, im.r.min);
+	return img;
+}
+
+# a PDF's first page drawn dx pixels wide (or near it)
+pdfpage(d: ref PDF->Doc, dx: int): ref Image
+{
+	Doc: import pdfmod;
+	(pw, nil) := d.pagesize(1);
+	dpi := 72;
+	if(pw > 0.0)
+		dpi = int (real dx * 72.0 / pw);
+	if(dpi < 1)
+		dpi = 1;
+	(im, nil) := d.renderpage(1, dpi);
+	return im;
+}
+
+ispdf(path: string): int
+{
+	fd := sys->open(path, Sys->OREAD);
+	if(fd == nil)
+		return 0;
+	b := array[5] of byte;
+	return sys->readn(fd, b, 5) == 5 && string b == "%PDF-";
+}
+
+# an image scaled to dx by dy, its nearest pixel each
+scale(im: ref Image, dx, dy: int): ref Image
+{
+	sw := im.r.dx();
+	sh := im.r.dy();
+	if(sw <= 0 || sh <= 0 || dx > 8192 || dy > 8192)
+		return nil;
+	src := array[4 * sw * sh] of byte;
+	if(im.readpixels(im.r, src) != len src)
+		return nil;
+	dst := array[4 * dx * dy] of byte;
+	for(y := 0; y < dy; y++){
+		sy := y * sh / dy;
+		for(x := 0; x < dx; x++){
+			s := 4 * (sy * sw + x * sw / dx);
+			d := 4 * (y * dx + x);
+			dst[d:] = src[s:s + 4];
+		}
+	}
+	out := display.newimage(Rect((0, 0), (dx, dy)), Draw->RGBA32, 0, Draw->Transparent);
+	if(out == nil)
+		return nil;
+	out.writepixels(out.r, dst);
+	return out;
 }

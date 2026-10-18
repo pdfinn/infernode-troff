@@ -7,6 +7,9 @@ MODULES=\
 	pdf.b\
 	pdfext.b\
 	cffsub.b\
+	tag.b\
+	vjust.b\
+	image.b\
 
 SYSMODULES= \
 	bufio.m\

@@ -237,7 +237,10 @@ out_line(s: string)
 			if(!nr(R_cp))
 				out_clr(clr_get(c));
 		's' =>
-			out_ps(eval(c, 0));
+			if(dev_szscale > 1)	# scaled points (z), from units
+				out_ps(int (big eval(c, 'z') * big dev_szscale / big SC_PT()));
+			else
+				out_ps(eval(c, 0));
 		'v' =>
 			outnn(sys->sprint("v%d", eval(c, 'v')));
 		'X' =>

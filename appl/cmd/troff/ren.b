@@ -338,6 +338,8 @@ ren_mc(w, ljust: int): string
 }
 
 # process a line and print it with ren_out()
+ren_lastw := 0;	# the text's length on the line set last (\n[.n])
+
 ren_line(line: string, w, ad, body, li, lI, ll, els_neg, els_pos: int): int
 {
 	ren_first();
@@ -404,8 +406,11 @@ ren_passline(fmt: ref Fmt): int
 	}
 	if(nr(R_ce))
 		ad = AD_C;
-	if(l == nil)
+	if(l == nil){
+		ren_lastw = 0;
 		return ren_line("", 0, ad, 1, 0, 0, 0, 0, 0);
+	}
+	ren_lastw = l.wid;
 	return ren_line(l.sbuf, l.wid, ad, 1, l.li, l.lI, l.ll, l.elsn, l.elsp);
 }
 
@@ -566,12 +571,13 @@ tr_pn(args: array of string)
 ren_ps(s: string)
 {
 	ps: int;
+	# (sizes in scaled points, the device's sizescale to a point)
 	if(s == nil || s == "0")
-		ps = nr(R_s0) * SC_PT();
+		ps = nr(R_s0) * SC_PT() / dev_szscale;
 	else
-		ps = eval_re(s, nr(R_s) * SC_PT(), 'p');
+		ps = eval_re(s, nr(R_s) * SC_PT() / dev_szscale, 'p');
 	nrset(R_s0, nr(R_s));
-	nrset(R_s, max(1, (ps + SC_PT() / 2) / SC_PT()));
+	nrset(R_s, max(1, int ((big ps * big dev_szscale + big (SC_PT() / 2)) / big SC_PT())));
 }
 
 tr_ps(args: array of string)
@@ -649,6 +655,10 @@ tr_ti2(args: array of string)
 ren_ft(s: string)
 {
 	fnt: int;
+	# position 0 names no font: troff has always let \f0 (a few of
+	# Inferno's pages write it) change nothing, without a word
+	if(s == "0")
+		return;
 	if(s == nil || s == "P")
 		fnt = nr(R_f0);
 	else

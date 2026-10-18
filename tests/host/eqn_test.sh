@@ -60,8 +60,9 @@ if ! command -v pdftotext >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&
 fi
 pdftotext -bbox "$tmp/book.pdf" "$tmp/book.html"
 python3 -I - "$tmp/book.html" <<'PY' || fail=1
-import re, sys
-words = [(float(a), float(b), float(c), float(d), w) for a, b, c, d, w in
+import re, sys, unicodedata
+# (maths italic letters, 𝑥, as the letters they are)
+words = [(float(a), float(b), float(c), float(d), unicodedata.normalize('NFKC', w)) for a, b, c, d, w in
          re.findall(r'<word xMin="([^"]*)" yMin="([^"]*)" xMax="([^"]*)" yMax="([^"]*)">([^<]*)</word>',
                     open(sys.argv[1], encoding='utf-8').read())]
 fail = 0
@@ -74,23 +75,24 @@ def find(w):
 
 # (1.1) is on the baseline of x = ..., at the right
 lab = find('(1.1)')
-eq = [x for x in find('x') if x[0] > 150]
+eq = [x for x in find('x') + find('x=') if x[0] > 150]	# (pdftotext may join x and =)
+eq = sorted(eq, key=lambda x: abs(x[3] - lab[0][3]) if lab else 0)
 check(lab and eq and abs(lab[0][3] - eq[0][3]) < 1.5 and lab[0][0] > eq[0][2] + 100,
       "a display's label on its baseline, at the right", '%s %s' % (lab, eq))
 
 # the sums: displayed taller than inline; inline, its limits beside it
 sums = sorted(find('∑'), key=lambda x: x[2] - x[0])
-check(len(sums) == 2 and (sums[1][2] - sums[1][0]) > 1.5 * (sums[0][2] - sums[0][0]),
+check(len(sums) == 2 and (sums[1][2] - sums[1][0]) > 1.3 * (sums[0][2] - sums[0][0]),	# (the math font's sizes: 1.39)
       'a displayed sum larger than an inline one', str(sums))
 inl = sums[0] if sums else None
-lim = [x for x in words if inl and x[4] in ('ni=1', 'n', 'i=1') and abs(x[1] - inl[1]) < 4]
+lim = [x for x in words if inl and x[4] in ('ni=1', 'n', 'i=1') and abs(x[1] - inl[1]) < 6]	# (under it: 10 and more)
 check(inl and lim and lim[0][0] >= inl[2] - 0.5,
       "an inline sum's limits beside it", '%s %s' % (inl, lim))
 sys.exit(fail)
 PY
 
 # the bars drawn, where the glyphs would be
-{ cat lib/troff/eqnrc; printf '.ps 24\n.vs 40p\n.EQ\n{a + b} over {c + d} = sqrt {x sup 2 + 1} + x bar + y under + left ( {1 over 2} right )\n.EN\n'; } >"$tmp/bars.tr"
+{ cat lib/troff/eqnrc; printf '.ps 24\n.vs 40p\n.EQ\n{a + b} over {c + d} = sqrt {x sup 2 + 1} + {x + 1} bar + y under + left ( {1 over 2} right )\n.EN\n'; } >"$tmp/bars.tr"
 with_timeout 120 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; eqn < bars.tr | troff -mbook > bars.out; eqn < bars.tr | troff -mbook | tr2pdf > bars.pdf; { echo .rules 0; eqn < bars.tr } | troff -mbook | tr2pdf > glyphs.pdf" </dev/null >/dev/null 2>&1
 if [ "$(grep -c '^DP' "$tmp/bars.out")" -ge 5 ] && ! grep -q 'uni23AF\|⎯\|^c_\|^Cul' "$tmp/bars.out"; then
     echo "PASS: eqn's bars drawn, not set as glyphs"

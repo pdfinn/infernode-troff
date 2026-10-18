@@ -1657,6 +1657,12 @@ otf_offsettable(base: int, off: int): int
 	otf_hmtx(otf, otf_table(otf, "hmtx"));
 	if(!mkfn_font(otf.name))
 		return 0;
+	if(mathout){
+		if(trname != nil)
+			mathfont = trname;
+		math_write(otf);
+		return 0;
+	}
 	for(i = 0; i < glyph_n; i++){
 		code := glyph_code[i];
 		if(code == 16rffff)

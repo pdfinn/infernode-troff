@@ -17,13 +17,19 @@ to read in InferNode's document views.
 | `refer` | Citations by key from BibTeX's and refer's databases; with `-S chicago`, the *Chicago Manual of Style*'s notes and bibliography (18th edition) | Neatrefer, translated, with a BibTeX reader and styles of its own |
 | `tr2pdf` | Troff's output as PDF: OpenType fonts embedded, subset to the glyphs used, compressed, with ToUnicode maps (text can be searched and copied) | Neatpost's PDF writer, translated |
 | `mkfn` | Font descriptions for troff from OpenType, TrueType and AFM fonts, with each glyph's bounding box (CFF's too) | Neatmkfn, translated |
+| `tr2img` | A page of troff's output painted as the document views paint them (its fonts, drawings and images), as a PPM image | |
 | `mkindex` | A book's index from troff's output: makeindex's entries, sorted word by word as the *Chicago Manual* sorts, Greek and accents included | |
 | `book2tex` | A book written with `-mbook` as LaTeX, for LuaLaTeX, for a publisher who wants it | |
 | `book` | Runs them: refer, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
 
 `troff`, `eqn`, `tbl`, `pic`, and `refer` without a style, write what
 the C programs they came from write, byte for byte, but where those
-loop for ever or crash; `tr2pdf -c` and `mkfn -c` do too.
+loop for ever or crash; `tr2pdf -c` and `mkfn -c` do too. Troff's, on
+a device with no `sizescale`: `devutf`'s `sizescale 100` keeps sizes in
+hundredths of a point (groff's scaled points), so its output's sizes are
+`s1100` for 11 points, and a size an expression makes (eqn's spaces) is
+not rounded to a whole point; with only whole sizes, its pages are
+otherwise Neatroff's.
 Without `-c` those two differ where troff and its readers are better
 served (their commits list how).
 
@@ -42,9 +48,12 @@ LaTeX without being LaTeX.
 | `.title`, `.subtitle`, `.author`, `.date`, `.maketitle` | `\title`, ..., `\maketitle` |
 | `.frontmatter`, `.mainmatter`, `.backmatter` | the same |
 | `.part "Title"` | `\part{Title}` |
-| `.chapter "Title" [label]` | `\chapter{Title}\label{label}` |
+| `.chapter "Title" [label] ["Short"]` | `\chapter[Short]{Title}\label{label}` |
 | `.chapter* "Title"` | `\chapter*{Title}` |
-| `.section "Title" [label]`, `.subsection` | `\section`, `\subsection` |
+| `.section "Title" [label]`, `.subsection`, `.subsubsection` | `\section`, `\subsection`, `\subsubsection` |
+| `.list 1` (or `a`, `i`) ... `.item` ... `.endlist` | `enumerate` with `\item` |
+| `.list` (or `bullet`, `dash`) ... `.item` ... `.endlist` | `itemize` with `\item` |
+| `.image file [width [height]]` | `\includegraphics[width=...,height=...]{file}` |
 | a blank line, or `.p` | a paragraph |
 | `.quote` ... `.endquote` | `quotation` |
 | `.epigraph` ... `.attrib "Source"` `.endepigraph` | `\epigraph{...}{Source}` |
@@ -61,6 +70,9 @@ LaTeX without being LaTeX.
 | `.EQ` ... `.EN`; `.EQ (1.1)` | `\[...\]`; `equation` with `\tag{1.1}` |
 | `.TS` ... `.TE` | `tabular` (in a `table`) |
 | `.PS` ... `.PE` | `picture` (or TikZ) |
+| `.figure [label]` ... `.caption "Text"` `.endfigure` | `figure` with `\caption` and `\label` |
+| `.table [label]` ... `.caption "Text"` `.endtable` | `table` with `\caption` and `\label` |
+| `.listoffigures`, `.listoftables` | `\listoffigures`, `\listoftables` |
 | `\fI...\fP`, `\fB...\fP` | `\emph{...}`, `\textbf{...}` |
 
 A footnote's mark follows the text before it: end that line with `\c`
@@ -79,8 +91,11 @@ change it before the first text:
 
 Chapters open on right-hand pages, with no running head and their folio
 at the foot; the running heads are the book's title on the left, the
-chapter's on the right. Footnotes are numbered in each chapter. Endnotes
-are gathered under their chapters' names for `.notes`.
+chapter's on the right. A numbered chapter's sections are numbered in
+it (1.1, 1.1.1), in their headings as in the contents and references,
+as LaTeX's book class numbers them; those of the front matter and of an
+unnumbered chapter are not. Footnotes are numbered in each chapter.
+Endnotes are gathered under their chapters' names for `.notes`.
 
 Footnotes are set at the foot of their marks' pages, in order:
 - A note too long for the room left is begun there if three of its
@@ -128,6 +143,35 @@ advances, and says by how much (`x X mtx 15`, thousandths) for tr2pdf,
 which draws their shapes as scaled (`Tz`), each where troff put it.
 With `.mtp 0` and `.mte 0`, the defaults, troff sets as C Neatroff does.
 
+## Lines: a paragraph broken whole
+
+`-mbook` breaks a paragraph into lines as TeX does, choosing all its
+breaks at once, and lets a line's spaces shrink as well as stretch, so a
+line need not be broken short and stretched to the margin:
+
+    .ad pb                       \" justified, each paragraph's breaks chosen whole
+    .ssh 33                      \" a space may shrink by a third, as TeX's may
+    .hycost 300 3000             \" a hyphen costs as a loose line; a second in a row, ten times
+    .hlm 3                       \" never four in a row
+    .ss 12 0                     \" one space after a sentence, not two
+
+Each environment has its own (the text, the notes, quotations), so
+`book-fill` sets them in each. Measured on 180 pages of this tree's
+prose (`docs/*.md`), set as `book -f` sets it and by LuaLaTeX with
+microtype:
+
+| | mean space | 95th percentile | lines looser than 0.5 em | lines hyphenated | two in a row |
+|---|---|---|---|---|---|
+| line by line (`.ad b`), as before | 0.34 em | 0.48 em | 137 | 30% | 333 |
+| as now | 0.27 em | 0.38 em | 21 | 10% | 32 |
+| LuaLaTeX, microtype | 0.28 em | 0.35 em | 25 | 8% | 28 |
+
+Line by line, troff could break only where the words fitted, never
+shrink, so its spaces stretched by half on average and nearly a third
+of its lines ended in a hyphen. Whole paragraphs cost little time: a
+book of 444 pages with notes on every page took 3% longer, and came to
+431 pages.
+
 ## Widows and orphans: `.wo`
 
 A paragraph is broken by a page only with two lines at least on either
@@ -140,6 +184,42 @@ lines are set only when what follows them is known, and a note that
 moves the foot up is allowed for. `-mbook` sets it in drafts as in the
 book as it goes to press, so the two break their pages alike. With
 `.wo 0`, the default, troff sets as C Neatroff does.
+
+## Pages flush at the foot
+
+Keeping a heading with its text, or a widow or orphan from a page,
+leaves the page a line or more short. LaTeX's book class sets every
+page's text to end at the same place (`\flushbottom`), spreading what a
+page lacks through it; `-mbook` does the same through tr2pdf. The
+macros say where space may stretch, and where a page's text ends and a
+full page's would:
+
+    x X vstretch 100             \" the space after this line may stretch, by 1 point (weight)
+    x X vfoot 58600 1400         \" the text ends; a full page's last baseline, its spacing
+
+`-mbook` marks the space between paragraphs (1 point), before a section
+(4) and a subsection (3), after a heading (1), and about quotations,
+epigraphs, displayed equations, tables and pictures (3). A page's lack
+goes to those points first, each taking as much as its weight in
+proportion; then to its lines, a seventh of their spacing each at
+most; anything left goes to the points again, beyond their weights, as
+TeX gives what its glue cannot stretch to the glue that stretches. A
+gap's space goes to what is set below its middle, after it: not to a
+subscript of the line above, nor to a table's rule under its last row.
+A picture, a displayed equation and a table move whole: their rows are
+not lines to stretch between. What follows the text (notes, the folio,
+the running heads) stays where it was set, and links, destinations and
+bookmarks move with the text.
+
+A preprocessor that sets a title over its display keeps them together
+with the register `book-keep`: set, the next display's space above it
+does not stretch (`wwb/tableau` sets it over its countermodels' tables). A chapter's last page, a page broken by `.bp`, one set in
+columns or short by more than five lines stays as set. Of a book of 444
+pages, those ending short went from 47% to 27%, all chapters' ends, as
+LaTeX's 26%.
+
+tr2pdf writes each page's vertical places as placeholders and gives
+them at its end, so a page's plan costs nothing until it is known.
 
 ## The index: `.index` and `mkindex`
 
@@ -192,6 +272,69 @@ put it. Each page's folio (`x X folio`) gives its label and its
 destination for the index (`pg-` and the folio). `mkindex -l`, as
 `book` runs it, writes each page as a link (`\*[book-pl folio shown]`).
 
+## Heard as well as read: a tagged PDF (PDF/UA-1)
+
+`book`'s PDF is tagged, for those who hear it read (a screen reader) or
+have it reflowed: its structure is the book's, in reading order, and it
+claims PDF/UA-1 (ISO 14289-1). veraPDF finds it conforms.
+- **Structure.** The title page, headings (`H1` for the title, each
+  chapter, the contents, notes, bibliography and index; `H2` and `H3`
+  for sections), paragraphs, quotations and epigraphs (`BlockQuote`),
+  footnotes and endnotes (`Note`, each with its ID, a note continued on
+  the next page one note), the contents (`TOC`, each line a `TOCI`),
+  the bibliography's entries, the index (`Index`).
+- **Equations.** Each a `Formula`, described in words as a screen
+  reader would speak it (`x sup 2 + y sub i sup 2` is "x squared plus
+  y sub i squared"; `{-b +- sqrt {b sup 2 - 4ac}} over 2a` "the
+  fraction with numerator minus b plus or minus the square root of b
+  squared minus 4 a c, end root, and denominator 2 a"; limits,
+  integrals, functions, cases and matrices read as ClearSpeak reads
+  them), `set speech 1` in eqnrc; without it, by its eqn as written.
+  A display is a block of its own.
+- **Tables.** Each a `Table` of rows (`TR`) of cells (`TD`); the rows
+  above the first rule, if rows follow it, headings (`TH`, `Scope`); a
+  cell spanning columns says so (`ColSpan`); a text block (`T{ T}`) is
+  its cell's.
+- **Pictures.** Each a `Figure`, described by `.alt "text"` before
+  `.PS`. One with none is said (`book: a picture with no .alt`), and the
+  PDF is tagged but no longer claims PDF/UA: what a picture shows is
+  for its author to say.
+- **Links.** Each a `Link` element, its annotation its object, described
+  by the text it is on (`1.1 The Argument of the Good 2`).
+- **Not read.** Running heads, folios, the notes' rule, a table's
+  rules: artifacts.
+- **Language and title.** `en`, or the string `book-lang`; the title
+  shown as the window's, and in the metadata (XMP).
+
+The tags are troff's device controls, as the links are: `x X tag P`
+begins a paragraph, `x X tag push Note fn-3` a note in it, `x X tag
+pop` ends it (tr2pdf(1) has them all). `-mbook` gives them with
+`.dv` once the text before has gone out, after a break; in a diversion
+(a note waiting for its page's foot, the endnotes gathered, the index
+before it is set in columns) the tag is kept there (`\!`) and given
+when the diversion goes out, so a tag lands where its text is set, not
+where it was written. eqn and tbl, given `-t` (as `book` gives it),
+put theirs inline (`\X`), in the line with the equation or the row.
+Without it their output stays Neateqn's and Plan 9's, byte for byte.
+
+tr2pdf builds the structure tree from them, marks each glyph and line
+with its element's MCID (or as an artifact) and writes the parent tree,
+the IDs' tree, `MarkInfo`, `Lang`, `DisplayDocTitle` and the metadata.
+Marked content is kept out of text objects: tr2pdf now begins a text
+object (`BT`) when text is set and ends it for what is drawn, where
+Neatpost drew within one. troff's output with no `x X tag` is a PDF
+with no structure, as before; `-c` writes Neatpost's whatever it is
+given.
+
+Where a note falls: a note is set at its page's foot, so it is in the
+structure where its paragraph was when the foot came, a `Note` inside
+that `P`. `-ms` and `-man`
+documents are not yet tagged; their equations and tables are, through
+`eqn -t` and `tbl -t`.
+
+`tests/host/tagged_test.sh` checks a book's structure, its marking and
+parent tree, its links' descriptions, and (where veraPDF is) PDF/UA-1.
+
 ## Citations: `refer -S chicago`
 
 Works are cited by their keys, from a BibTeX database (`works.bib`) or
@@ -199,12 +342,26 @@ refer's. The first citation of a work in a chapter is its full note,
 later ones the short note; up to three authors are named in a note (the
 first and *et al.* past that), up to six in the bibliography (three and
 *et al.* past that); page ranges are abbreviated as the Manual
-abbreviates them (101–8, 321–28, 1496–1504). Kinds of work: books
+abbreviates them (101–8, 321–28, 1496–1504). The bibliography is in the
+Manual's order: by the first author's name; a work by that author alone
+before those written with others, and those by the others' names, in
+order; then by title. Kinds of work: books
 (author, editor or both, translator, edition, volume, series), chapters
 in edited books, articles (with DOIs), theses, other works, and
 classical works cited by their parts (`entrysubtype = {classical}`:
 Homer, *Iliad* 1.1–5). See `appl/cmd/refer/style/chicago.b` for its
 rules and `tests/refer/` for examples.
+
+An article or a chapter cited whole is given its pages the first time,
+a chapter its number (*chap. 2 in*), a month its name, as
+biblatex-chicago gives them. Options follow the style's name, as
+biblatex's do (`book -S chicago,british,nodoi`):
+
+| Option | |
+|---|---|
+| `british` | titles in single quotation marks, quotations within them double, the punctuation after the marks (biblatex with British English) |
+| `nodoi` | no DOI (biblatex's `doi=false`) |
+| `nourl` | no URL (`url=false`) |
 
 A style is a module (`module/referstyle.m`): another is a file of its
 own under `appl/cmd/refer/style`.
@@ -223,12 +380,84 @@ groff's additions), and set by TeX's rules:
     .EN
 
 `book` runs eqn when a book has equations, after
-`/lib/troff/eqnrc`: its settings for Libertinus Math. Brackets (`left (`
+`/lib/troff/eqnrc`: its settings for Libertinus Math (by hand, `eqn
+/lib/troff/eqnrc - <doc`: eqn reads the files it is given in order, `-`
+its standard input, where Neateqn read only its standard input and
+ignored a file named). Brackets (`left (`
 ... `right )`) take the font's larger sizes, then are built from its
 pieces; radicals likewise; a displayed sum, product or integral is the
 font's display size, an inline one the text size with its limits beside
 it (`ifdisplay` and `set text_limits 1`, which eqn has beyond Neateqn).
 A display is centred, its label at the right on its baseline.
+
+eqnrc gives eqn Libertinus Math's own parameters, from the font's MATH
+table, where TeX's for Computer Modern were: scripts 80% of the text's
+size and their scripts 60% (`set script_percent_scale_down`, beyond
+Neateqn: it made each 7/10 of the one above, a superscript of 11 points
+7), the shifts of superscripts and subscripts, fractions' numerators and
+denominators, the axis, rules and the gaps about a sum's limits. The
+names of functions (`sin`, `cos`, `log`, `lim` ...) are operators, as
+TeX's: `a cos theta` is set with a thin space between `a` and `cos`, not
+as `acos`. An integral's limits are beside it, as TeX sets them
+(`nolimits`, beyond Neateqn), and `book2tex` writes `\int_0^\infty`, not
+`\int\limits`.
+A superscript on a letter is raised from the letter's baseline, not
+from its top less a drop, as TeX's rule 18a has it (`set
+tex_script_drop 1`); a fraction's numerator and denominator keep the
+font's gaps from its bar, larger in a display (`set fraction_gap` and
+`set fraction_display_gap`).
+
+Set against XeLaTeX (`unicode-math`, Libertinus Math, 11 points) on
+displays known to be hard (`tests/eqn/hard.ms`: continued fractions,
+nested and indexed radicals, Euler–Maclaurin, Vandermonde and Hessian
+matrices, cases, aligned systems, braces, towers of scripts), eqnrc's
+settings put each part where TeX puts it, to a fraction of a point:
+matrices as TeX's arrays, each column its own width and each row its
+own height (`set tex_arrays 1`); scripts within the font's limits
+(`set sub_superscript_gap_min` and the rest); an integral's lower limit
+under its tail by its italic correction (`type op icorr`); fractions'
+parts in TeX's styles (`set tex_fractions 1`), so a fraction in an
+exponent is in scriptscript size, `displaystyle` for `\dfrac` and
+`\cfrac`; `{}` an ordinary atom, as TeX's (`set tex_atoms 1`); capital
+Greek upright; letters in the font's maths italic, 𝑥 not *x*, with
+their italic correction before a parenthesis (`set math_italic 1`);
+accents the font's glyphs on each letter's top accent attachment, wider
+variants over more (`set tex_accents 1`, `accent`, `accentpos`), `bar`
+over one letter a macron, as `\bar`; delimiters' first sizes the math
+font's, as TeX's; operators and relations from the math font (`gsfont S`);
+radicals by the font's gaps, and `root n x` for an indexed one;
+`overbrace` and `underbrace`, the font's sizes or pieces; `n choose k`
+as `\binom` (the font's stack shifts, parentheses of TeX's delim1 and
+delim2); `strut` as `\strut`, so that a continued fraction written with
+one in each numerator is spaced as `\cfrac`'s; delimiters as
+TeX sizes them (`set delimiter_factor 901`). Its scripts are TeX's 8.8
+points and scriptscripts 6.6 (`set scaled_sizes 1`: the device's
+`sizescale 100` keeps sizes in hundredths of a point, as groff's scaled
+points). The 23 displays take 0.6 seconds, eqn, troff and tr2pdf, emu's
+start included; one XeLaTeX pass over 22 of them, its font cache warm,
+takes 0.8 (cold, 2). At a book's length XeLaTeX is faster (see Speed).
+In running text and between displays (`tests/eqn/text.ms`, set beside
+XeLaTeX's of `book2tex`'s LaTeX): an operator's limits are beside it in
+text (`lim` too: eqnrc's function names are braced, so that `from`
+finds an operator); displays lined up (eqn's `lineup`) are TeX's `\jot`
+apart, as `align`'s lines, and indented as the one with the `mark`, so
+that eqn's motion to the mark puts their signs one above the other; a
+display after a paragraph's line ending two ems short of it has less
+space above and below it, as TeX's `\abovedisplayshortskip` and
+`\belowdisplayshortskip` (troff's `\n[.n]`, classic troff's register,
+the text's length on the line set last, tells). `tests/host/mathtext_test.sh`
+checks these.
+
+What is the font's in all this is its MATH table's: `mkfn -M` writes
+it as eqn's settings (constants, maths italic glyphs and their italic
+corrections and accent attachments, accents, delimiters' and braces'
+sizes and pieces, big operators), and `/lib/troff/eqnrc` holds what it
+writes for Libertinus Math after TeX's own rules. Another OpenType math
+font is the same two commands (`mkfn -M`, and its description as S):
+Latin Modern Math, set so, puts the 23 displays where XeLaTeX with
+`\setmathfont{Latin Modern Math}` puts them.
+`tests/host/maths_test.sh` checks each against TeX's placement;
+`tests/host/sizescale_test.sh` checks troff's scaled sizes.
 
 Glyphs' heights and depths come from the fonts' descriptions: `mkfn`
 reads each glyph's bounding box from its outline, CFF's (Libertinus's)
@@ -250,6 +479,95 @@ thickness come from the glyph's bounding box: the character's own, or
 the one its `.char` gives it (eqnrc's rules are Libertinus Math's).
 eqn and tbl place the rules by those boxes, so each lands where its
 glyphs would have.
+
+## A thesis: the page, the notes, lists and images
+
+A doctoral dissertation written for XeLaTeX (A4, 12 points double
+spaced, notes in Chicago's style by biblatex, figures, 230 pages) was
+set with `-mbook` from its LaTeX, on the same page in the same face, to
+find what a real manuscript asks. Its chapters came out page for page
+as XeLaTeX sets them, in 12 seconds against XeLaTeX's 40 (three passes
+and biber). What it asked for:
+
+    .papersize a4                \" or a5, b5, letter; a size no page could be is refused
+    .nr book-recto 0             \" one-sided: a chapter on the next page
+    .nr book-ps 12               \" 12 points,
+    .nr book-vs 24p              \" double spaced,
+    .nr book-nps 10              \" its notes 10 points,
+    .nr book-nvs 12p             \" single spaced,
+    .nr book-tvs 14p             \" and its contents single spaced
+    .chapter "A Long Title" ch3 "Short"   \" Short its running head
+    .subsubsection "Title"       \" not numbered, not in the contents
+    .list 1                      \" or a, i, bullet, dash; lists nest
+    .item
+    The first.
+    .endlist
+    .alt "What the figure shows"
+    .image fig.jpg 5i 1.9i       \" a JPEG or a PNG, its width and height
+    .image plot.pdf 4i           \" a PDF's first page, in vectors
+
+A note within a note (`.fn` ... `.fe` inside one, as LaTeX's `\footnote`
+may be) is numbered after it, its mark in it, and set below it.
+A note's number is set full size and hung in the margin, the note's
+text at the text's margin, as Bringhurst sets them (`book-fnhang 0`
+raises it at the note's head instead). A word breaks with three
+letters at least after its hyphen. Long entries in the contents are
+filled short of their page's number and hung after their numbers,
+subsections further in than sections, as LaTeX sets them; a running
+head too long to sit beside its page's number is said, and the
+chapter's number set instead. `tr2pdf` places images (`x X image file
+w h`), and the document views paint them there (`tr2img` one page): a JPEG's data as it is, a PNG decoded, its alpha a soft mask, its
+palette an indexed colour space; a PDF's first page a form, its
+vectors and fonts as they were (pdfTeX's, LuaTeX's and Ghostscript's
+compressed object streams read); tagged, each is a Figure described by
+`.alt`. Two registers set a thesis as LaTeX's book class does by
+default: `book-plain` 1, no running heads and every page's number
+centred at its foot; `book-chlatex` 1, a chapter headed by
+"Chapter N" and its title below, both bold and at the left, at
+LaTeX's sizes for the text's (`\huge`, `\Huge`) and LaTeX's distances,
+stretched as the text's lines are from single spacing (`book-tvs`), and
+its line in the contents bold, its number with no stop, no leaders. For a
+one-sided thesis, `book-oneside` 1 puts the binding margin on the left
+of every page and heads every page with its chapter, its number at the
+right (LaTeX's `oneside`); `.ds book-adj pl` sets the text ragged
+right, its lines still broken a paragraph at a time.
+`tests/host/manuscript_test.sh` checks each of these.
+
+## Figures and tables that float
+
+A picture or table may be put in a figure or a table, with a caption,
+to be set where it fits, as LaTeX's environments are:
+
+    .figure flow                 \" a figure, labelled flow
+    .alt "Three boxes joined by arrows"
+    .PS
+    box "read"; arrow; box "parse"; arrow; box "set"
+    .PE
+    .caption "How a document flows."
+    .endfigure
+
+The caption is numbered in its chapter (Figure 3.2, Table 3.1; in the
+order written), and set below what it follows or above what it
+precedes: a table's usually first. `\*[ref flow]` is its number,
+`\*[pageref flow]` the page it is set on. `.listoffigures` and
+`.listoftables` list them, each entry a link to its caption.
+
+What is between `.figure` and `.endfigure` is set in an environment of
+its own, so a figure written in a paragraph leaves the paragraph whole.
+It is set where it is written if nothing is waiting and it fits there,
+between paragraphs; written in a paragraph, after the paragraph if it
+fits then (as near to LaTeX's `[h]` as a paragraph not broken for it
+can be); otherwise it waits for the top of the next page,
+where as many as take seven tenths of the page are set, the first
+whatever its size, in their order. Any still waiting when a chapter
+ends are set before it ends. On a test of four figures and a table,
+LaTeX set each on the same page but one, which troff set a page later.
+
+Tagged, each is a `Div` of its `Caption` and its `Figure` or `Table`.
+`book2tex` writes `figure` and `table` (`[tbp]`, `\centering`) with
+their `\caption` and `\label`.
+`tests/host/floats_test.sh` checks each of these, and the LaTeX set by
+LuaLaTeX where it is installed.
 
 ## Fonts
 
@@ -319,6 +637,29 @@ remains is Dis's: reference counting on every pointer copied, frames
 made and returned from (together a fifth of the time), allocation and
 freeing (an eighth), and calls.
 
+Mathematics at length is where LaTeX is still faster. A generated
+(`tools/mathbook.py`)
+245-page book, 30 chapters of text with 1,440 inline equations and the
+23 hard displays set 360 times (numbered), takes `book` 14.7 seconds
+from nothing (two passes of eqn and troff, then tr2pdf); its LaTeX
+from `book2tex` takes XeLaTeX 2.4 seconds a pass and LuaLaTeX 5.8,
+their font caches warm (LuaLaTeX's first run, building its cache, 30
+more). A pass of ours: eqn 1.0 seconds, troff 5.6 (the same text
+without its mathematics 1.9 for its 186 pages), tr2pdf 1.8. Where it
+goes:
+- eqn's output is 7.4 MB of requests for 447 KB of source (125 lines
+  and 25 `\w` an equation): troff measures a box by setting it (`\w`),
+  so each level of an equation sets again what is in it, where TeX adds
+  up dimensions it has. Measuring boxes is 1.6 seconds of troff's 5.6.
+- tr2pdf's deflate, in Limbo, is two thirds of its time; level 1 for
+  6 saves a fifth of it for a file a sixth larger.
+- book ran the preprocessors (refer, pic, tbl, eqn) again for every
+  pass of troff; they now run once (17.2 seconds to 14.7).
+
+The 23 displays alone (`tests/eqn/hard.ms`) take 0.6 seconds, emu's
+start included, where XeLaTeX's start is most of its 0.8: the
+difference is the start, not the setting.
+
 Profiling compiled code: `prof` counts the interpreter's instructions,
 and is no guide to where compiled code spends its time. Sample the
 emulator's program counter (ptrace) instead, run with `-c5` so that the
@@ -357,6 +698,12 @@ eqn's equations become LaTeX's mathematics:
   limits), `left` and `right`, `pile`, `matrix`, accents, fonts and
   defines.
 - `.EQ (1.1)` is numbered with `\tag`.
+- A display with `mark` and those right after it with `lineup` are one
+  `align`, `&` where eqn marks and lines up, each line its `\tag` (or
+  `\notag`); a two-column `matrix` with its columns pulled together
+  (`matrix -100 { rcol ... lcol ... }`) is `aligned`.
+- `choose` is `\binom`, `strut` `\strut`; eqnrc's names (`nabla`,
+  `hbar`, `cdots`, `oint`, `oiint`, `bigoplus` and the rest) LaTeX's.
 - An equation between `delim`'s characters is inline.
 
 tbl's tables become `tabular`s, with their rules, spans and text
@@ -395,7 +742,31 @@ The toolchain's own pages are `troff(1)`, `eqn(1)`, `tbl(1)`, `pic(1)`,
 `refer(1)`, `tr2pdf(1)`, `mkfn(1)`, `book(1)` (with `book2tex` and
 `mkindex`) and `troff(6)`, the macro packages.
 
-## Still to come
+## Speed: what was done, and what was left
 
-Nothing on the list. A test book like the one this was made for
-(its notes, index, tables, equations and Greek) is the next measure.
+troff's pass over `tools/mathbook.py`'s 245 pages now takes 6.0 seconds
+of CPU, not 7.3 (one CPU), its output byte for byte as before: eqn
+chooses a delimiter's size by the heights mkfn -M writes
+(`bracketheights`), not by having troff set every size, so its output
+is 6.2 MB, not 8.0; troff reads a file whole, uses again the buffers
+pushed for strings, makes a word's buffer small and grows it, copies a
+string's plain runs at once in `.ds` and `.as`, and finds two-character
+names in a table. A rebuild after an edit is one pass (book stops when
+the aux file does not change).
+
+Measured and left, as worth less than they would cost:
+- eqn keeping each box's width, height and depth, as TeX does, not
+  having troff set a box to measure it (`\w`): at most 0.9 seconds a
+  pass, a large rewrite, and placement would move (troff could no
+  longer kern across boxes).
+- Deflate in C: 0.77 seconds of tr2pdf's 1.97, about 5% of a book; a
+  change to emu on every platform.
+- What remains of troff's time is Dis's: reference counting, frames and
+  returns (18%, the JIT's macros) and allocation (a quarter, emu's pools
+  and libc). Sampling compiled code: run emu with `-c5`, which prints
+  each module's code base, each Dis instruction's end offset and the
+  macros', sample the busy thread's program counter (ptrace), and map
+  the samples through the module's `.sbl`.
+
+A test book like the one this was made for (its notes, index, tables,
+equations and Greek) is the next measure.

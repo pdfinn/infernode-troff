@@ -55,6 +55,46 @@ NSIZES: con 16;
 
 # registers neateqn uses
 EQNSZ: con ".eqnsz";	# the point size around
+
+# sizes in points or (set scaled_sizes 1) in the device's scaled points
+# (its sizescale to a point, troff's z): a size's unit in \\s and .ps,
+# the unit of a size in an expression, the size around, as copied and as
+# read when output
+SZU(): string
+{
+	if(e_scaledsz)
+		return "z";
+	return "";
+}
+
+SZP(): string
+{
+	if(e_scaledsz)
+		return "z";
+	return "p";
+}
+
+CURSZ(): string
+{
+	if(e_scaledsz)
+		return "\\n[.ps]";
+	return "\\n(.s";
+}
+
+ECURSZ(): string
+{
+	if(e_scaledsz)
+		return "\\En[.ps]z";
+	return "\\En(.s";
+}
+
+# a size in points (a number) as a size register holds it
+ptsz(n: string): string
+{
+	if(e_scaledsz && n != nil && n[0] >= '0' && n[0] <= '9')
+		return "(" + n + "p/1z)";
+	return n;
+}
 EQNFN: con ".eqnfn";	# the font around
 EQNS: con "10";		# the line an inline equation is collected in
 EQNMK: con ".eqnmk";	# the horizontal mark
@@ -103,12 +143,14 @@ TS_DX(s: int): int	{ return s == TS_D || s == TS_D0; }
 EQN_TSMASK: con 16r00ffff;
 EQN_SUB: con 16r020000;
 EQN_FROM: con 16r040000;
+EQN_NOLIM: con 16r080000;	# no from or to of its own: a brace's, its label
 
 stdout: ref Iobuf;
 
 gfont := "2";
 grfont := "1";
 gbfont := "3";
+gsfont := "";		# operators', relations', brackets' and punctuation's (gsfont); "", grfont
 gsize := "\\n[" + EQNSZ + "]";
 eqn_lineup := "";	# the lineup's horizontal motion
 eqn_lineupreg := 0;	# the register of its width
@@ -118,6 +160,7 @@ include "src.b";
 include "tok.b";
 include "def.b";
 include "box.b";
+include "speak.b";
 
 init(nil: ref Draw->Context, args: list of string)
 {
@@ -133,6 +176,10 @@ init(nil: ref Draw->Context, args: list of string)
 		a := hd args;
 		if(len a < 2 || a[0] != '-')
 			break;
+		if(a == "-t"){
+			tagging = 1;
+			continue;
+		}
 		if(a[1] == 'c'){
 			v: string;
 			if(len a > 2)
@@ -143,14 +190,17 @@ init(nil: ref Draw->Context, args: list of string)
 			}
 			def_choppedset(u8(v));
 		}else{
-			sys->fprint(sys->fildes(2), "usage: eqn [options] <input >output\n\n" +
+			sys->fprint(sys->fildes(2), "usage: eqn [options] [file ...] >output\n\n" +
 				"options:\n" +
-				"  -c chars  \tcharacters that chop equations\n");
+				"  -c chars  \tcharacters that chop equations\n" +
+				"  -t        \teach equation tagged, for a tagged PDF\n");
 			raise "fail:usage";
 		}
 	}
 	def_init();
 	src_init(bufio->fopen(sys->fildes(0), Bufio->OREAD));
+	if(args != nil)
+		src_files(args);
 	stdout = bufio->fopen(sys->fildes(1), Bufio->OWRITE);
 	{
 		for(i := 0; i < len def_macros; i += 2)
@@ -158,8 +208,9 @@ init(nil: ref Draw->Context, args: list of string)
 		while(!tok_eqn()){
 			reg_reset();
 			eqn_mk = 0;
+			src_capreset();
 			tok_pop();
-			printf(".nr " + EQNSZ + " \\n(.s\n");
+			printf(".nr " + EQNSZ + " " + CURSZ() + "\n");
 			printf(".nr " + EQNFN + " \\n(.f\n");
 			eqn_lineupreg = nregmk();
 			style := TS_D;
@@ -169,7 +220,7 @@ init(nil: ref Draw->Context, args: list of string)
 			printf(".nr MK " + string eqn_mk + "\n");
 			if(!box_empty(box)){
 				tok_eqnout(eqn_lineup + box_toreg(box));
-				printf(".ps \\n" + escarg(EQNSZ) + "\n");
+				printf(".ps \\n" + escarg(EQNSZ) + SZU() + "\n");
 				printf(".ft \\n" + escarg(EQNFN) + "\n");
 			}
 			printf(".lf " + string src_lineget() + "\n");
@@ -287,13 +338,32 @@ eqn_boxuntil(box: ref Box, sz0: int, fn0: string, delim: string): int
 	return 0;
 }
 
+# a style's size, as a percentage of the text's (the font's, if set)
+scriptpct(sz: int): int
+{
+	if(sz == 0)
+		return 100;
+	if(sz == 1)
+		return e_scriptpct;
+	if(e_scriptscriptpct)
+		return e_scriptscriptpct;
+	return e_scriptpct * e_scriptpct / 100;
+}
+
 # a subscript's size
 sizesub(dst, src, style, src_style: int)
 {
-	if(TS_SZ(style) > TS_SZ(src_style)){
+	if(TS_SZ(style) > TS_SZ(src_style) && e_scriptpct){
+		# the font's percentages of the text's size, rounded
+		d := scriptpct(TS_SZ(style));
+		s := scriptpct(TS_SZ(src_style));
+		printf(".nr " + nregname(dst) + " (" + nreg(src) + "*" + string d + "+" + string (s / 2) + ")/" + string s + "\n");
+		printf(".if " + nreg(dst) + "<" + ptsz(string e_minimumsize) + " .nr " +
+			nregname(dst) + " " + ptsz(string e_minimumsize) + "\n");
+	}else if(TS_SZ(style) > TS_SZ(src_style)){
 		printf(".nr " + nregname(dst) + " " + nreg(src) + "*7/10\n");
-		printf(".if " + nreg(dst) + "<" + string e_minimumsize + " .nr " +
-			nregname(dst) + " " + string e_minimumsize + "\n");
+		printf(".if " + nreg(dst) + "<" + ptsz(string e_minimumsize) + " .nr " +
+			nregname(dst) + " " + ptsz(string e_minimumsize) + "\n");
 	}else
 		printf(".nr " + nregname(dst) + " " + nreg(src) + "\n");
 }
@@ -334,6 +404,92 @@ eqn_bracketsizes()
 			sizes[i] = cut(size, BRLEN);
 	}
 	def_sizesput(sign, sizes);
+}
+
+# bracketheights sign n h ...: the heights of a bracket's sizes' ink,
+# in thousandths of an em, so that troff need not set each to measure it
+eqn_bracketheights()
+{
+	sign := cut(tok_quotes(tok_poptext(1)), BRLEN);
+	n := atoi(tok_poptext(1));
+	hts := array[n] of int;
+	for(i := 0; i < n; i++)
+		hts[i] = atoi(tok_quotes(tok_poptext(1)));
+	def_heightsput(sign, hts);
+}
+
+# accentpos n glyph pos ...: glyphs' top accent attachments
+eqn_accentpos()
+{
+	n := atoi(tok_poptext(1));
+	for(i := 0; i < n; i++){
+		gl := tok_quotes(tok_poptext(1));
+		def_accentposput(gl, atoi(tok_quotes(tok_poptext(1))));
+	}
+}
+
+# mathital n code glyph ...: the maths italic letters' glyphs
+eqn_mathital()
+{
+	n := atoi(tok_poptext(1));
+	for(i := 0; i < n; i++){
+		c := atoi(tok_quotes(tok_poptext(1)));
+		def_mathitalput(c, tok_quotes(tok_poptext(1)));
+	}
+}
+
+# italcorr n glyph value ...: glyphs' italic corrections
+eqn_italcorr()
+{
+	n := atoi(tok_poptext(1));
+	for(i := 0; i < n; i++){
+		gl := tok_quotes(tok_poptext(1));
+		italcorrs = (gl, atoi(tok_quotes(tok_poptext(1)))) :: italcorrs;
+	}
+}
+
+# bracesizes over|under n glyph width ...; bracepieces over|under lt ltw
+# ex exw md mdw rt rtw overlap
+eqn_bracesizes()
+{
+	b := def_brace(tok_quotes(tok_poptext(1)) == "over");
+	n := atoi(tok_poptext(1));
+	l: list of (string, int);
+	for(i := 0; i < n; i++){
+		gl := tok_quotes(tok_poptext(1));
+		l = (gl, atoi(tok_quotes(tok_poptext(1)))) :: l;
+	}
+	for(b.sizes = nil; l != nil; l = tl l)
+		b.sizes = hd l :: b.sizes;
+}
+
+eqn_bracepieces()
+{
+	b := def_brace(tok_quotes(tok_poptext(1)) == "over");
+	b.lt = tok_quotes(tok_poptext(1));
+	b.ltw = atoi(tok_quotes(tok_poptext(1)));
+	b.ex = tok_quotes(tok_poptext(1));
+	b.exw = atoi(tok_quotes(tok_poptext(1)));
+	b.md = tok_quotes(tok_poptext(1));
+	b.mdw = atoi(tok_quotes(tok_poptext(1)));
+	b.rt = tok_quotes(tok_poptext(1));
+	b.rtw = atoi(tok_quotes(tok_poptext(1)));
+	b.ov = atoi(tok_quotes(tok_poptext(1)));
+}
+
+# accent name n glyph pos width ...: an accent's glyph, then its wider
+# variants
+eqn_accent()
+{
+	name := tok_quotes(tok_poptext(1));
+	n := atoi(tok_poptext(1));
+	vars := array[n] of Accvar;
+	for(i := 0; i < n; i++){
+		vars[i].gl = tok_quotes(tok_poptext(1));
+		vars[i].pos = atoi(tok_quotes(tok_poptext(1)));
+		vars[i].wd = atoi(tok_quotes(tok_poptext(1)));
+	}
+	def_accentput(name, vars);
 }
 
 eqn_bracketpieces()
@@ -411,6 +567,10 @@ eqn_commands(): int
 		gbfont = tok_quotes(tok_poptext(1));
 		return 0;
 	}
+	if(!tok_jmp("gsfont")){
+		gsfont = tok_quotes(tok_poptext(1));
+		return 0;
+	}
 	if(!tok_jmp("gsize")){
 		sz := tok_quotes(tok_poptext(1));
 		if(sz != nil && (sz[0] == '-' || sz[0] == '+'))
@@ -428,12 +588,40 @@ eqn_commands(): int
 		eqn_bracketsizes();
 		return 0;
 	}
+	if(!tok_jmp("bracketheights")){
+		eqn_bracketheights();
+		return 0;
+	}
 	if(!tok_jmp("bracketpieces")){
 		eqn_bracketpieces();
 		return 0;
 	}
 	if(!tok_jmp("chartype")){
 		eqn_chartype();
+		return 0;
+	}
+	if(!tok_jmp("accentpos")){
+		eqn_accentpos();
+		return 0;
+	}
+	if(!tok_jmp("accent")){
+		eqn_accent();
+		return 0;
+	}
+	if(!tok_jmp("mathital")){
+		eqn_mathital();
+		return 0;
+	}
+	if(!tok_jmp("italcorr")){
+		eqn_italcorr();
+		return 0;
+	}
+	if(!tok_jmp("bracesizes")){
+		eqn_bracesizes();
+		return 0;
+	}
+	if(!tok_jmp("bracepieces")){
+		eqn_bracepieces();
 		return 0;
 	}
 	if(!tok_jmp("breakcost")){
@@ -447,11 +635,11 @@ eqn_commands(): int
 eqn_gaps(box: ref Box, szreg: int): int
 {
 	if(!tok_jmp("~")){
-		box_puttext(box, T_GAP, "\\h'" + string S_S3() + "u*" + nreg(szreg) + "p/100u'");
+		box_puttext(box, T_GAP, "\\h'" + string S_S3() + "u*" + nreg(szreg) + SZP() + "/100u'");
 		return 0;
 	}
 	if(!tok_jmp("^")){
-		box_puttext(box, T_GAP, "\\h'" + string S_S1() + "u*" + nreg(szreg) + "p/100u'");
+		box_puttext(box, T_GAP, "\\h'" + string S_S1() + "u*" + nreg(szreg) + SZP() + "/100u'");
 		return 0;
 	}
 	if(!tok_jmp("\t")){
@@ -467,6 +655,17 @@ tok_font(t: int, fnt: string): string
 		return fnt;
 	if(t == T_LETTER || t == T_STRING)
 		return gfont;
+	# digits from the math font, as unicode-math's (math_upright)
+	if(t == T_NUMBER && e_mathupright && gsfont != "")
+		return gsfont;
+	# a symbol from the math font, as TeX's: an operator, a relation,
+	# punctuation (not a bracket: troff's \\(lf and its kind name the
+	# pieces of tall ones in a math font, not the floor and ceiling)
+	case T_ATOM(t) {
+	T_BINOP or T_RELOP or T_PUNC =>
+		if(gsfont != "")
+			return gsfont;
+	}
 	return grfont;
 }
 
@@ -547,6 +746,112 @@ eqn_matrix(box: ref Box, sz0: int, fn0: string)
 				box_free(cols[i][j]);
 }
 
+# an accent as TeX sets it, from the font's glyphs (accent), if the
+# next is one eqnrc gives; bar over more than one glyph is an overline
+texaccent(box: ref Box): int
+{
+	tok_blanks();
+	name := tok_get();
+	vars := def_accent(name);
+	if(vars == nil || tok_type() != T_KEYWORD)
+		return 0;
+	(one, gl) := box_glyph(box);
+	if(name == "bar" && !one)
+		return 0;
+	tok_pop();
+	printf(".ft " + grfont + "\n");
+	box_texaccent(box, vars, one, gl);
+	return 1;
+}
+
+# a word's letters in Mathematical Italic (U+1D434 on): Latin, and
+# lower-case Greek (as troff's \\(*a or as UTF-8, a byte a character);
+# h is U+210E, Planck's constant, outside the block
+GREEKNM: con "abgdezyhiklmncoprstufxqw";	# troff's \\(*a to \\(*w, in order
+
+mathital_last: string;	# the last glyph mathital() put
+
+mathital(s: string): string
+{
+	r := "";
+	prevu := 0;
+	prevgl: string;
+	for(i := 0; i < len s; ){
+		c := s[i];
+		u := 0;
+		n := 1;
+		if(c >= 'a' && c <= 'z')
+			u = 16r1D44E + c - 'a';
+		else if(c >= 'A' && c <= 'Z')
+			u = 16r1D434 + c - 'A';
+		else if(c == '\\'){
+			# an escape whole: \\(*x Greek, mapped; others as they are
+			n = 2;
+			if(i + 1 < len s && s[i+1] == '(')
+				n = 4;
+			else if(i + 1 < len s && s[i+1] == '['){
+				for(n = 2; i + n < len s && s[i+n-1] != ']'; n++)
+					;
+			}else
+				n = len s - i;	# (one with an argument: the rest as it is)
+			if(n == 4 && i + 3 < len s && s[i+2] == '*')
+				for(k := 0; k < len GREEKNM; k++)
+					if(GREEKNM[k] == s[i+3]){
+						u = 16r1D6FC + k;
+						if(k >= 17)	# past rho: final sigma, at 03C2, comes before sigma
+							u++;
+					}
+			if(i + n > len s)
+				n = len s - i;
+		}else if(c == 16rCE && i + 1 < len s && s[i+1] >= 16rB1 && s[i+1] <= 16rBF){
+			u = 16r1D6FC + s[i+1] - 16rB1;
+			n = 2;
+		}else if(c == 16rCF && i + 1 < len s && s[i+1] >= 16r80 && s[i+1] <= 16r89){
+			u = 16r1D6FC + 15 + s[i+1] - 16r80;
+			n = 2;
+		}
+		if(u && r != nil && prevu)	# (TeX's: the letter before's italic correction)
+			r += icorr(prevgl);
+		# its glyph: the font's (mathital), else Libertinus Math's name
+		gl: string;
+		if(u){
+			pc := u - 16r1D44E + 'a';
+			if(u >= 16r1D6FC)
+				pc = u - 16r1D6FC + 16r3B1;
+			else if(u < 16r1D44E)
+				pc = u - 16r1D434 + 'A';
+			if(pc >= 0 && pc < len mathitals && mathitals[pc] != nil)
+				gl = mathitals[pc];
+			else if(pc == 'h' && mathitals['a'] != nil)
+				gl = nil;	# (the font has none)
+			else if(u == 16r1D455)	# h
+				gl = "uni210E";
+			else
+				gl = sys->sprint("u%X", u);
+		}
+		if(gl != nil)
+			r += "\\N'" + gl + "'";
+		else
+			r += s[i:i+n];
+		prevu = gl != nil;
+		prevgl = gl;
+		i += n;
+	}
+	mathital_last = prevgl;
+	return r;
+}
+
+# a capital Greek letter: troff's \(*A to \(*W, or U+0391 to U+03A9
+# (its UTF-8, a byte a character, as eqn reads it)
+ucgreek(s: string): int
+{
+	if(len s == 4 && s[0:3] == "\\(*" && s[3] >= 'A' && s[3] <= 'Z')
+		return 1;
+	if(len s == 2 && s[0] == 16rCE && s[1] >= 16r91 && s[1] <= 16rA9)
+		return 1;
+	return 0;
+}
+
 italic(fnt: string): int
 {
 	if(fnt == "I" || fnt == "2" || fnt == gfont)
@@ -607,6 +912,15 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			fnt = tok_poptext(1);
 		}else if(!tok_jmp("size")){
 			sz = box_size(box, tok_poptext(1));
+		}else if(!tok_jmp("displaystyle") || !tok_jmp("textstyle")){
+			# TeX's: what follows in a display's or text's style, in
+			# the equation's size
+			if(tok_prev == "displaystyle")
+				style = TS_D;
+			else
+				style = TS_T;
+			box.style = style;
+			sz = box_size(box, gsize);
 		}else if(!tok_jmp("fwd")){
 			dx += atoi(tok_poptext(1));
 		}else if(!tok_jmp("back")){
@@ -623,13 +937,47 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 		printf(".ft " + grfont + "\n");
 		box_sqrt(box, sqrt);
 		box_free(sqrt);
+	}else if(!tok_jmp("overbrace") || !tok_jmp("underbrace")){
+		# TeX's \\overbrace, \\underbrace (not Neateqn's): a big
+		# operator, its to (or from) its label
+		over := tok_prev == "overbrace";
+		inner := eqn_left(style | EQN_NOLIM, nil, sz, fnt);
+		printf(".ft " + grfont + "\n");
+		box_brace(box, inner, over);
+		box_free(inner);
+	}else if(!tok_jmp("root")){
+		# root n x: x's nth root, n in scriptscript style (TeX's
+		# \\sqrt[n]{x}; not Neateqn's)
+		degsz := nregmk();
+		sizesub(degsz, sz, TS_SS, style);
+		deg := eqn_left(TS_SS, nil, degsz, fnt);
+		sqrt := eqn_left(TS_MK0(style), nil, sz, fnt);
+		printf(".ft " + grfont + "\n");
+		box_root(box, deg, sqrt);
+		box_free(deg);
+		box_free(sqrt);
+		nregrm(degsz);
 	}else if(!tok_jmp("type")){
 		typ := typenum(tok_poptext(1));
+		# an operator's italic correction, for its subscript (box.b): type op icorr n
+		eqn_opic = 0;
+		if(!tok_jmp("icorr"))
+			eqn_opic = atoi(tok_poptext(1));
 		inner := eqn_left(flg, pre, sz, fnt);
 		inner.tbeg = inner.tcur = typ;
 		box_merge(box, inner, 1);
 		box_free(inner);
 		box.tcur = typ;
+	}else if(!tok_jmp("nolimits")){
+		# its from and to as scripts, as TeX's \nolimits (not Neateqn's):
+		# read where they are, within what follows
+		nolim0 := eqn_nolim;
+		eqn_nolim = 1;
+		inner := eqn_left(flg, pre, sz, fnt);
+		eqn_nolim = nolim0;
+		box_merge(box, inner, 1);
+		box.tcur = inner.tcur;
+		box_free(inner);
 	}else if(!tok_jmp("pile") || !tok_jmp("cpile")){
 		eqn_pile(box, sz, fnt, 'c');
 	}else if(!tok_jmp("lpile")){
@@ -651,8 +999,13 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			eqn_skip();
 		box_merge(box, inner, 0);
 		box_free(inner);
+	}else if(!tok_jmp("strut")){
+		# TeX's \\strut (a keyword under tex_fractions)
+		box_strut(box);
 	}else if(!tok_jmp("{")){
 		eqn_boxuntil(box, sz, fnt, "}");
+		if(e_texatoms && !box.atoms)	# TeX's {}: an ordinary atom
+			box_puttext(box, T_ORD, "\\&");
 	}else if(!tok_jmp("left")){
 		inner := box_alloc(sz, 0, style);
 		left = cut(tok_quotes(tok_poptext(0)), NMLEN);
@@ -669,10 +1022,20 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 	}else if(tok_get() != nil && tok_type() != T_KEYWORD){
 		if(dx || dy)
 			box_move(box, dy, dx);
-		box_putf(box, "\\s" + escarg(nreg(sz)));
+		box_putf(box, "\\s" + escarg(nreg(sz) + SZU()));
 		do{
 			cfn := tok_font(tok_type(), fnt);
-			box_puttext(box, tok_type() | italic(cfn), "\\f" + escarg(cfn) + tok_improve(tok_get()));
+			if(e_texgreek && fnt == nil && ucgreek(tok_get())){
+				cfn = grfont;
+				if(e_mathupright && gsfont != "")	# the math font's, as unicode-math's
+					cfn = gsfont;
+			}
+			txt := tok_improve(tok_get());
+			mathital_last = nil;
+			if(e_mathitalic && fnt == nil && cfn == gfont)
+				txt = mathital(txt);
+			box_puttext(box, tok_type() | italic(cfn), "\\f" + escarg(cfn) + txt);
+			box.lastgl = mathital_last;
 			chops := tok_chops(0);
 			tok_pop();
 			if(chops)	# what was read split it
@@ -682,6 +1045,8 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 			box_move(box, -dy, -dx);
 	}
 	while(tok_get() != nil){
+		if(e_texaccents && texaccent(box))
+			continue;
 		if(!tok_jmp("dyad")){
 			printf(".ft " + grfont + "\n");
 			box_accent(box, "\\(ab");
@@ -721,15 +1086,18 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 	}
 	if(sub_sub != nil || sub_sup != nil)
 		box_sub(box, sub_sub, sub_sup);
-	if(!tok_jmp("from")){
+	if(!(flg & EQN_NOLIM) && !tok_jmp("from")){
 		sizesub(subsz, sz0, ts_sub(style), style);
 		sub_from = eqn_left(ts_sub(style) | EQN_FROM, nil, subsz, fn0);
 	}
-	if((sub_from != nil || !(flg & EQN_FROM)) && !tok_jmp("to")){
+	if(!(flg & EQN_NOLIM) && (sub_from != nil || !(flg & EQN_FROM)) && !tok_jmp("to")){
 		sizesub(subsz, sz0, ts_sup(style), style);
 		sub_to = eqn_left(ts_sup(style), nil, subsz, fn0);
 	}
-	if((sub_from != nil || sub_to != nil) && e_textlimits && !TS_DX(style) && box.tcur == T_BIGOP){
+	nolim := eqn_nolim && (sub_from != nil || sub_to != nil);
+	if(nolim)
+		eqn_nolim = 0;	# the operator's own, not those of what follows it
+	if((sub_from != nil || sub_to != nil) && (nolim || e_textlimits && !TS_DX(style)) && box.tcur == T_BIGOP){
 		box_sub(box, sub_from, sub_to);
 	}else if(sub_from != nil || sub_to != nil){
 		inner := box_alloc(sz0, 0, style);
@@ -749,23 +1117,72 @@ eqn_left(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 	return box;
 }
 
+eqn_nolim := 0;		# a nolimits operator's from and to still to come
+eqn_opic := 0;		# the last operator's italic correction (type op icorr n)
+
 # a box
 eqn_box(flg: int, pre: ref Box, sz0: int, fn0: string): ref Box
 {
 	style := flg & EQN_TSMASK;
+	# TeX's styles for a numerator and denominator: the numerator, set
+	# before over is read, read again in its style if its size is not
+	# the style's around (tex_fractions)
+	m := -1;
+	nolim0 := eqn_nolim;
+	opic0 := eqn_opic;
+	if(e_texfrac)
+		m = tok_mark();
 	box := eqn_left(flg, pre, sz0, fn0);
-	while(!tok_jmp("over")){
+	first := 1;
+	# the registers of the sizes, kept while what is set in them is
+	numsz := -1;
+	densz := -1;
+	for(;;){
+		tok_blanks();
+		# choose: TeX's \\binom (a keyword under tex_fractions)
+		if(tok_type() != T_KEYWORD || tok_get() != "over" && tok_get() != "choose")
+			break;
+		choose := tok_get() == "choose";
+		numst := ts_num(style);
+		if(e_texfrac && first && TS_SZ(numst) != TS_SZ(style)){
+			tok_rewind(m);
+			eqn_nolim = nolim0;
+			eqn_opic = opic0;
+			box_free(box);
+			numsz = nregmk();
+			sizesub(numsz, sz0, numst, style);
+			box = eqn_left((flg & ~EQN_TSMASK) | numst, pre, numsz, fn0);
+		}
+		first = 0;
+		tok_pop();
 		sub_num := box;
-		sub_den := eqn_left(TS_MK0(style), nil, sz0, fn0);
+		sub_den: ref Box;
+		if(e_texfrac){
+			denst := ts_denom(style);
+			if(densz < 0)
+				densz = nregmk();
+			sizesub(densz, sz0, denst, style);
+			sub_den = eqn_left(denst, nil, densz, fn0);
+		}else
+			sub_den = eqn_left(TS_MK0(style), nil, sz0, fn0);
 		ptcur := 0;
 		if(pre != nil)
 			ptcur = pre.tcur;
 		box = box_alloc(sz0, ptcur, style);
 		printf(".ft " + grfont + "\n");
-		box_over(box, sub_num, sub_den);
+		if(choose)
+			box_choose(box, sub_num, sub_den);
+		else
+			box_over(box, sub_num, sub_den);
 		box_free(sub_num);
 		box_free(sub_den);
 	}
+	if(m >= 0)
+		tok_unmark();
+	if(numsz >= 0)
+		nregrm(numsz);
+	if(densz >= 0)
+		nregrm(densz);
 	return box;
 }
 

@@ -38,7 +38,9 @@ its language is Neatroff's, which is troff's with long names
 OpenType's features and kerning, a paragraph filled at once
 (as TeX fills one), and hyphenation by TeX's patterns
 (English and Ancient Greek here).
-For the same input and fonts its output is, byte for byte, Neatroff's.
+For the same input and fonts, on a device with no
+.B sizescale
+(below), its output is, byte for byte, Neatroff's.
 .PP
 Its preprocessors
 .IR eqn (1),
@@ -160,9 +162,24 @@ With
 not zero, a character no font has is said on the standard error
 (once), not dropped without a word.
 .TP
+.BI .imgsize " file"
+An image's size in pixels and its resolution in dots to the inch (0 if
+it says none), from its header (a PNG's, a JPEG's), or a PDF's first
+page's in tenths of a point (720 to the inch; its crop box, or media
+box), in the registers
+.BR imgw ,
+.B imgh
+and
+.BR imgres ;
+all 0 if it cannot be read.
+.TP
 .B \en[.pend]
 The lines the text not yet set will take, were the paragraph to end
 here.
+.TP
+.B \en[.n]
+Classic troff's: the length of the text on the line set last (not its
+indent).
 .TP
 .BI \eX'nr " name value" '
 Set the register
@@ -171,6 +188,28 @@ to
 .I value
 as the line it is in goes out (not when it is read): what is set on a
 page, known at the page's foot.
+.TP
+.BI sizescale " n"
+In a device's
+.BR DESC ,
+as groff's: sizes in
+.RI 1/ n
+points (scaled points), so that
+.B ".ps 8.8"
+and
+.B \es[8.8]
+are 8.8 points, not 9; the unit
+.B z
+is a scaled point,
+.B \en[.ps]
+the size in them, and
+.B \en(.s
+the size in whole points, as ever.
+Its output's sizes
+.RB ( s )
+are in scaled points.
+.BR devutf 's
+is 100.
 .PP
 A pair is kerned as its font kerns it, once: a font's kerning lookup
 that its scripts share is performed once, not once for each script.

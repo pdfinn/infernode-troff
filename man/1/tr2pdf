@@ -20,6 +20,8 @@ tr2pdf \- troff's output as PDF
 ] [
 .B -W
 ] [
+.B -u
+] [
 .B -c
 ] [
 .I file
@@ -34,7 +36,11 @@ or its standard input) and writes them as PDF.
 It embeds the fonts, OpenType (Libertinus's CFF) and TrueType, subset
 to the glyphs the document uses, compressed, each with a map from its
 glyphs to the characters they are, so that a reader can search and copy
-the text.
+the text; a glyph whose font description names no character (beyond
+U+FFFF, as a math font's alphabets) is the character its glyph name
+says by the Adobe Glyph List's rules
+.RB ( u1D465 ,
+.BR uni210E ).
 It is a translation of Ali Gholami Rudi's Neatpost; with
 .B -c
 it writes what Neatpost writes.
@@ -45,8 +51,16 @@ Besides the text and drawing, it reads troff's device controls
 .BI "papersize " w x h
 The page's size, in points.
 .TP
-.BI "pdf " "file height"
-Include a page of a PDF.
+.BI "pdf " "file w h"
+A PDF's first page as a form, scaled to
+.I w
+by
+.I h
+(troff's units; one of them 0, its proportions give it), its
+resources and what they refer to copied; its objects found in a
+cross-reference table or (as pdfTeX, LuaTeX and Ghostscript write them)
+streams, and in object streams, its page in a tree of pages, its
+contents one stream or several.
 .TP
 .BI "link " "target width height"
 A link, from here, to a URI or
@@ -71,6 +85,127 @@ The PDF's information
 .TP
 .BI "mark " "title page offset level"
 Neatpost's: a destination and a bookmark at a page and place given.
+.TP
+.BI "image " "file w h"
+A JPEG or PNG image, or a PDF, its lower left corner here,
+.I w
+by
+.I h
+(troff's units; one of them 0, the image's proportions give it): a
+JPEG's data as it is, a PNG's decoded and compressed again, its alpha a
+soft mask, its palette an indexed colour space (not an interlaced PNG,
+which is said).
+Each image is one object, however many pages show it.
+A PDF's first page is shown as
+.B "x X pdf"
+shows it, but its lower left corner here (not its box's 0 0), ink of the
+.B Figure
+that holds it, and one object however many pages show it.
+.TP
+.BI "vstretch " w
+The space after the line set last may stretch, by
+.I w
+(troff's units), others in proportion.
+.TP
+.BI "vfoot " "b vs"
+The page's text ends here; a full page's last baseline is at
+.IR b ,
+its lines
+.I vs
+apart. The space the page lacks is spread through its text: to the
+.B vstretch
+points first, each as much as its
+.IR w ,
+the rest over its lines, so the page ends where a full page does (as
+LaTeX's
+.BR \eflushbottom ).
+What is set after (notes, the folio) does not move; links and
+destinations move with the text. A page short by more than five lines
+is set as it is.
+.TP
+.BI "tag " "..."
+The document's structure, for a tagged PDF (below).
+.TP
+.BI "lang " l
+The document's language
+.RB ( en ,
+.BR de-CH ).
+.PP
+Given
+.B tag
+controls, the PDF is tagged (ISO 32000-1, 14.7 and 14.8), for those who
+hear it read or have it reflowed: its elements, as troff's output gives
+them, are its structure, and everything it sets is marked as an
+element's or as an artifact:
+.TP
+.BI "tag push " "S \fR[\fPid\fR] [\fPKey\fB=\fPvalue\fR ...]\fP"
+An element of type
+.I S
+.RB ( BlockQuote ,
+.BR Note ,
+.BR Formula ,
+.BR Table ,
+.BR TR ...)
+in the one open; a grouping one (as
+.BR BlockQuote )
+after the block open is closed.
+.I Id
+opens again the element given it: a note continued on the next page is
+one note.
+Attributes
+.RB ( ColSpan=2 ,
+.BR Scope=Column )
+are the element's.
+.TP
+.B "tag pop"
+The element pushed last closed, and all open in it.
+.TP
+.BI "tag close " S
+Those open closed, through the innermost
+.IR S .
+.TP
+.BI "tag " "S \fR[\fPid\fR] [\fPKey\fB=\fPvalue\fR ...]\fP"
+A block
+.RB ( P ,
+.BR H1 ,
+.BR TOCI ,
+.BR TD ...):
+the block open closed,
+.I S
+opened in its place.
+.TP
+.B "tag end"
+The block open closed.
+.TP
+.B "tag art\fR, \fPtag endart"
+What is set between them is an artifact: running heads, folios.
+.TP
+.BI "tag alt " text
+The open element's alternate description (a picture's, an equation's).
+.TP
+.BI "tag lang " l
+The open element's language.
+.PP
+Text set where only a grouping element is open is a paragraph of its
+own; lines drawn are artifacts, but in a
+.B Figure
+or a
+.BR Formula ;
+a link is a
+.B Link
+element, the text in its rectangle its content and, read out, its
+annotation's description.
+The catalogue says the PDF is tagged, its language, and that a viewer
+show its title; its metadata (XMP) has its title and author.
+.IR Troff (6)'s
+.B -mbook
+gives a book's structure;
+.IR eqn (1)
+and
+.IR tbl (1)
+with
+.B -t
+give their equations' and tables'.
 .PP
 The options:
 .TP
@@ -101,8 +236,12 @@ Set a device variable.
 .B -W
 Embed fonts whole, not subset.
 .TP
+.B -u
+Claim conformance to PDF/UA-1 (ISO 14289-1), in the metadata: for a
+document whose structure is given whole, its pictures described.
+.TP
 .B -c
-Write what Neatpost writes.
+Write what Neatpost writes (no structure).
 .SH SOURCE
 .B /appl/cmd/tr2pdf
 .SH SEE ALSO

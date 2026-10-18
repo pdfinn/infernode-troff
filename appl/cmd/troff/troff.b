@@ -33,6 +33,9 @@ include "bufio.m";
 	Iobuf: import bufio;
 include "daytime.m";
 	daytime: Daytime;
+include "pdf.m";
+	pdfmod: PDF;
+	Doc: import pdfmod;
 
 Troff: module
 {
@@ -219,7 +222,7 @@ SC_PT(): int
 
 SC_EM(): int
 {
-	return nr(R_s) * dev_res / 72;
+	return nr(R_s) * dev_res / (72 * dev_szscale);
 }
 
 include "util.b";

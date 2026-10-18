@@ -19,6 +19,7 @@ devres(): int
 	return dev_res;
 }
 dev_uwid := 0;		# unitwidth
+dev_szscale := 1;	# sizes in 1/sizescale points (DESC sizescale)
 dev_hor := 0;
 dev_vert := 0;
 
@@ -268,7 +269,8 @@ font_open(path: string): ref Font
 
 font_wid(nil: ref Font, sz: int, w: int): int
 {
-	return (w * sz + dev_uwid / 2) / dev_uwid;
+	u := dev_uwid * dev_szscale;
+	return (w * sz + u / 2) / u;
 }
 
 font_swid(fnt: ref Font, sz: int): int
@@ -338,6 +340,11 @@ dev_open(dir, dev: string): int
 			continue;
 		"unitwidth" =>
 			(dev_uwid, nil) = t.num();
+			continue;
+		"sizescale" =>
+			(dev_szscale, nil) = t.num();
+			if(dev_szscale < 1)
+				dev_szscale = 1;
 			continue;
 		"hor" =>
 			(dev_hor, nil) = t.num();

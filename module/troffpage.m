@@ -52,6 +52,9 @@ Troffpage: module
 	# Its pages are the size papersize names in it (x X papersize
 	# WxH, in points), else letter, or A4 if its page length is.
 	open:	fn(data: array of byte, fontdir: string): (ref Doc, string);
+	# The same, its images' names (x X image) taken from dir if they
+	# are not rooted; nil, from the current directory.
+	opendir:	fn(data: array of byte, fontdir, dir: string): (ref Doc, string);
 
 	# Whether data begins as troff's output does
 	istroff:	fn(data: array of byte): int;

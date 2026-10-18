@@ -41,7 +41,9 @@ with the database
 .I works.bib
 (its citations in the style,
 .B chicago
-by default),
+by default, with its options:
+.B "-S chicago,british,nodoi"
+as a British thesis has them),
 .IR pic (1),
 .IR tbl (1)
 and
@@ -56,6 +58,19 @@ and
 Troff's output is kept as
 .IR book .out,
 for the document views.
+.PP
+The PDF is tagged, for those who hear it read or reflow it: its
+headings, paragraphs, quotations, notes, contents, equations (each
+described in words), tables, pictures, bibliography and index are its
+structure, read in order; its running heads and folios are not.
+It claims PDF/UA-1, unless a picture was left with nothing to describe
+it
+.RB ( .alt
+in
+.IR troff (6)):
+then
+.I book
+says so, and the PDF is tagged but makes no claim.
 A book with
 .B .printindex
 has its index made by

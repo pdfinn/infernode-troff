@@ -31,14 +31,27 @@ unnumbered.
 .TP
 .BI ".part " title
 .TP
-.BI ".chapter " "title " \fR[ label \fR]
+.BI ".chapter " "title " \fR[ label \fR[ short \fR]]
 .TP
 .BI ".chapter* " title
 .TP
 .BI ".section " "title " \fR[ label \fR]
 .TP
 .BI ".subsection " "title " \fR[ label \fR]
-Headings; chapters open on right-hand pages.
+.TP
+.BI ".subsubsection " "title " \fR[ label \fR]
+Headings; chapters open on right-hand pages (one-sided, with the
+register
+.B book-recto
+0, on the next), a numbered chapter's sections numbered in it (1.1,
+1.1.1), as the contents give them; a subsubsection neither numbered nor
+in the contents.
+A chapter's
+.I short
+title is its running head; a title too long for one beside the page's
+number is said, and the chapter's number the head instead.
+Long entries in the contents are filled short of their page's number,
+hung after their numbers.
 .TP
 .B ".p"
 A paragraph (or a blank line).
@@ -59,7 +72,7 @@ Endnotes, set under their chapters' names by
 .BR .notes .
 .TP
 .BR ".label " \fIname\fP,  " \e*[ref " \fIname\fP],  " \e*[pageref " \fIname\fP]
-A cross-reference: the chapter or section, and the page.
+A cross-reference: the chapter, section, figure or table, and the page.
 .TP
 .B ".contents"
 The table of contents.
@@ -80,19 +93,95 @@ The index, its entries makeindex's
 .BR |( ...
 .BR |) ).
 .TP
-.BI ".papersize " "w h"
+.BI ".figure " \fR[\fPlabel\fR]\fP " ... .caption " "text " .endfigure
+.TP
+.BI ".table " \fR[\fPlabel\fR]\fP " ... .caption " "text " .endtable
+A figure or a table, numbered in its chapter (1.2), its caption below
+or above what it captions as it is written; set where it is if
+nothing waits and it fits, between paragraphs (written in a
+paragraph, after it), else at the next
+page's top; any waiting when a chapter ends set in it.
+.TP
+.B ".listoffigures  .listoftables"
+Their lists.
+.TP
+.BR ".list " [ "1 a i bullet dash" "]  .item " [ mark "]  .endlist"
+A list: numbered, lettered, in roman numerals, or marked, its marks
+hung before its items' text; lists nest, each further in.
+.TP
+.BI ".image " "file \fR[\fPwidth \fR[\fPheight\fR]]"
+A JPEG or PNG image, or a PDF's first page (a figure in vectors),
+centred, kept on one page
+.RI ( tr2pdf (1)'s
+.BR "x X image" ).
+What is not given (or given as
+.BR \(dq\(dq )
+is the image's own: the other by its proportions; with neither, its size
+at its resolution, 72 to the inch if it says none (a PDF's, its page's);
+and no wider than the line.
+.TP
+.BI ".alt " text
+The next picture's or image's description, for those who cannot see
+it.
+.TP
+.BI ".papersize " "w h \fR| a4 | a5 | b5 | letter"
 .TP
 .BI ".margins " "top bottom inner outer"
-The page (6 by 9 inches); the registers
+The page (6 by 9 inches; a size no page could be is refused, and said);
+the registers
 .B book-ps
 and
 .B book-vs
-the type (11 on 14 points).
+the type (11 on 14 points),
+.B book-nps
+and
+.B book-nvs
+the notes' (two points less), and
+.B book-tvs
+the contents' spacing (the text's): a thesis set double has its notes
+and contents single; the string
+.B book-lang
+its language
+.RB ( en ).
 .PP
+A paragraph's lines are broken all at once, as TeX breaks them
+.RB ( ".ad pb" ),
+its spaces able to shrink by a third
+.RB ( .ssh ),
+hyphens costing as loose lines do
+.RB ( .hycost ),
+one space after a sentence.
 Notes are set at the foot of their marks' pages, in order, a long one
-split between pages; widows and orphans are kept from pages' edges; the
+split between pages, a note within a note set below it,
+each one's number full size, hung in the margin
+(as Bringhurst sets them; raised at its head, with the register
+.B book-fnhang
+0); with the register
+.B book-plain
+1 there are no running heads, each page's number centred at its foot,
+and with
+.B book-chlatex
+1 a chapter is headed as LaTeX's book class heads one (Chapter N above
+its title, both bold, at the left); with
+.B book-oneside
+1 the binding margin is on the left of every page and every page is
+headed by its chapter, and
+.B ".ds book-adj pl"
+sets the text ragged right; widows and orphans are kept from pages' edges, and
+a page left short by them, or by a heading kept with its text, ends
+where a full page does, its space spread between paragraphs and about
+headings and displays
+.RB ( "x X vstretch" ,
+.BR vfoot );
+the
 PDF's contents, references, notes' marks and index are links, its
 headings bookmarks.
+The PDF is tagged
+.RB ( "x X tag" ,
+for
+.IR tr2pdf (1)):
+the book's parts, read in order, are its structure; its running heads
+and folios are artifacts.
 .SS -man
 A manual page, as Plan 9's are written and set:
 .BR .TH ,

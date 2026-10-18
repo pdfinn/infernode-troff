@@ -110,7 +110,8 @@ gfont(g: ref Glyph): ref Font
 # convert wid in device unitwidth size to size sz
 DEVWID(sz: int, wid: int): int
 {
-	return (wid * sz + dev_uwid / 2) / dev_uwid;
+	u := dev_uwid * dev_szscale;
+	return (wid * sz + u / 2) / u;
 }
 
 # find a glyph by its name
@@ -1428,14 +1429,17 @@ font_wid(fnt: ref Font, sz: int, w: int): int
 {
 	if(fnt.zoom)
 		sz = (sz * fnt.zoom + 500) / 1000;
+	u := dev_uwid * dev_szscale;	# (sizes in scaled points)
 	if(w >= 0)
-		return (w * sz + dev_uwid / 2) / dev_uwid;
-	return -((-w * sz + dev_uwid / 2) / dev_uwid);
+		return (w * sz + u / 2) / u;
+	return -((-w * sz + u / 2) / u);
 }
 
 # track kerning width for the given size
 font_twid(fnt: ref Font, sz: int): int
 {
+	if(dev_szscale > 1)	# (its sizes are points)
+		sz = (sz + dev_szscale / 2) / dev_szscale;
 	if(fnt.s1 >= 0 && sz <= fnt.s1)
 		return fnt.n1 * SC_PT();
 	if(fnt.s2 >= 0 && sz >= fnt.s2)
@@ -1455,17 +1459,18 @@ font_gwid(fnt: ref Font, cfnt: ref Font, sz: int, w: int): int
 	if(xfnt.cs){
 		s := sz;
 		if(xfnt.cs_ps)
-			s = xfnt.cs_ps;
-		return xfnt.cs * (font_zoom(fnt, s) * SC_IN() / 72) / 36;
+			s = xfnt.cs_ps * dev_szscale;
+		return xfnt.cs * (font_zoom(fnt, s) * SC_IN() / (72 * dev_szscale)) / 36;
 	}
 	z := sz;
 	if(fnt.zoom)
 		z = (sz * fnt.zoom + 500) / 1000;
 	r: int;
+	u := dev_uwid * dev_szscale;
 	if(w >= 0)
-		r = (w * z + dev_uwid / 2) / dev_uwid;
+		r = (w * z + u / 2) / u;
 	else
-		r = -((-w * z + dev_uwid / 2) / dev_uwid);
+		r = -((-w * z + u / 2) / u);
 	if(cfnt != nil && (fnt.n1 || fnt.n2))	# else font_twid() is 0
 		r += font_twid(fnt, sz);
 	if(xfnt.bd)

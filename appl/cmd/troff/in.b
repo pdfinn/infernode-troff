@@ -4,7 +4,6 @@
 
 Inbuf: adt {
 	path:	string;		# for file buffers
-	fin:	ref Iobuf;
 	isfile:	int;
 	buf:	string;		# for string buffers
 	args:	array of string;	# macro arguments
@@ -22,10 +21,21 @@ files := array[NFILES] of string;
 nfiles := 0;
 cfile := 0;
 
+ifree: ref Inbuf;	# buffers popped, to be used again (one is pushed for every string interpolated)
+
 in_new()
 {
-	next := ref Inbuf;
-	next.unbuf = array[32] of {* => 0};
+	next := ifree;
+	if(next != nil){
+		ifree = next.prev;
+		next.isfile = 0;
+		next.hasargs = 0;
+		next.un = 0;
+		next.pos = 0;
+		next.chr = 0;
+		next.lnum = 0;
+	}else
+		next = ref Inbuf;
 	next.prev = buf;
 	buf = next;
 }
@@ -51,17 +61,31 @@ in_pushargs(s: string, args: array of string)
 
 in_so(path: string)
 {
-	fin: ref Iobuf;
+	fd: ref Sys->FD;
 	if(path != nil)
-		fin = bufio->open(path, Bufio->OREAD);
+		fd = sys->open(path, Sys->OREAD);
 	else
-		fin = bufio->fopen(sys->fildes(0), Bufio->OREAD);
-	if(fin == nil){
+		fd = sys->fildes(0);
+	if(fd == nil){
 		errmsg(sys->sprint("troff: failed to open <%s>\n", path));
 		return;
 	}
+	# read whole, its characters then taken as a string's (a call to
+	# Bufio's getc for each was a tenth of troff's time)
+	b := array[65536] of byte;
+	n := 0;
+	for(;;){
+		if(n == len b){
+			nb := array[2 * len b] of byte;
+			nb[0:] = b;
+			b = nb;
+		}
+		if((k := sys->read(fd, b[n:], len b - n)) <= 0)
+			break;
+		n += k;
+	}
 	in_new();
-	buf.fin = fin;
+	buf.buf = string b[0:n];
 	buf.isfile = 1;
 	buf.lnum = 1;
 	buf.path = path;
@@ -89,8 +113,11 @@ in_pop()
 {
 	old := buf;
 	buf = buf.prev;
-	if(old.fin != nil)
-		old.fin.close();
+	old.path = nil;
+	old.buf = nil;
+	old.args = nil;
+	old.prev = ifree;
+	ifree = old;
 }
 
 in_nx(path: string)
@@ -120,29 +147,64 @@ in_next(): int
 	while(buf != nil || !in_nextfile()){
 		if(buf.un)
 			return buf.unbuf[--buf.un];
-		if(!buf.isfile && buf.pos < len buf.buf)
-			break;
-		if(buf.isfile){
-			c := buf.fin.getc();
-			if(c >= 0){
+		if(buf.pos < len buf.buf){
+			c := buf.buf[buf.pos++];
+			if(buf.isfile){
 				if(buf.chr == '\n')
 					buf.lnum++;
 				buf.chr = c;
-				return c;
 			}
+			return c;
 		}
 		in_pop();
 	}
-	if(buf != nil)
-		return buf.buf[buf.pos++];
 	return -1;
+}
+
+# in copy mode, the characters next in a string being read (not a
+# file's) that copy mode would give as they are: all but a newline,
+# c_ni, and an escape it acts on (\n \* \$ \" ...); none if the next is
+# one of those. read_string takes them at once, not each through
+# cp_next (an equation's strings appended to one another are most of
+# what eqn's output has troff read)
+CPKEEP: con "\n.\\ta\"#n*g$?";
+
+in_cprun(): string
+{
+	if(buf == nil || buf.un || buf.isfile)
+		return nil;
+	s := buf.buf;
+	i := buf.pos;
+	n := len s;
+	for(; i < n; i++){
+		c := s[i];
+		if(c == '\n' || c == c_ni)
+			break;
+		if(c == c_ec){
+			if(i + 1 >= n)
+				break;
+			d := s[i + 1];
+			if(d == c_ni || d == c_ec || strchr(CPKEEP, d) >= 0)
+				break;
+			i++;
+		}
+	}
+	if(i == buf.pos)
+		return nil;
+	r := s[buf.pos:i];
+	buf.pos = i;
+	return r;
 }
 
 in_back(c: int)
 {
 	if(c < 0)
 		return;
-	if(buf != nil && buf.un < len buf.unbuf)
+	if(buf == nil)
+		return;
+	if(buf.unbuf == nil)
+		buf.unbuf = array[32] of int;
+	if(buf.un < len buf.unbuf)
 		buf.unbuf[buf.un++] = c;
 }
 

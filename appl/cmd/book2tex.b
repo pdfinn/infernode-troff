@@ -7,8 +7,8 @@ implement Book2tex;
 #
 # Each of -mbook's macros is one of LaTeX's (docs/TROFF.md has the
 # table), and is written as that: chapters, sections, quotations,
-# epigraphs, footnotes and endnotes, labels and references, the
-# contents, citations (biblatex-chicago's \autocite, its notes style
+# epigraphs, footnotes and endnotes, labels and references, figures
+# and tables with their captions, the contents and lists, citations (biblatex-chicago's \autocite, its notes style
 # the Chicago Manual's, as refer's -S chicago), the bibliography and the
 # index (makeindex's entries, as .index has them).  Troff's escapes
 # become LaTeX's: fonts, characters by name, strings.  An equation
@@ -93,6 +93,9 @@ numbered := 1;	# chapters numbered (\mainmatter's)
 chapnum := 0;
 enhead := "";	# the heading of the chapter's endnotes, until its first
 npics := 0;
+lists: list of string;	# the lists open (enumerate, itemize), innermost first
+infloat := "";	# the float open (figure, table): its pictures and tables centred by it
+floatlabel := "";
 
 # strings (.ds), and the characters troff names
 strs: list of (string, string);
@@ -913,7 +916,10 @@ request(s: string)
 			emit(cur, "\\markboth{" + t + "}{" + t + "}");
 			enhead = t;
 		}else{
-			block("\\chapter{" + t + "}");
+			if(arg(a, 2) != "")	# its short title, the running head's
+				block("\\chapter[" + textarg(arg(a, 2)) + "]{" + t + "}");
+			else
+				block("\\chapter{" + t + "}");
 			if(numbered){
 				chapnum++;
 				enhead = "Chapter " + string chapnum + ": " + t;
@@ -922,7 +928,7 @@ request(s: string)
 		}
 		if(arg(a, 1) != "")
 			emit(cur, "\\label{" + arg(a, 1) + "}");
-	"section" or "subsection" =>
+	"section" or "subsection" or "subsubsection" =>
 		blankline();
 		block("\\" + name + "{" + textarg(arg(a, 0)) + "}");
 		if(arg(a, 1) != "")
@@ -956,6 +962,59 @@ request(s: string)
 	"label" =>
 		closefont(cur);
 		attach(cur, "\\label{" + arg(a, 0) + "}");
+	"figure" or "table" =>
+		blankline();
+		infloat = name;
+		floatlabel = arg(a, 0);
+		block("\\begin{" + name + "}[tbp]");
+		emit(cur, "\\centering");
+	"caption" =>
+		block("\\caption{" + textarg(join(a, " ")) + "}");
+		if(floatlabel != "")
+			emit(cur, "\\label{" + floatlabel + "}");
+	"endfigure" or "endtable" =>
+		block("\\end{" + infloat + "}");
+		infloat = "";
+		floatlabel = "";
+	"list" =>
+		blankline();
+		env := "itemize";
+		if(arg(a, 0) == "1" || arg(a, 0) == "a" || arg(a, 0) == "i")
+			env = "enumerate";
+		lists = env :: lists;
+		block("\\begin{" + env + "}");
+	"item" =>
+		closefont(cur);
+		if(arg(a, 0) != "")
+			block("\\item[" + textarg(arg(a, 0)) + "]");
+		else
+			block("\\item");
+	"endlist" =>
+		if(lists != nil){
+			block("\\end{" + hd lists + "}");
+			lists = tl lists;
+		}
+		cur.noindent = 1;
+	"image" =>
+		havepics = 1;
+		closefont(cur);
+		f := arg(a, 0);
+		o := "";
+		if(arg(a, 1) != "")
+			o = "width=" + dimen(arg(a, 1));
+		if(arg(a, 2) != ""){
+			if(o != "")
+				o += ",";
+			o += "height=" + dimen(arg(a, 2));
+		}
+		# (neither: its own size, as troff's; LaTeX's needs no options)
+		if(o != "")
+			o = "[" + o + "]";
+		centrein("\\includegraphics" + o + "{" + f + "}");
+	"listoffigures" =>
+		block("\\listoffigures");
+	"listoftables" =>
+		block("\\listoftables");
 	"contents" =>
 		block("\\tableofcontents");
 	"cite" =>
@@ -1203,8 +1262,46 @@ indexentry(s: string): string
 # eqn's equations, as LaTeX's mathematics
 #
 
-# a display: .EQ [I|L|C] [label] ... .EN
+# a display: .EQ [I|L|C] [label] ... .EN; one with mark, and those
+# right after it with lineup, aligned (LaTeX's align)
 display(a: list of string)
+{
+	(m, label, al) := readdisplay(a);
+	if(m == "")
+		return;
+	closefont(cur);
+	if(al){
+		lines := m + " " + latextag(label, 1) :: nil;
+		for(;;){
+			s := readline();
+			if(s == nil || !prefix(".EQ", s) || (len s > 3 && s[3] != ' ')){
+				if(s != nil)
+					unread(s);
+				break;
+			}
+			(m2, l2, al2) := readdisplay(reqargs(s[3:]));
+			if(!al2){
+				emit(cur, "\\begin{align}");
+				emitlines(rev(lines));
+				emit(cur, "\\end{align}");
+				lines = nil;
+				onedisplay(m2, l2);
+				break;
+			}
+			lines = m2 + " " + latextag(l2, 1) :: lines;
+		}
+		if(lines != nil){
+			emit(cur, "\\begin{align}");
+			emitlines(rev(lines));
+			emit(cur, "\\end{align}");
+		}
+	}else
+		onedisplay(m, label);
+	cur.noindent = 1;
+}
+
+# a display's LaTeX, its label, and whether it marks or lines up
+readdisplay(a: list of string): (string, string, int)
 {
 	if(a != nil && (hd a == "I" || hd a == "L" || hd a == "C"))
 		a = tl a;
@@ -1212,24 +1309,47 @@ display(a: list of string)
 	src := "";
 	while((s := readline()) != nil && !prefix(".EN", s))
 		src += s + "\n";
+	ealigned = 0;
 	m := trim(eqn(src, 1));
+	return (m, label, ealigned);
+}
+
+onedisplay(m, label: string)
+{
 	if(m == "")
 		return;
-	closefont(cur);
 	if(label != ""){
-		if(len label > 2 && label[0] == '(' && label[len label - 1] == ')')
-			label = "\\tag{" + label[1:len label - 1] + "}";
-		else
-			label = "\\tag*{" + label + "}";
 		emit(cur, "\\begin{equation}");
-		emit(cur, m + " " + label);
+		emit(cur, m + " " + latextag(label, 0));
 		emit(cur, "\\end{equation}");
 	}else{
 		emit(cur, "\\[");
 		emit(cur, m);
 		emit(cur, "\\]");
 	}
-	cur.noindent = 1;
+}
+
+# a label as LaTeX's \tag; in an align, none as \notag
+latextag(label: string, inalign: int): string
+{
+	if(label == ""){
+		if(inalign)
+			return "\\notag";
+		return "";
+	}
+	if(len label > 2 && label[0] == '(' && label[len label - 1] == ')')
+		return "\\tag{" + label[1:len label - 1] + "}";
+	return "\\tag*{" + label + "}";
+}
+
+emitlines(l: list of string)
+{
+	for(; l != nil; l = tl l){
+		if(tl l != nil)
+			emit(cur, hd l + " \\\\");
+		else
+			emit(cur, hd l);
+	}
 }
 
 # what eqn reads: the equation, and a define's body before the rest
@@ -1244,8 +1364,10 @@ ecount := 0;
 edisplay := 0;
 eexpand := 0;
 edefs: list of (string, string);
+emarked := 0;		# a mark or lineup read: & next
+ealigned := 0;		# one read in this display
 
-FROM, SUB: con 1 << iota;
+FROM, SUB, NOLIM: con 1 << iota;	# NOLIM: no from or to of its own (a brace's)
 
 eqn(s: string, disp: int): string
 {
@@ -1405,7 +1527,27 @@ ecommands()
 			for(k := 0; k < n && k < 100; k++)
 				elex(0);
 		"mark" or "lineup" =>
+			# where displays are aligned: LaTeX's & (display())
 			enext();
+			emarked = ealigned = 1;
+		"gsfont" =>
+			enext();
+			elex(0);
+		"accent" or "accentpos" or "mathital" or "italcorr" or "bracesizes" =>
+			# (eqnrc's, mkfn -M's: the font's, nothing for LaTeX)
+			t := enext();
+			if(t == "accent" || t == "bracesizes")
+				elex(0);
+			n := int elex(0);
+			per := 2;
+			if(t == "accent")
+				per = 3;
+			for(k := 0; k < n * per && k < 1000; k++)
+				elex(0);
+		"bracepieces" =>
+			enext();
+			for(k := 0; k < 10; k++)
+				elex(0);
 		* =>
 			return;
 		}
@@ -1418,6 +1560,10 @@ elist(stops: list of string): (string, string)
 	r := "";
 	for(;;){
 		ecommands();
+		if(emarked){
+			r += " &";
+			emarked = 0;
+		}
 		t := epk();
 		if(t == nil)
 			return (r, nil);
@@ -1443,10 +1589,12 @@ elist(stops: list of string): (string, string)
 ebox(): string
 {
 	b := eleft(0);
-	while(epk() == "over"){
-		enext();
+	while(epk() == "over" || epk() == "choose"){
+		f := "\\frac{";
+		if(enext() == "choose")	# (eqnrc's: TeX's \\binom)
+			f = "\\binom{";
 		d := eleft(0);
-		b = "\\frac{" + b + "}{" + d + "}";
+		b = f + b + "}{" + d + "}";
 	}
 	return b;
 }
@@ -1455,7 +1603,7 @@ ebox(): string
 estructural(t: string): int
 {
 	case t {
-	"over" or "sub" or "sup" or "from" or "to" or "above" or "right" or "}" or
+	"over" or "choose" or "sub" or "sup" or "from" or "to" or "above" or "right" or "}" or
 	"ccol" or "lcol" or "rcol" or "col" =>
 		return 1;
 	}
@@ -1522,9 +1670,26 @@ eleft(flg: int): string
 	}else if(t == "sqrt"){
 		enext();
 		core = "\\sqrt{" + eleft(0) + "}";
+	}else if(t == "root"){
+		enext();
+		n := eleft(0);
+		core = "\\sqrt[" + n + "]{" + eleft(0) + "}";
+	}else if(t == "overbrace" || t == "underbrace"){
+		enext();
+		core = "\\" + t + "{" + eleft(NOLIM) + "}";
+	}else if(t == "strut"){
+		enext();
+		core = "\\strut";
+	}else if(t == "displaystyle" || t == "textstyle"){
+		enext();
+		core = "{\\" + t + " " + eleft(flg) + "}";
 	}else if(t == "type"){
 		enext();
 		enext();
+		if(epk() == "icorr"){	# an operator's italic correction: LaTeX's font has it
+			enext();
+			enext();
+		}
 		core = eleft(flg);
 	}else if(t == "pile" || t == "cpile"){
 		core = epile("c");
@@ -1575,7 +1740,10 @@ eleft(flg: int): string
 		a := "";
 		case epk() {
 		"dyad" =>	a = "\\overleftrightarrow";
-		"bar" =>	a = "\\overline";
+		"bar" =>	# (over one glyph an accent, as eqnrc sets it)
+			a = "\\overline";
+			if(esingle(core))
+				a = "\\bar";
 		"under" =>	a = "\\underline";
 		"vec" =>
 			a = "\\vec";
@@ -1613,19 +1781,27 @@ eleft(flg: int): string
 		if(sups != nil)
 			core += "^{" + sups + "}";
 	}
-	if(epk() == "from"){
+	if(!(flg & NOLIM) && epk() == "from"){
 		enext();
 		froms = eleft(FROM);
 	}
-	if((froms != nil || !(flg & FROM)) && epk() == "to"){
+	if(!(flg & NOLIM) && (froms != nil || !(flg & FROM)) && epk() == "to"){
 		enext();
 		tos = eleft(0);
 	}
 	if(froms != nil || tos != nil){
+		# a big operator's limits, and a brace's label, as _ and ^
+		bigop := 0;
 		case core {
-		"\\sum" or "\\prod" or "\\bigcup" or "\\bigcap" or "\\lim" or "\\max" or "\\min" or "\\int" or "\\coprod" =>
-			if(core == "\\int")
-				core += "\\limits";
+		"\\sum" or "\\prod" or "\\bigcup" or "\\bigcap" or "\\lim" or "\\max" or "\\min" or "\\int" or "\\coprod" or
+		"\\iint" or "\\iiint" or "\\oint" or "\\oiint" or "\\oiiint" or "\\bigvee" or "\\bigwedge" or
+		"\\bigodot" or "\\bigoplus" or "\\bigotimes" or "\\biguplus" or "\\bigsqcup" =>
+			bigop = 1;
+		}
+		if(len core > 12 && (core[0:11] == "\\overbrace{" || core[0:12] == "\\underbrace{"))
+			bigop = 1;
+		case bigop {
+		1 =>
 			if(froms != nil)
 				core += "_{" + froms + "}";
 			if(tos != nil)
@@ -1752,6 +1928,11 @@ epile(align: string): string
 ematrix(): string
 {
 	enext();
+	# (eqn's spacing between columns, and each column's between rows:
+	# columns pulled together, rcol then lcol, are aligned equations)
+	colspace := 0;
+	if(isnum(epk()))
+		colspace = int enext();
 	if(epk() == "{")
 		enext();
 	aligns := "";
@@ -1776,6 +1957,8 @@ ematrix(): string
 			sys->fprint(stderr, "book2tex: eqn: %s out of place in a matrix (%s line %d)\n", t, inname(), inline());
 			continue;
 		}
+		if(isnum(epk()))
+			enext();
 		if(epk() == "{")
 			enext();
 		col: list of string;
@@ -1809,7 +1992,25 @@ ematrix(): string
 		}
 		rows = join(rev(cells), " & ") :: rows;
 	}
+	if(aligns == "rl" && colspace < 0)
+		return "\\begin{aligned}" + join(rev(rows), " \\\\ ") + "\\end{aligned}";
 	return "\\begin{array}{" + aligns + "}" + join(rev(rows), " \\\\ ") + "\\end{array}";
+}
+
+# whether an eqn word is a number (a matrix's spacing)
+isnum(t: string): int
+{
+	if(t == nil)
+		return 0;
+	i := 0;
+	if(t[0] == '-' || t[0] == '+')
+		i = 1;
+	if(i >= len t)
+		return 0;
+	for(; i < len t; i++)
+		if(t[i] < '0' || t[i] > '9')
+			return 0;
+	return 1;
 }
 
 # eqn's words, and the characters operators are made of
@@ -1858,6 +2059,11 @@ ekw(w: string): (string, int)
 	"prod" =>	return ("\\prod", 1);
 	"union" =>	return ("\\bigcup", 1);
 	"inter" =>	return ("\\bigcap", 1);
+	# eqnrc's, as mkfn -M defines them
+	"coprod" or "iint" or "iiint" or "oint" or "oiint" or "oiiint" or "bigcup" or
+	"bigcap" or "bigvee" or "bigwedge" or "bigodot" or "bigoplus" or "bigotimes" or
+	"biguplus" or "bigsqcup" or "cdots" or "ldots" or "vdots" or "ddots" or "nabla" or "hbar" =>
+		return ("\\" + w, 1);
 	}
 	return (nil, 0);
 }
@@ -2141,7 +2347,9 @@ table()
 		spec += bars(box + allbox);
 	else if(first != nil && len first > 0)
 		spec += bars(first[len first - 1].after);
-	if(centred)
+	if(infloat != "")
+		;
+	else if(centred)
 		emit(cur, "\\begin{center}");
 	else
 		emit(cur, "\\par\\noindent");
@@ -2213,7 +2421,9 @@ table()
 	if(box || allbox)
 		emit(cur, hline(box + allbox));
 	emit(cur, "\\end{tabular}");
-	if(centred)
+	if(infloat != "")
+		;
+	else if(centred)
 		emit(cur, "\\end{center}");
 	else
 		emit(cur, "\\par");
@@ -2450,15 +2660,22 @@ picture(first: string)
 				base = base[i + 1:];
 				break;
 			}
-		emit(cur, "\\begin{center}");
-		emit(cur, "\\includegraphics{" + base + "}");
-		emit(cur, "\\end{center}");
-	}else{
-		emit(cur, "\\begin{center}");
-		emit(cur, "\\fbox{\\textit{a picture (pic)}}");
-		emit(cur, "\\end{center}");
-	}
+		centrein("\\includegraphics{" + base + "}");
+	}else
+		centrein("\\fbox{\\textit{a picture (pic)}}");
 	cur.noindent = 1;
+}
+
+# a line centred: by the float it is in (\\centering), else by itself
+centrein(s: string)
+{
+	if(infloat != ""){
+		emit(cur, s);
+		return;
+	}
+	emit(cur, "\\begin{center}");
+	emit(cur, s);
+	emit(cur, "\\end{center}");
 }
 
 # a picture as a PDF of its own: pic's .PS line gives its height and

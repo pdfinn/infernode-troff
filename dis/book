@@ -9,7 +9,8 @@
 # /lib/troff/eqnrc); the book by troff(1) -mbook, as
 # often as its table of contents and references need to be set again
 # (they come from the pass before, through book.aux); then the PDF by
-# tr2pdf(1). troff's output is kept as book.out, for the document views.
+# tr2pdf(1), tagged for those who hear it read (PDF/UA-1). troff's output
+# is kept as book.out, for the document views.
 # -f sets it as it goes to press (the register book-final): with
 # microtypography, its punctuation hanging into the margins; without
 # it, a draft, set as before and sooner.
@@ -62,13 +63,17 @@ fn pics {
 	if {~ $pics 1} {pic} {cat}
 }
 fn tbls {
-	if {~ $tbls 1} {tbl} {cat}
+	if {~ $tbls 1} {tbl -t} {cat}
 }
 fn eqns {
-	if {~ $math 1} {eqn} {cat}
+	if {~ $math 1} {eqn -t} {cat}
 }
+# the preprocessors once (what they make depends on no pass), then troff
+# as often as the book needs
+pre=$stem.pre
+input | cite | pics | tbls | eqns >$pre
 fn pass {
-	input | cite | pics | tbls | eqns | troff -mbook '-rbook-final='^$final '-dbook-aux='^$aux '-dbook-ind='^$ind >$tr >[2]$err
+	troff -mbook '-rbook-final='^$final '-dbook-aux='^$aux '-dbook-ind='^$ind $pre >$tr >[2]$err
 	grep '^aux:' $err | sed 's/^aux://' >$new
 	if {~ $index 1} {mkindex -l $tr >$indnew} {cp $ind $indnew}
 }
@@ -92,5 +97,9 @@ for n in 1 2 3 4 {
 	}
 }
 grep -v '^aux:' $err >[1=2]
-tr2pdf $tr >$out
-rm -f $err $new $indnew
+# tagged by -mbook (x X tag), the PDF claims PDF/UA-1, unless a picture
+# was left with nothing to describe it to those who cannot see it
+ua=-u
+grep -s 'a picture with no .alt' $err && ua=()
+tr2pdf $ua $tr >$out
+rm -f $err $new $indnew $pre
