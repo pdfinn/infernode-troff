@@ -105,9 +105,11 @@ With
 .BR -l ,
 .I book
 sets the book to be looked at as it is written: troff's output to
-standard output, no PDF, no index made. Xenith's document view runs it so, setting a
-book, article or memorandum again a moment after each edit (see
-EXAMPLES).
+standard output, no PDF, no index made. Xenith's document view runs it so, and with
+Xenith's
+.B Live
+sets a book, article or memorandum again a moment after each edit
+(see EXAMPLES).
 .PP
 .I Book2tex
 writes the book as LaTeX, for LuaLaTeX, for a publisher who wants it:
@@ -140,8 +142,10 @@ book2tex -p works.bib -o thesis.tex thesis.ms
 .PP
 A line near the top of a file says how it is set, for Xenith's
 document view, which sets it with
-.B book -l
-as it is edited:
+.BR "book -l" ,
+as it is edited when
+.B Live
+is executed in the window's tag:
 .EX
 \&.\e" book -m article -S numeric -p works.bib
 .EE

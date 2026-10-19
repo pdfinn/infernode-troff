@@ -8,8 +8,8 @@
 #	book(1) -l: its citation numbered and its bibliography set by
 #	refer, its equation by eqn, its cross-reference to a later
 #	section resolved (the passes book makes);
-#	a text added in the other window is shown a moment later, not
-#	saved (live), its reference to the bibliography still numbered;
+#	Live executed in the text's tag makes it live: a text added there
+#	is shown a moment later, not saved, its citation still numbered;
 #	a chapter using -mbook's headings, with no directive, is set by
 #	-mbook (with -ms its .chapter would set nothing);
 #	a memorandum whose usage line (.\"	book -m memo memo.ms) says how
@@ -132,9 +132,13 @@ fn tagexec {
 	wid := ${index 1 $a}
 	word := ${index 2 $a}
 	echo -n ' '^$word >> $XENITH/$wid/tag
-	n=`{cat $XENITH/$wid/tag | wc -c}
 	w=`{echo -n $word | wc -c}
-	echo 'Mx'^${expr $n $w -}^' '^$n > $XENITH/$wid/event
+	# measured with the event file open, which takes Undo and Put from
+	# the tag
+	{
+		n=`{cat $XENITH/$wid/tag | wc -c}
+		echo 'Mx'^${expr $n $w -}^' '^$n
+	} > $XENITH/$wid/event
 }
 fn other {
 	a := $*
@@ -172,7 +176,9 @@ if {~ $"t *'whole '?1?.*} {ok 'its citation numbered (refer -S numeric)'} {bad '
 if {~ $"t *Knuth*} {ok 'its bibliography set'} {bad 'bibliography:' $"t}
 if {~ $"t *'section 2 for more'*} {ok 'its reference to a later section resolved'} {bad 'cross-reference:' $"t}
 if {~ $"t *'𝑥'*'𝑦'*'𝑧'*} {ok 'its equation set by eqn, its letters maths italic'} {bad 'equation:' $"t}
-if {~ `{attr $bid live} 1} {ok 'live'} {bad 'not live'}
+if {~ `{attr $bid live} 0} {ok 'not live as it opens'} {bad 'live as it opens'}
+tagexec $aid Live
+if {~ `{attr $bid live} 1} {ok 'Live in the text''s tag makes it live'} {bad 'Live: not live'}
 
 echo 'Livelier still.' >> $XENITH/$aid/body
 echo '.cite ossanna1976' >> $XENITH/$aid/body
