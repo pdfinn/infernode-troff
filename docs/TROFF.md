@@ -37,7 +37,41 @@ served (their commits list how).
 Troff's output (`book.out`) opens in Xenith's document view, `wm/page`
 and Lucifer: a page at a time, sharp at any zoom, its text searchable
 and its links followed. A `.ms`, `.man`, `.me` or `.mm` file opens there
-set by troff, beside its text.
+set by troff, beside its text, and is set again a moment after each
+edit, as Typst's preview is: see [Writing it live](#writing-it-live).
+
+## Writing it live
+
+Render a source file in Xenith (or Zerox its window and Render the
+twin) and the document beside it follows the text: 600 ms after the
+typing stops it is set again, unsaved edits and all, where the reader
+was in it. A book, article or memorandum is set by `book -l`, the
+whole pipeline (refer, chess, pic, tbl, eqn, troff as often as its
+references need) with no PDF. A line near the top says how:
+
+    .\" book -m article -S numeric -p works.bib
+
+or the line showing how it is made, as the examples have
+(`.\"	book -p works.bib chapter.ms	# chapter.pdf`). With neither, a
+file using `-mbook`'s headings or `.p` is set by `book -l`, and any
+other by troff with the macros its name gives.
+
+It is quick enough to write in. On one machine, from the edit's
+pause to troff's output, the emulator's start included:
+
+| document | pages | seconds |
+|---|---|---|
+| `examples/memo.ms` | 1 | 0.25 |
+| `examples/chess.ms` | 4 | 0.25 |
+| `examples/article.ms` (two columns, refer, eqn, pic, tbl) | 2 | 0.42 |
+| `examples/logic.ms` | 5 | 0.55 |
+| `tests/book/book.ms` (three chapters, notes, bibliography) | 21 | 0.44 |
+
+Work on a book a chapter at a time: a chapter's file, set alone, takes
+its references to other chapters from the book's `book.aux`, where the
+last whole build left them, and keeps its own between edits (in
+`/tmp`), so an edit is set in one pass. `doc/ctl` `nolive` stops it for
+a window; Put and `refresh` still set it.
 
 ## Writing a book: `-mbook`
 

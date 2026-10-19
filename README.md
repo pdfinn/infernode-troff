@@ -359,9 +359,14 @@ tag, `book book.ms`, or a pipeline, `tbl paper.ms | troff -ms
 window. After each Put, middle-click the build, then Get in the
 output's window.
 
-Render, on a `.ms` or `.man` file, sets it with `troff` and the macro
-package its name gives, once and with no preprocessor: for simple
-documents only.
+Or write it live, as in Typst: Render a `.ms` file (or its Zerox'd
+twin) and the document beside it is set again 600 ms after you stop
+typing, unsaved edits and all. A book's, article's or memorandum's is
+set by `book -l`, the whole pipeline with no PDF, in a quarter to half
+a second for a chapter; a line at its top says how
+(`.\" book -m article -S numeric -p works.bib`). Any other `.ms`, `.man`
+or `.me` file is set by `troff` with the macros its name gives. See
+[docs/TROFF.md](docs/TROFF.md#writing-it-live).
 
 ## Not yet
 
