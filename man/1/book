@@ -6,6 +6,8 @@ book, book2tex, mkindex \- make a book
 [
 .B -f
 ] [
+.BI -m " macros"
+] [
 .BI -p " works.bib"
 ] [
 .BI -S " style"
@@ -34,7 +36,16 @@ book, book2tex, mkindex \- make a book
 makes a PDF of a book written with
 .BR -mbook ,
 the macros of
-.IR troff (6).
+.IR troff (6),
+or with a class built on them, named by
+.BR -m :
+.B article
+.RB ( -marticle ,
+a journal's article in two columns)
+or
+.B memo
+.RB ( -mmemo ,
+a technical memorandum or report).
 It runs
 .IR refer (1)
 with the database
@@ -111,6 +122,8 @@ each page is a link to it.
 .SH EXAMPLES
 .EX
 book -p works.bib thesis.ms
+book -m article -S numeric -p works.bib paper.ms
+book -m memo memo.ms
 book -f -p works.bib -o press.pdf thesis.ms
 book2tex -p works.bib -o thesis.tex thesis.ms
 .EE

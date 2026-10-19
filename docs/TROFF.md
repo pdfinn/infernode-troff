@@ -21,7 +21,7 @@ to read in InferNode's document views.
 | `tr2img` | A page of troff's output painted as the document views paint them (its fonts, drawings and images), as a PPM image | |
 | `mkindex` | A book's index from troff's output: makeindex's entries, sorted word by word as the *Chicago Manual* sorts, Greek and accents included | |
 | `book2tex` | A book written with `-mbook` as LaTeX, for LuaLaTeX, for a publisher who wants it | |
-| `book` | Runs them: refer, chess, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
+| `book` | Runs them (with `-mbook`, or `-m article` or `-m memo`): refer, chess, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
 
 `troff`, `eqn`, `tbl`, `pic`, and `refer` without a style, write what
 the C programs they came from write, byte for byte, but where those
@@ -609,6 +609,73 @@ Tagged, each is a `Div` of its `Caption` and its `Figure` or `Table`.
 their `\caption` and `\label`.
 `tests/host/floats_test.sh` checks each of these, and the LaTeX set by
 LuaLaTeX where it is installed.
+
+## Articles and memoranda: `-marticle` and `-mmemo`
+
+Two classes are built on `-mbook`'s macros, so that an article or a
+memorandum has what a book has (notes, floats, equations, citations,
+cross-references, the tagged PDF) set as such a document is set.
+`book -m article` and `book -m memo` run them.
+
+`-marticle` is a journal's article, after LaTeX's article class with
+`twocolumn`: letter paper (`.papersize a4` for A4), 10 points on 12,
+three-quarter-inch margins, the columns a fifth of an inch apart. Its
+title, authors (`.author`, `.affil`, `.email`, three to a row) and
+abstract are set across the page at the head of the first; then the
+text, in two columns (`.columns 1` for one, its margins wider so that
+its measure is about 75 characters). Sections are numbered without a
+chapter's number (1, 1.1), `.section*` is unnumbered, and the
+references are a section at the end. `.figure*` and `.table*` are set
+across both columns, at the top of a page after the one they are
+written on, as LaTeX's `figure*` is.
+
+Columns are -mbook's, made general. A page's columns are traps: when
+the first column's foot is reached, its notes are set below it, the
+page offset moves by a column and the gutter, and the second begins at
+the columns' top, with its own notes planned and its floats placed.
+Each column ends flush at its foot, as LaTeX's two-column articles do:
+tr2pdf's vertical stretching works by regions, each column one (`x X
+vcol` begins one, `x X vfoot` says where it would end were it full), so
+each is stretched to its own foot, and what is set above the columns
+(the title, a figure across them) stays where it is. A section's
+heading is kept with two lines of its text, no more.
+
+The last page's columns are balanced. Its text's height is not known
+until it has been set, so it is recorded, at the end, in the file of
+cross-references `book` already reads on its next pass; on that pass
+the last page's first column ends at half that height, in whole lines.
+The height is measured once, on the page as set unbalanced, and kept:
+measured again on the balanced page it would differ by a line, and the
+passes would not settle.
+
+`-mmemo` is a technical memorandum, headed as Bell Laboratories' were:
+the subject at the left, with the case and file it is charged to; the
+date, the authors (each with a room and an extension) and the
+memorandum's number at the right, each label in italics in the margin
+of its block; the kind (`MEMORANDUM FOR FILE`) across the page below;
+then the text in one column. `.kind report` heads it as a report
+instead, its title centred. `.signature` sets the authors' names at the
+end.
+
+Journals cite by number, not in notes: `refer -S numeric` sets `[1]` in
+the line, before the punctuation the line ends with (`found it [1].`),
+`[1, p. 5]` at a page, `[1], [3]` for two; the works are numbered in
+the order they are first cited, and the references are in that order,
+each hung from its number, its authors by their initials (B. W.
+Kernighan), its article's title in quotation marks and its journal in
+italics, with volume, number and pages. A style says whether it cites
+in the line (`inline` in `module/referstyle.m`), and the label an entry
+hangs from; `.]be` hangs it.
+
+The classes found a gap in troff: `.if d name`, true when a string,
+macro or diversion is defined, as in groff and Plan 9's troff, was
+missing from this troff, and was read as a comparison of strings
+delimited by `d`. It is there now.
+
+`examples/article.ms` and `examples/memo.ms` are set so, and
+`tests/host/article_test.sh` checks them, and an article of six pages
+generated with notes and figures in both columns and across them: no
+word overlapping another, the columns flush and the last page balanced.
 
 ## Fonts
 

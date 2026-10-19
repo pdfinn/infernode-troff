@@ -2,7 +2,8 @@
 
 A typesetting system for books, for [InferNode](https://github.com/infernode-os/infernode):
 troff and its preprocessors (eqn, tbl, pic, refer, chess), PDF output (tr2pdf),
-macro packages for books (`-mbook`), papers (`-ms`) and manual pages
+macro packages for books (`-mbook`), journal articles (`-marticle`),
+memoranda and reports (`-mmemo`), papers (`-ms`) and manual pages
 (`-man`), an index maker, a LaTeX converter, and the Libertinus fonts.
 
 ![Two pages of a chapter set by book(1): a chapter opening with an epigraph, footnotes, displayed and inline equations, a section heading, a table and its caption](docs/images/chapter.png)
@@ -38,6 +39,12 @@ gained `pinned` and `viewing` then.
   endnotes, cross-references by label, figures and tables that float,
   lists, quotations and epigraphs, a bibliography from a BibTeX file in
   Chicago's style (or others), and an index.
+- **Articles and memoranda.** A journal's article in two columns: the
+  title, authors and abstract across the page, figures and tables in a
+  column or across both, notes at the foot of their column, the columns
+  flush at their foot and the last page's balanced, citations numbered
+  ([1]). A technical memorandum headed as Bell Laboratories' were, or a
+  report.
 - **Tables, pictures and images.** tbl's tables, pic's drawings, PNG and
   JPEG images, and the first page of a PDF as a figure in vectors.
 - **An accessible PDF.** The PDF is tagged and claims PDF/UA-1, and
@@ -160,6 +167,40 @@ Zoom+, Zoom−, Fit, PrevPage and NextPage move about the document, and
 its text can be searched. The screenshot is in Xenith's Glenda theme
 (`xenith -t glenda`). Setting Xenith up for it is under
 [Xenith](#xenith) below.
+
+## Articles and memoranda
+
+`book -m article` sets a journal's article with `-marticle`: `-mbook`'s
+macros with no chapters, the text in two columns. Its title, authors
+(side by side) and abstract go across the page; `.figure*` and
+`.table*` go across both columns at the top of the next page; notes are
+set at the foot of the column their marks are in; each column ends
+flush at its foot, and the last page's columns are balanced. `refer -S
+numeric` cites as journals do, `[1]` in the line, the references
+numbered in the order they are first cited.
+
+    .title "Setting a Paragraph Whole"
+    .author "A. Typesetter"
+    .affil "InferNode Project"
+    .abstract
+    A paragraph broken one line at a time is broken greedily ...
+    .endabstract
+    .section "Introduction" intro
+    Troff fills a line until the next word will not fit ...
+    .cite ossanna1976
+
+    book -m article -S numeric -p works.bib article.ms
+
+![Two pages of a journal article set in two columns: the title, authors and abstract across the top of the first, a footnote at the foot of its column, a figure in a column, a figure across both columns at the top of the second page, the last page's columns balanced and numbered references](docs/images/article.png)
+
+*[`examples/article.ms`](examples/article.ms) (`book -m article -S
+numeric -p works.bib article.ms`; [the PDF](examples/article.pdf)).*
+
+`book -m memo` sets a technical memorandum with `-mmemo`, headed as
+Bell Laboratories' were: the subject and its file at the left; the
+date, the authors and the memorandum's number at the right; `MEMORANDUM
+FOR FILE` across the page below ([`examples/memo.ms`](examples/memo.ms),
+[the PDF](examples/memo.pdf)). `.kind report` heads it as a report.
 
 ## Logic
 
@@ -324,6 +365,8 @@ documents only.
 
 ## Not yet
 
+- `book2tex` writes a book's LaTeX; an article's (`-marticle`) or a
+  memorandum's is not yet written as LaTeX's article class.
 - The tests in `tests/` were written to run inside an InferNode tree
   and have not yet been made to run against the package.
 
