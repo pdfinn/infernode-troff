@@ -243,6 +243,19 @@ if_cond(src: int): int
 		return 1;
 	'n' =>
 		return 0;
+	'd' =>
+		# a string, macro or diversion of the name (not Neatroff's: groff's
+		# and Plan 9's)
+		c: int;
+		do
+			c = next(src);
+		while(c == ' ' || c == '\t');
+		back(src, c);
+		(name, nil) := read_until(nil, 0, src);
+		if(name == nil)
+			return 0;
+		id := map(name);
+		return str_has(id) || str_dget(id);
 	}
 	return 0;
 }
@@ -267,7 +280,7 @@ eval_if(src: int): int
 	}
 	back(src, c);
 	ret: int;
-	if(c > 0 && strchr("oetn", c) >= 0)
+	if(c > 0 && strchr("oetnd", c) >= 0)
 		ret = if_cond(src);
 	else if(c == ' ')
 		ret = 0;

@@ -1,0 +1,267 @@
+.\" tmac.article: a journal article (troff -marticle; book -m article)
+.\"
+.\" -mbook's macros (sections, notes, floats, equations, citations, the
+.\" tagged PDF), set as an article: no chapters, its sections numbered 1,
+.\" 1.1; its title, authors and abstract at the head of its first page;
+.\" its text in two columns (or one); its references a section at its
+.\" end. LaTeX's article class, twocolumn, is the model.
+.\"
+.\"	.title T  .subtitle S
+.\"	.author Name  .affil Affiliation  .email address	(each author)
+.\"	.date D
+.\"	.abstract ... .endabstract	.keywords K
+.\"	.maketitle			(or the first section makes it)
+.\"	.columns 1|2			before the first text (2); one
+.\"					column's margins are wider
+.\"	.figure* label ... .endfigure*	across both columns, at the top
+.\"	.table* label ... .endtable*	of a page after this one
+.\"
+.\" The page is letter (.papersize a4 for A4), 10 points on 12, margins of
+.\" three quarters of an inch, the columns a fifth of an inch apart; the
+.\" last page's columns balanced (book(1)'s second pass). Cite with
+.\" refer's numbered style: book -m article -S numeric -p works.bib.
+.\"
+.so /lib/tmac/tmac.book
+.\"
+.nr book-ps 10
+.nr book-vs 12p
+.papersize letter
+.margins 0.75i 0.75i 0.75i 0.75i
+.nr book-oneside 1
+.nr book-plain 1
+.nr book-recto 0
+.nr book-nochap 1
+.nr book-pi 1m
+.nr book-gut 0.2i
+.\" a section's heading kept with two lines of its text, no more
+.nr book-secne 42p
+.nr art-ncol 2		\" columns
+.nr art-made 0		\" the title made
+.nr art-begun 0
+.nr art-na 0		\" authors
+.ds art-kw
+.ds book-citenotes fn
+.\" one column: a measure of about 75 characters, the margins wider
+.de columns
+.nr art-ncol \\$1
+.if \\$1=1 .if !\\n[book-begun] .margins 1i 1i 1.375i 1.375i
+..
+.\" begun (the first text or request that sets): one column, the page's
+.\" measure, until the title is made; with no title, the columns at once
+.de book-begin-hook
+.nr art-begun 1
+.if '\\*[book-title]'' .if \\n[art-ncol]>1 .book-columns \\n[art-ncol]
+..
+.\"
+.\" the authors, each with what is said of them
+.de author
+.nr art-na +1
+.ds art-n\\n[art-na] \\$*
+.ds art-a\\n[art-na]
+.ds art-e\\n[art-na]
+.ie \\n[art-na]=1 .ds book-author \\$*
+.el .as book-author , \\$*
+.dv info Author \\*[book-author]
+..
+.de affil
+.ds art-a\\n[art-na] \\$*
+..
+.de email
+.ds art-e\\n[art-na] \\$*
+..
+.de keywords
+.ds art-kw \\$*
+..
+.\" the abstract: before the title is made, set in its block, across the
+.\" page and indented; after, where it is, in the column
+.de abstract
+.book-begin
+.br
+.ev abs
+.evc 0
+.ft R
+.ps \\n[book-ps]-1
+.vs \\n[book-vs]u-1p
+.in 0
+.ti 0
+.ie \\n[art-made] .ll \\n[book-ll]u
+.el \{\
+.	\" (in the title's block: indented half an inch each side)
+.	in 0.5i
+.	ll \\n[book-fullw]u-0.5i
+.\}
+.book-fill
+.di art-abs
+.book-tag push Div
+.book-tag P
+\f[B]Abstract\fP\h'0.8m'\c
+..
+.de endabstract
+.br
+.book-tag pop
+.di
+.ev
+.if \\n[art-made] .art-absput
+..
+.de art-absput
+.ev abs
+.nf
+.in 0
+.art-abs
+.ev
+.rm art-abs
+.sp 0.5v
+.book-noindent
+..
+.\"
+.\" the title's block: the title, the authors side by side (three to a
+.\" row), the date, the abstract and keywords; then the columns
+.de maketitle
+.book-begin
+.nr art-made 1
+.br
+.in 0
+.ti 0
+.nr art-thy \\n[.hy]
+.nh
+.ad c
+.ll \\n[book-fullw]u
+.book-size 17 10
+.vs \\n[.s]p*12/10
+.book-tag H1
+\f[B]\\*[book-title]\fP
+.br
+.book-tag end
+.ps
+.vs
+.if !'\\*[book-subtitle]'' \{\
+.	sp 0.15i
+.	ps \\n[book-ps]+2
+.	book-tag P
+\f[I]\\*[book-subtitle]\fP
+.	br
+.	ps
+.\}
+.ad \\*[book-adj]
+.hy \\n[art-thy]
+.if \\n[art-na] \{\
+.	sp 0.2i
+.	book-tag P
+.	art-authors 1
+.	book-tag end
+.\}
+.if !'\\*[book-date]'' \{\
+.	sp 0.1i
+.	ce 1
+.	book-tag P
+\\*[book-date]
+.	br
+.\}
+.if d art-abs \{\
+.	sp 0.25i
+.	art-absput
+.\}
+.if !'\\*[art-kw]'' \{\
+.	in 0.5i
+.	ll \\n[book-fullw]u-0.5i
+.	ps \\n[book-ps]-1
+.	book-tag P
+\f[B]Keywords\fP\h'0.8m'\\*[art-kw]
+.	br
+.	ps
+.	in 0
+.\}
+.sp 0.3i
+.ll \\n[book-ll]u
+.book-columns \\n[art-ncol]
+.book-noindent
+..
+.\" the authors from $1, a row of up to three, each centred in its share
+.\" of the measure: the names, then their affiliations, then addresses
+.de art-authors
+.nr art-k \\n[art-na]-\\$1+1
+.if \\n[art-k]>3 .nr art-k 3
+.nr art-cw \\n[book-fullw]/\\n[art-k]
+.nr art-s1 \\n[book-ps]+1
+.nr art-s2 \\n[book-ps]-1
+.nr art-s3 \\n[book-ps]-2
+.nf
+.art-row n \\$1 "\s[\\n[art-s1]]" ""
+.art-row a \\$1 "\f[I]\s[\\n[art-s2]]" "\fP"
+.art-row e \\$1 "\f[CR]\s[\\n[art-s3]]" "\fP"
+.fi
+.nr art-next \\$1+\\n[art-k]
+.if \\n[art-next]<=\\n[art-na] \{\
+.	sp 0.12i
+.	art-authors \\n[art-next]
+.\}
+..
+.\" a line of the row from $2: field $1 ($3 before it, $4 after), each
+.\" author's centred in its share; none if none has it
+.de art-row
+.ds art-line
+.nr art-any 0
+.nr art-j 0 1
+.nr art-i \\$2
+.art-cell \\$1 "\\$3" "\\$4"
+.if \\n[art-any] \{\
+\\*[art-line]
+.\}
+..
+.de art-cell
+.if !'\\*[art-\\$1\\n[art-i]]'' \{\
+.	nr art-any 1
+.	nr art-x \\n[art-cw]*\\n[art-j]+(\\n[art-cw]/2)
+.	nr art-w \w"\\$2\\*[art-\\$1\\n[art-i]]\\$3\s0"
+.	as art-line \Z^\h'\\n[art-x]u-(\\n[art-w]u/2u)'\\$2\\*[art-\\$1\\n[art-i]]\\$3\s0^
+.\}
+.nr art-j +1
+.nr art-i +1
+.if \\n[art-j]<\\n[art-k] .art-cell \\$1 "\\$2" "\\$3"
+..
+.\"
+.\" the first section makes the title, if it has not been
+.rn section book-section
+.de section
+.if !\\n[art-made] .if !'\\*[book-title]'' .maketitle
+.book-section \\$@
+..
+.\" an unnumbered section (Acknowledgements)
+.de section*
+.if !\\n[art-made] .if !'\\*[book-title]'' .maketitle
+.nr book-chnum0 \\n[book-nochap]
+.nr book-nochap 0
+.nr book-section -1
+.book-section \\$@
+.nr book-nochap \\n[book-chnum0]
+..
+.\"
+.\" the references: a section, not a chapter, its entries a size smaller
+.de ]bb
+.br
+.if \\n[book-flafter] .book-flafterput
+.book-vstretch 4p
+.sp 1v
+.ne 4v
+.ad l
+.nr book-hn +1
+.book-tag H2
+\X^dest book-h\\n[book-hn]^\X^outline 2 References^\f[B]References\fP
+.br
+.book-tag end
+.sp 0.5v
+.tm aux:.book-tocent section "" "References" \\n% book-h\\n[book-hn]
+.ps \\n[book-ps]-1
+.vs \\n[book-vs]u-1p
+.nr book-hy0 \\n[.hy]
+.nh
+..
+.de ]bz
+.br
+.book-tag end
+.in 0
+.ps
+.vs
+.ad \\*[book-adj]
+.hy \\n[book-hy0]
+..

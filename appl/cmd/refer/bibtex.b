@@ -616,7 +616,7 @@ fullname(n: ref Name): string
 bibrec(e: ref Bibentry): ref Rec
 {
 	r := newrec();
-	rf := ref Ref(e.key, e.typ, nil, array[0] of ref Name, array[0] of ref Name, array[0] of ref Name);
+	rf := ref Ref(e.key, e.typ, nil, array[0] of ref Name, array[0] of ref Name, array[0] of ref Name, 0);
 	r.keys['L'] = e.key;
 	for(l := e.fields; l != nil; l = tl l){
 		(name, raw) := hd l;
@@ -673,7 +673,7 @@ referref(r: ref Rec): ref Ref
 	3 =>	typ = "incollection";
 	4 =>	typ = "techreport";
 	}
-	rf := ref Ref(r.keys['L'], typ, nil, array[r.nauth] of ref Name, array[0] of ref Name, array[0] of ref Name);
+	rf := ref Ref(r.keys['L'], typ, nil, array[r.nauth] of ref Name, array[0] of ref Name, array[0] of ref Name, 0);
 	for(i := 0; i < r.nauth; i++)
 		rf.author[i] = bibname(r.auth[i]);
 	if(r.keys['E'] != nil)

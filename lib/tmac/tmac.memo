@@ -1,0 +1,195 @@
+.\" tmac.memo: a technical memorandum or report (troff -mmemo; book -m memo)
+.\"
+.\" -marticle's macros in one column, headed as a technical memorandum was
+.\" at Bell Laboratories: the subject and its file at the left; the
+.\" date, the authors and the memorandum's number at the right; the kind
+.\" of memorandum across the page below; then the text, its sections
+.\" numbered. Or, .kind report, headed as a report: the title, authors
+.\" and date centred above the text, as -marticle's in one column.
+.\"
+.\"	.org "Bell Laboratories"	the organization, at the head's right
+.\"	.title T  .subtitle S		the subject
+.\"	.author Name [location [extension]]	(each author)
+.\"	.date D
+.\"	.case N  .file F		the case and file it is charged to
+.\"	.number "TM 80-1270-1"		its number (TM:, after the authors)
+.\"	.memotype "MEMORANDUM FOR FILE"	(the default)
+.\"	.abstract ... .endabstract	set below the head, indented
+.\"	.kind memo|report		(memo)
+.\"	.maketitle			(or the first section makes it)
+.\"	.signature			the authors' names at the end, at the right
+.\"
+.so /lib/tmac/tmac.article
+.columns 1
+.nr book-ps 11
+.nr book-vs 13p
+.margins 1i 1i 1i 1i
+.nr book-secne 0
+.ds memo-kind memo
+.ds memo-org
+.ds memo-case
+.ds memo-file
+.ds memo-number
+.ds memo-type MEMORANDUM FOR FILE
+.de kind
+.ds memo-kind \\$1
+..
+.de org
+.ds memo-org \\$*
+..
+.de case
+.ds memo-case \\$*
+..
+.de file
+.ds memo-file \\$*
+..
+.de number
+.ds memo-number \\$*
+..
+.de memotype
+.ds memo-type \\$*
+..
+.\" an author: the name, and where (a room, an extension) after it
+.rn author art-author
+.de author
+.art-author \\$1
+.ds memo-l\\n[art-na] \\$2
+.ds memo-x\\n[art-na] \\$3
+..
+.\"
+.rn maketitle art-maketitle
+.de maketitle
+.ie '\\*[memo-kind]'report' .art-maketitle
+.el .memo-head
+..
+.\" the head: two blocks side by side, the subject's at the left, the
+.\" date's and authors' at the right, each label in italics in the
+.\" margin of its block; the kind of memorandum below, across the page
+.de memo-head
+.book-begin
+.nr art-made 1
+.br
+.in 0
+.ti 0
+.nf
+.ll \\n[book-fullw]u
+.if !'\\*[memo-org]'' \{\
+.	book-tag P
+.	ad r
+.	fi
+\f[B]\s[\\n[book-ps]+3]\\*[memo-org]\s0\fP
+.	br
+.	nf
+.	ad \\*[book-adj]
+.	sp 0.3i
+.\}
+.mk memo-top
+.\" the subject, at the left
+.nr memo-lw \\n[book-fullw]*55/100
+.ll \\n[memo-lw]u
+.in 0.75i
+.ti 0
+.fi
+.ad l
+.nh
+.book-tag H1
+\h'0.75i-\w'\f[I]\s-1subject:\s0\fP'u-0.5m'\f[I]\s-1subject:\s0\fP\h'0.5m'\f[B]\\*[book-title]\fP
+.br
+.book-tag end
+.if !'\\*[book-subtitle]'' \{\
+.	book-tag P
+\f[B]\\*[book-subtitle]\fP
+.	br
+.\}
+.if !'\\*[memo-case]\\*[memo-file]'' \{\
+.	sp 0.4v
+.	ps -1
+.	book-tag P
+.	ie '\\*[memo-file]'' Case \\*[memo-case]
+.	el .ie '\\*[memo-case]'' File \\*[memo-file]
+.	el Case \\*[memo-case] \(em File \\*[memo-file]
+.	br
+.	ps
+.\}
+.nr memo-lb \\n[nl]
+.\" the date, authors and number, at the right
+.sp |\\n[memo-top]u
+.in \\n[memo-lw]u+0.5i+0.6i
+.ll \\n[book-fullw]u
+.nf
+.if !'\\*[book-date]'' \{\
+.	book-tag P
+.	memo-label date:
+\f[B]\\*[book-date]\fP
+.	br
+.	sp 0.5v
+.\}
+.if \\n[art-na] \{\
+.	book-tag P
+.	memo-label from:
+.	nr memo-i 1 1
+.	memo-from
+.	sp 0.5v
+.\}
+.if !'\\*[memo-number]'' \{\
+.	book-tag P
+.	memo-label TM:
+\f[B]\\*[memo-number]\fP
+.	br
+.\}
+.book-tag end
+.if \\n[nl]<\\n[memo-lb] .sp |\\n[memo-lb]u
+.in 0
+.ll \\n[book-fullw]u
+.hy 5
+.fi
+.ad \\*[book-adj]
+.sp 0.4i
+.if !'\\*[memo-type]'' \{\
+.	ce 1
+.	book-tag P
+\f[I]\\*[memo-type]\fP
+.	br
+.	sp 0.35i
+.\}
+.if d art-abs \{\
+.	art-absput
+.	sp 0.2i
+.\}
+.book-tag end
+.ll \\n[book-ll]u
+.book-noindent
+..
+.\" a label in the margin before the block's first line
+.de memo-label
+\h'-0.6i'\f[I]\s-1\\$1\s0\fP\h'0.6i-\w'\f[I]\s-1\\$1\s0\fP'u'\c
+..
+.\" the authors, each with where to find them, one a line
+.de memo-from
+\f[B]\\*[art-n\\n[memo-i]]\fP
+.br
+.if !'\\*[memo-l\\n[memo-i]]\\*[memo-x\\n[memo-i]]'' \{\
+.	ps -2
+\\*[memo-l\\n[memo-i]] \\*[memo-x\\n[memo-i]]
+.	br
+.	ps
+.\}
+.if \\n+[memo-i]<=\\n[art-na] .memo-from
+..
+.\" the authors' names at the end, at the right, as a memorandum is signed
+.de signature
+.br
+.sp 1v
+.ne \\n[art-na]v+1v
+.in \\n[book-ll]u*6/10
+.nf
+.book-tag P
+.nr memo-i 1 1
+.memo-sig
+.fi
+.in 0
+..
+.de memo-sig
+\\*[art-n\\n[memo-i]]
+.if \\n+[memo-i]<=\\n[art-na] .memo-sig
+..

@@ -6,6 +6,10 @@ book, book2tex, mkindex \- make a book
 [
 .B -f
 ] [
+.B -l
+] [
+.BI -m " macros"
+] [
 .BI -p " works.bib"
 ] [
 .BI -S " style"
@@ -34,7 +38,16 @@ book, book2tex, mkindex \- make a book
 makes a PDF of a book written with
 .BR -mbook ,
 the macros of
-.IR troff (6).
+.IR troff (6),
+or with a class built on them, named by
+.BR -m :
+.B article
+.RB ( -marticle ,
+a journal's article in two columns)
+or
+.B memo
+.RB ( -mmemo ,
+a technical memorandum or report).
 It runs
 .IR refer (1)
 with the database
@@ -88,6 +101,16 @@ and
 .B .mte
 set them.
 .PP
+With
+.BR -l ,
+.I book
+sets the book to be looked at as it is written: troff's output to
+standard output, no PDF, no index made. Xenith's document view runs it so, and with
+Xenith's
+.B Live
+sets a book, article or memorandum again a moment after each edit
+(see EXAMPLES).
+.PP
 .I Book2tex
 writes the book as LaTeX, for LuaLaTeX, for a publisher who wants it:
 each of
@@ -111,9 +134,48 @@ each page is a link to it.
 .SH EXAMPLES
 .EX
 book -p works.bib thesis.ms
+book -m article -S numeric -p works.bib paper.ms
+book -m memo memo.ms
 book -f -p works.bib -o press.pdf thesis.ms
 book2tex -p works.bib -o thesis.tex thesis.ms
 .EE
+.PP
+A line near the top of a file says how it is set, for Xenith's
+document view, which sets it with
+.BR "book -l" ,
+as it is edited when
+.B Live
+is executed in the window's tag:
+.EX
+\&.\e" book -m article -S numeric -p works.bib
+.EE
+Its words after
+.B book
+are
+.IR book 's
+options
+.RB ( -f ,
+.BR -m ,
+.BR -p ,
+.BR -S );
+the file's name may follow them, as in a line showing how it is made.
+A file with no such line that uses
+.BR -mbook 's
+headings or paragraphs
+.RB ( .chapter ,
+.BR .section ,
+.BR .part ,
+.BR .maketitle ,
+.BR .p )
+is set by
+.BR "book -l" ;
+any other by
+.I troff
+with the macros its name gives.
+Its cross-references are those its
+.B book.aux
+holds the first time (a chapter of a book made whole before), then
+those of the last time it was set.
 .SH SOURCE
 .B /dis/book
 .br

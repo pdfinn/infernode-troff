@@ -738,11 +738,16 @@ put(s: string)
 	pending = s;
 }
 
-# a note citing, for its mark to follow the text before
+# a note citing, for its mark to follow the text before; a style citing
+# in the line, the citation put in the line before
 footnote(text: string)
 {
 	if(text == nil)
 		return;
+	if(style->inline()){
+		inlinecite(text);
+		return;
+	}
 	if(pending != nil && len pending > 0 && pending[0] != '.' && pending[0] != '\''){
 		p := sdup(pending);
 		if(len p < 2 || p[len p - 2:] != "\\c")
@@ -750,6 +755,25 @@ footnote(text: string)
 		pending = p + "\n";
 	}
 	put(".]fn\n" + troffline(text) + ".]fe\n");
+}
+
+# a citation in the line before, joined to its last word by a space that
+# does not break, before the punctuation it ends with (a sentence's
+# period after the citation, as numbered styles set it); after a request,
+# a line of its own
+inlinecite(text: string)
+{
+	if(pending == nil || len pending == 0 || pending[0] == '.' || pending[0] == '\''){
+		put(text + "\n");
+		return;
+	}
+	p := sdup(pending);
+	while(len p > 0 && isspace(p[len p - 1]))
+		p = p[0:len p - 1];
+	e := len p;
+	while(e > 0 && (p[e - 1] == '.' || p[e - 1] == ',' || p[e - 1] == ';' || p[e - 1] == ':' || p[e - 1] == '?' || p[e - 1] == '!'))
+		e--;
+	pending = p[0:e] + "\\~" + text + p[e:] + "\n";
 }
 
 # text as lines of troff's input
@@ -806,15 +830,20 @@ cite(s: string, note: int): string
 			refer_seen(key);
 		if(rec.rf == nil)
 			rec.rf = referref(rec);
+		rec.rf.num = rec.id + 1;
 		n := style->note(rec.rf, !rec.cited, loc);
 		rec.cited = 1;
-		if(text != "")
-			text += "; ";
+		if(text != ""){
+			if(style->inline())
+				text += ", ";
+			else
+				text += "; ";
+		}
 		text += n;
 	}
 	if(text == "")
 		return nil;
-	if(note && !endspunct(text))
+	if(note && !style->inline() && !endspunct(text))
 		text += ".";
 	return text;
 }
@@ -885,6 +914,7 @@ bibliography()
 		a[i] = cites[i];
 		if(a[i].rf == nil)
 			a[i].rf = referref(a[i]);
+		a[i].rf.num = a[i].id + 1;
 		k[i] = style->sortkey(a[i].rf);
 	}
 	# sorted stably
@@ -900,8 +930,13 @@ bibliography()
 		k[j] = rk;
 	}
 	s := ".]bb\n";
-	for(i = 0; i < n; i++)
-		s += ".]be\n" + troffline(style->bib(a[i].rf));
+	for(i = 0; i < n; i++){
+		if((lb := style->label(a[i].rf)) != nil)
+			s += ".]be \"" + lb + "\"\n";
+		else
+			s += ".]be\n";
+		s += troffline(style->bib(a[i].rf));
+	}
 	lnput(s + ".]bz\n");
 }
 

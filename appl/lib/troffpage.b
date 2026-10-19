@@ -618,9 +618,53 @@ chartext(f: ref Fdesc, name: string, i: int): string
 	"sl" =>	return "/";
 	"dq" =>	return "\"";
 	}
-	if(len name > 3 && name[0:3] == "uni")
+	# a glyph by its name: uni0041, u1D465 (GID=u1D465, a maths
+	# italic x), with a variant's suffix (.size2) or none; a glyph's
+	# of no character (GID=radical.size2) is none
+	gid := len name > 4 && name[0:4] == "GID=";
+	if(gid)
+		name = name[4:];
+	if((r := glyphrune(name)) > 0){
+		t := "";
+		t[0] = r;
+		return t;
+	}
+	if(gid || len name > 3 && name[0:3] == "uni")
 		return "";
 	return name;
+}
+
+# the character a glyph's name gives (uniXXXX, uXXXX[XX], each with
+# a .suffix or none), or 0
+glyphrune(name: string): int
+{
+	for(j := 0; j < len name; j++)
+		if(name[j] == '.'){
+			name = name[0:j];
+			break;
+		}
+	hex := "";
+	if(len name > 3 && name[0:3] == "uni")
+		hex = name[3:];
+	else if(len name > 1 && name[0] == 'u')
+		hex = name[1:];
+	if(len hex < 4 || len hex > 6)
+		return 0;
+	r := 0;
+	for(j = 0; j < len hex; j++){
+		c := hex[j];
+		if(c >= '0' && c <= '9')
+			r = r * 16 + c - '0';
+		else if(c >= 'A' && c <= 'F')
+			r = r * 16 + c - 'A' + 10;
+		else if(c >= 'a' && c <= 'f')
+			r = r * 16 + c - 'a' + 10;
+		else
+			return 0;
+	}
+	if(r > 16r10FFFF || r >= 16rD800 && r < 16rE000)
+		return 0;
+	return r;
 }
 
 flushword(w: ref Walk)
@@ -662,7 +706,13 @@ glyph(w: ref Walk, mounts: array of string, fpos, sz: int, c: string, h, v: int,
 	Wtext =>
 		t := chartext(f, c, i);
 		em := sz * w.d.res / (72 * w.st.szscale);
-		if(v != w.lastv || h > w.lasth + em / 5 || h < w.lasth - em){
+		# a space between words: half the font's space or more (a
+		# space shrinks by a third at most, set a paragraph at once);
+		# less is kerning or tracking
+		gap := em / 5;
+		if(f.spacewid > 0)
+			gap = (f.spacewid * sz + f.uwid / 2) / f.uwid / 2;
+		if(v != w.lastv || h > w.lasth + gap || h < w.lasth - em){
 			flushword(w);
 			if(w.text != nil){
 				if(v != w.lastv)

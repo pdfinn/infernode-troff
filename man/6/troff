@@ -182,6 +182,66 @@ for
 .IR tr2pdf (1)):
 the book's parts, read in order, are its structure; its running heads
 and folios are artifacts.
+.SS -marticle
+A journal's article: -mbook's macros, set with no chapters (sections
+numbered 1, 1.1), its text in two columns, its title, authors and
+abstract across the page at its head, its references a section at its
+end. Letter paper, 10 points on 12, three-quarter-inch margins.
+.TP
+.B ".title \fIT\fP  .subtitle \fIS\fP  .date \fID\fP"
+.TP
+.BI ".author " name "  .affil " affiliation "  .email " address
+Each author, set side by side, three to a row.
+.TP
+.B ".abstract \fR...\fP .endabstract  .keywords \fIK\fP"
+Before
+.BR .maketitle ,
+in the title's block, indented; after, in the column.
+.TP
+.B .maketitle
+The title's block; the first section makes it if it has not been made.
+.TP
+.BI ".columns " n
+One column or two (the default), before the first text; one column's
+margins are wider.
+.TP
+.BI ".figure* " label "  \fR...\fP  .endfigure*  .table* \fR...\fP .endtable*"
+A figure or table across both columns, at the top of a page after the
+one it is written on.
+.TP
+.BI ".section* " title
+An unnumbered section (acknowledgements).
+.PP
+Each column ends flush at its foot (tr2pdf stretching what may
+stretch); notes are set at the foot of the column their marks are in;
+the last page's columns are balanced, its height measured on one pass
+of
+.IR book (1)
+and used on the next.
+Cite with
+.B "refer -S numeric"
+.RB ( "book -m article -S numeric" ).
+.SS -mmemo
+A technical memorandum, headed as Bell Laboratories' were, or a report:
+-marticle's macros in one column.
+.TP
+.BI ".org " name
+The organization, at the head's right.
+.TP
+.BI ".author " "name " \fR[ location \fR[ extension \fR]]
+.TP
+.BI ".case " N "  .file " F "  .number " TM
+The case and file charged, the memorandum's number.
+.TP
+.BI ".memotype " kind
+.RB ( "MEMORANDUM FOR FILE" ).
+.TP
+.BI ".kind " "memo\fR|\fPreport"
+A memorandum's head (subject at the left; date, authors and number at
+the right), or a report's (the title centred).
+.TP
+.B .signature
+The authors' names at the end, at the right.
 .SS -man
 A manual page, as Plan 9's are written and set:
 .BR .TH ,
