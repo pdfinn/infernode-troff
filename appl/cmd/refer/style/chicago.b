@@ -32,6 +32,17 @@ init(): string
 	return nil;
 }
 
+# notes, not citations in the line
+inline(): int
+{
+	return 0;
+}
+
+label(nil: ref Ref): string
+{
+	return nil;
+}
+
 british := 0;	# quotation marks single, double within; punctuation after them
 nodoi := 0;	# no DOI (biblatex's doi=false)
 nourl := 0;	# no URL (url=false)

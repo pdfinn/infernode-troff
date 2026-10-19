@@ -29,19 +29,26 @@ Referstyle: module
 		author:	array of ref Name;
 		editor:	array of ref Name;
 		translator:	array of ref Name;
+		num:	int;			# its number, in the order works are first cited
 	};
 
 	init:	fn(): string;
+
+	# whether its citations are set in the line ([1]), not as notes
+	inline:	fn(): int;
 
 	# options the style knows (a name each; nil if all are known, else
 	# what is not): chicago's british, nodoi, nourl
 	options:	fn(o: list of string): string;
 
 	# the text of a note citing r at loc (a page, a range, 1.1-5; nil
-	# for none), the first time it is cited or after
+	# for none), the first time it is cited or after; a style citing in
+	# the line, the citation's text there
 	note:	fn(r: ref Ref, first: int, loc: string): string;
 
-	# r's entry in the bibliography, and the key it is sorted by
+	# r's entry in the bibliography, and the key it is sorted by; a style
+	# citing in the line, the label its entry is hung from ([1]), else nil
 	bib:	fn(r: ref Ref): string;
+	label:	fn(r: ref Ref): string;
 	sortkey:	fn(r: ref Ref): string;
 };

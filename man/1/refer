@@ -57,13 +57,27 @@ author alone before those written with others, those by the others'
 names, then by title.
 .IR Book (1)
 runs it so.
+.PP
+With
+.B "-S numeric"
+it sets them as journals of the sciences and engineering do (IEEE's,
+ACM's): in the line, as
+.B [1]
+or, at a place in the work,
+.BR "[1, p.\ 5]" ,
+before the punctuation the line ends with; numbered in the order the
+works are first cited, a work cited again by its own number; and the
+references in that order, each hung from its number, its authors by
+their initials.
 .TP
 .BI -p " bib"
 The database.
 .TP
 .BI -S " style"
 Set citations in the style
-.RB ( chicago ),
+.RB ( chicago
+or
+.BR numeric ),
 its options after its name, each after a comma
 .RB ( chicago,british,nodoi,nourl ):
 .B british
@@ -72,7 +86,7 @@ punctuation after the marks;
 .B nodoi
 and
 .B nourl
-neither DOI nor URL; an option the style does not know is refused.
+neither DOI nor URL (both styles); an option the style does not know is refused.
 .TP
 .BI -r " xy,..."
 The requests that begin a chapter, for a style

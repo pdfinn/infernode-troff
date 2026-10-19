@@ -4,6 +4,7 @@ MODULES=
 
 TARG=\
 	chicago.dis\
+	numeric.dis\
 
 SYSMODULES=\
 	sys.m\
