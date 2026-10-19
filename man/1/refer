@@ -21,12 +21,18 @@ refer \- cite works by their keys
 .B -sa
 ] [
 .BI -r " xy,..."
+] [
+.B -C
+] [
+.I file ...
 ]
 .SH DESCRIPTION
 .I Refer
 is a preprocessor for
 .IR troff (1):
-it reads troff's input on its standard input and writes it with each
+it reads troff's input from the files named, or its standard input
+.RB ( -
+names it too), and writes it with each
 citation set from a database of works, refer's own or BibTeX's
 (a file ending in
 .BR .bib ).
@@ -43,6 +49,17 @@ or, within a line,
 sets the works cited.
 Without a style it is Ali Gholami Rudi's Neatrefer, of which it is a
 translation, and writes what Neatrefer writes.
+.PP
+A work may be written out where it is cited, in refer's fields, instead
+of being looked up by its key:
+.IP
+.EX
+\&.[ [
+%A J. F. Ossanna
+%T Nroff/Troff User's Manual
+%D 1976
+\&.]]
+.EE
 .PP
 With
 .B "-S chicago"
@@ -112,8 +129,43 @@ The citation's macro, and the author and year citation's
 .TP
 .B -sa
 Sort by the authors' last names.
+.TP
+.B -C
+Set a
+.B .[
+.B .]
+citation as Bell Laboratories' refer did, for documents written for
+it (Kernighan's manual of
+.IR pic (1),
+say): joined to the end of the line before it, between what follows
+.B .[
+and what follows
+.B .]
+on their lines
+.RB ( ".[ [" " and " .]] " give " [1] ),
+or, with neither, between
+.B \e*([.
+and
+.B \e*(.]
+(-ms's superscript); a line that ends in a full stop or a comma has
+it each side of the citation, in
+.B \e*(<.
+and
+.B \e*(>.
+(-ms keeps the one its style wants).
+Neatrefer sets the citation on a line of its own.
 .SH SOURCE
 .B /appl/cmd/refer
+.SH EXAMPLES
+Kernighan's manual of pic, as it was made (its macros ask for the
+Linotron 202's font for programs, PO, unless
+.B pf
+names another):
+.IP
+.EX
+refer -C -e pic.man | pic | eqn | troff -ms '-dpf=CR' |
+	tr2pdf >pic.pdf
+.EE
 .SH SEE ALSO
 .IR book (1),
 .IR troff (1)

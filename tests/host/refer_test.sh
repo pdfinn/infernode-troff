@@ -19,7 +19,12 @@
 #	the punctuation after them, no DOI or URL; an article or a chapter
 #	cited whole given its pages, a chapter its number (chap. 2 in), a
 #	month its name, as biblatex-chicago gives them; an option no style
-#	knows refused.
+#	knows refused;
+#	the input a file named, as standard input;
+#	-C, as Bell Laboratories' refer: a reference written out in .[ .]
+#	(%A, %T, ...), the citation joined to the line before it, between
+#	what follows .[ and .] ([1]), or \*([. \*(.] and a full stop each
+#	side of them (\*(<. \*(>.); the list at $LIST$ with -e.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -37,9 +42,29 @@ cat >"$tmp/uk.bib" <<'EOF'
 @incollection{ch, author = {Dyzenhaus, David}, title = {The Compulsion of Legality}, booktitle = {Emergency and the Limits of Legality}, editor = {Ramraj, Victor}, publisher = {Cambridge University Press}, address = {Cambridge}, year = 2008, chapter = 2, pages = {33--59}, url = {https://example.org/x}}
 EOF
 printf 'x\n.cite art\ny\n.cite ch\n' >"$tmp/uk.tr"
+# Bell Laboratories' refer (-C): a reference written out in .[ .], the
+# citation joined to the line before; the input a file named
+cat >"$tmp/classic.tr" <<'EOF'
+.PP
+It runs after
+.UC TROFF
+.[ [
+%A J. F. Ossanna
+%T N\s-2ROFF\s+2/T\s-2ROFF\s+2 User's Manual
+%D October 1976
+.]]
+as a preprocessor.
+See the manual.
+.[
+oss76
+.]
+.[
+$LIST$
+.]
+EOF
 
 with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c \
-    "cd /tests/refer; refer -p db.ref -ocite -sa < ms.tr > '#U*$tmp/ms.out'; refer -p works.bib -S chicago < chicago.tr > '#U*$tmp/chicago.out'; refer -p '#U*$tmp/empty.bib' -S chicago < '#U*$tmp/empty.tr' > '#U*$tmp/empty.out' >[2] '#U*$tmp/empty.err'; refer -p '#U*$tmp/uk.bib' -S chicago,british,nodoi,nourl < '#U*$tmp/uk.tr' > '#U*$tmp/uk.out'; refer -p '#U*$tmp/uk.bib' -S chicago,metric < '#U*$tmp/uk.tr' > '#U*$tmp/bad.out' >[2] '#U*$tmp/bad.err'" \
+    "cd /tests/refer; refer -p db.ref -ocite -sa < ms.tr > '#U*$tmp/ms.out'; refer -p works.bib -S chicago < chicago.tr > '#U*$tmp/chicago.out'; refer -p '#U*$tmp/empty.bib' -S chicago < '#U*$tmp/empty.tr' > '#U*$tmp/empty.out' >[2] '#U*$tmp/empty.err'; refer -p '#U*$tmp/uk.bib' -S chicago,british,nodoi,nourl < '#U*$tmp/uk.tr' > '#U*$tmp/uk.out'; refer -p '#U*$tmp/uk.bib' -S chicago,metric < '#U*$tmp/uk.tr' > '#U*$tmp/bad.out' >[2] '#U*$tmp/bad.err'; refer -p db.ref -ocite -sa ms.tr > '#U*$tmp/msfile.out'; refer -C -e -p db.ref '#U*$tmp/classic.tr' > '#U*$tmp/classic.out' >[2] '#U*$tmp/classic.err'" \
     </dev/null >/dev/null 2>&1
 
 for t in ms chicago; do
@@ -66,6 +91,28 @@ if grep -q '‘Just Trust Us’, \\fIComparative Legal History\\fP 3, no. 1 (Jun
 else
     echo "FAIL: chicago,british,nodoi,nourl:"
     sed 's/^/    /' "$tmp/uk.out" "$tmp/bad.err" | head -20
+    fail=1
+fi
+
+if cmp -s "$tmp/msfile.out" tests/refer/ms.out; then
+    echo "PASS: the input a file named, as standard input"
+else
+    echo "FAIL: the input a file named:"
+    diff tests/refer/ms.out "$tmp/msfile.out" | head -10 | sed 's/^/    /'
+    fail=1
+fi
+# -C: [1] after .UC's word; \*([. \*(.] round the number after a full
+# stop, the stop each side in \*(<. \*(>.; the list where $LIST$ is
+if grep -qxF '.UC TROFF [1]' "$tmp/classic.out" &&
+   grep -qxF 'See the manual\*(<.\*([.2\*(.]\*(>.' "$tmp/classic.out" &&
+   grep -q '^\.ds \[A J\. F\. Ossanna' "$tmp/classic.out" &&
+   grep -q '^\.ds \[A Joseph F\. Ossanna' "$tmp/classic.out" &&
+   grep -q '^\.\]<' "$tmp/classic.out" && ! grep -q . "$tmp/classic.err" &&
+   ! grep -q '^%' "$tmp/classic.out"; then
+    echo "PASS: -C, as Bell Laboratories' refer: a reference written out, citations joined to their lines"
+else
+    echo "FAIL: -C:"
+    sed 's/^/    /' "$tmp/classic.out" "$tmp/classic.err" | head -30
     fail=1
 fi
 

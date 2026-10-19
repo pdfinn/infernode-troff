@@ -160,7 +160,7 @@ vj_glyph()
 # below the lowest so far (not a script, nor a rule under a line)
 vj_row(v: int)
 {
-	if(vj_foot)
+	if(compat || vj_foot)	# (-c: as Neatpost, not justified; nothing kept)
 		return;
 	if(vj_rn > 0 && v < vj_rv[vj_rn - 1] + o_s * devres() / (72 * dev_szscale) / 2)
 		return;

@@ -38,6 +38,9 @@ include "bufio.m";
 include "filter.m";
 	deflate: Filter;
 
+include "math.m";
+	math: Math;
+
 Tr2pdf: module
 {
 	init:	fn(nil: ref Draw->Context, args: list of string);
