@@ -11,6 +11,13 @@
 #				by w (units), with others in proportion
 #	x X vfoot b vs		the page's text ends here; a full page's last
 #				baseline is b; vs, its line spacing
+#	x X vcol		a column begins: what follows is a region of
+#				its own, made to end at its own foot (x X
+#				vfoot), what came before kept as it was
+#
+# A page in columns is in regions, one a column, each made to end where
+# a full column does; what is set above the columns (a title, a figure
+# across them) is a region with no foot, and stays as set.
 #
 # The text is what was set before x X vfoot: what follows (notes, the
 # folio, the running heads) stays where it is set. A page whose text
@@ -44,6 +51,13 @@ vj_pr: array of int;
 vj_pn := 0;
 vj_cut := -1;
 vj_annots: list of (int, string);	# the page's annotations, waiting for their places
+# the page's regions (columns, x X vcol): each one's plan, kept when the
+# next begins; vj_reg the one being set
+vj_reg := 0;
+vj_rpv: array of array of int;
+vj_rpa: array of array of int;
+vj_rpn: array of int;
+vj_rcut: array of int;
 
 vj_reset()
 {
@@ -61,6 +75,45 @@ vj_reset()
 	vj_target = vj_vs = 0;
 	vj_pn = 0;
 	vj_cut = -1;
+	vj_reg = 0;
+	vj_rpv = array[4] of array of int;
+	vj_rpa = array[4] of array of int;
+	vj_rpn = array[4] of int;
+	vj_rcut = array[4] of int;
+}
+
+# the region set so far planned and kept, a new one begun (x X vcol)
+vj_region()
+{
+	vj_keep();
+	vj_reg++;
+	vj_sn = vj_ln = vj_rn = 0;
+	vj_first = vj_last = -1;
+	vj_foot = 0;
+	vj_target = vj_vs = 0;
+	vj_pn = 0;
+	vj_cut = -1;
+}
+
+# the region's plan, kept
+vj_keep()
+{
+	vj_plan();
+	if(vj_reg >= len vj_rpn){
+		n := 2 * len vj_rpn;
+		a := array[n] of array of int;
+		a[0:] = vj_rpv;
+		vj_rpv = a;
+		a = array[n] of array of int;
+		a[0:] = vj_rpa;
+		vj_rpa = a;
+		vj_rpn = growint(vj_rpn, n);
+		vj_rcut = growint(vj_rcut, n);
+	}
+	vj_rpv[vj_reg] = vj_pv;
+	vj_rpa[vj_reg] = vj_pa;
+	vj_rpn[vj_reg] = vj_pn;
+	vj_rcut[vj_reg] = vj_cut;
 }
 
 # x X vstretch w
@@ -220,15 +273,17 @@ vj_points(share, w: int)
 		vj_pa[last] += share - given;
 }
 
-# how far what is set at v moves
-vj_off(v: int): int
+# how far what is set at v in region r moves
+vj_off(v, r: int): int
 {
-	if(vj_cut < 0 || v > vj_cut)
+	if(r < 0 || r >= len vj_rpn || vj_rcut[r] < 0 || v > vj_rcut[r])
 		return 0;
 	o := 0;
-	for(i := 0; i < vj_pn; i++)
-		if(v > vj_pv[i])
-			o += vj_pa[i];
+	pv := vj_rpv[r];
+	pa := vj_rpa[r];
+	for(i := 0; i < vj_rpn[r]; i++)
+		if(v > pv[i])
+			o += pa[i];
 	return o;
 }
 
@@ -240,9 +295,7 @@ vj_anchor := -1;
 
 vj_place(uv: big): string
 {
-	if(vj_anchor >= 0)
-		return vj_char(VJ0) + string uv + ":" + string vj_anchor + vj_char(VJ1);
-	return vj_char(VJ0) + string uv + vj_char(VJ1);
+	return vj_char(VJ0) + string uv + ":" + string vj_anchor + ":" + string vj_reg + vj_char(VJ1);
 }
 
 vj_char(c: int): string
@@ -250,6 +303,20 @@ vj_char(c: int): string
 	s := "";
 	s[0] = c;
 	return s;
+}
+
+# a placeholder's fields: the place, the anchor (or -1), the region
+vj_fields(p: string): (big, int, int)
+{
+	f := array[3] of {* => "-1"};
+	n := 0;
+	b := 0;
+	for(k := 0; k <= len p && n < 3; k++)
+		if(k == len p || p[k] == ':'){
+			f[n++] = p[b:k];
+			b = k + 1;
+		}
+	return (big f[0], int f[1], int f[2]);
 }
 
 # s with its places given
@@ -263,18 +330,11 @@ vj_resolve(s: string): string
 		j := i + 1;
 		while(j < len s && s[j] != VJ1)
 			j++;
-		p := s[i + 1:j];
-		at := -1;
-		for(k := 0; k < len p; k++)
-			if(p[k] == ':'){
-				at = int p[k + 1:];
-				p = p[0:k];
-				break;
-			}
-		uv := big p;
+		# uv:anchor:region
+		(uv, at, rg) := vj_fields(s[i + 1:j]);
 		if(at < 0)
 			at = int (uv / big 100);
-		uv += big vj_off(at) * big 100;
+		uv += big vj_off(at, rg) * big 100;
 		v := int (big pdf_height * big 100 - uv * big 72 / big devres());
 		r += s[b:i] + dec2(v);
 		i = j;
@@ -289,7 +349,7 @@ vj_resolve(s: string): string
 # destinations and bookmarks moved with its text
 vj_pageend()
 {
-	vj_plan();
+	vj_keep();
 	pg = vj_resolve(pg);
 	for(l := vj_annots; l != nil; l = tl l){
 		(id, s) := hd l;
@@ -298,14 +358,16 @@ vj_pageend()
 		obj_end();
 	}
 	vj_annots = nil;
-	if(vj_cut < 0)
+	# (destinations and bookmarks moved on a page of one region only:
+	# in columns, which a place is in is not known)
+	if(vj_reg > 0 || vj_cut < 0)
 		return;
 	for(i := 0; i < name_n; i++)
 		if(name_page[i] == o_pages)
-			name_offset[i] += vj_off(name_offset[i]);
+			name_offset[i] += vj_off(name_offset[i], 0);
 	for(i = 0; i < mark_n; i++)
 		if(mark_page[i] == o_pages)
-			mark_offset[i] += vj_off(mark_offset[i]);
+			mark_offset[i] += vj_off(mark_offset[i], 0);
 }
 
 # an annotation, written when its places are known

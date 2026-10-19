@@ -592,6 +592,9 @@ postps()
 		v := scanints(arg, 2);
 		if(!compat && len v == 2)
 			vj_setfoot(v[0], v[1]);
+	"vcol" =>
+		if(!compat)
+			vj_region();
 	"lang" =>
 		(l, nil) := word(arg);
 		if(l != nil)
