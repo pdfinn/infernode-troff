@@ -814,16 +814,17 @@ Computing Science Technical Report No. \\*(MN
 .el .nr PE \\n(.d
 ..
 .de PS	\" start picture
-.	\" $1 is height, $2 is width, both in inches
-.if \\$1>0 .sp .35
-.ie \\$1>0 .nr $1 \\$1
-.el .nr $1 0
+.	\" $1 is height, $2 is width, both in inches; space round any
+.	\" picture pic gave them for, as Bell's -ms did: a picture of no
+.	\" height (a line, its labels above and below) has room for them
+.nr $1 \\n(.$
+.if \\n($1 .sp .35
 .in (\\n(.lu-\\$2)/2u
 .ne \\$1
 ..
 .de PE	\" end of picture
 .in
-.if \\n($1>0 .sp .65
+.if \\n($1 .sp .65
 ..
 .			\" .P1/.P2 macros for programs
 .

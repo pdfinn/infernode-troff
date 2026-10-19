@@ -1288,9 +1288,49 @@ drawe(h, v: int)
 	outrel(h, 0);
 }
 
+# an arc, as troff draws it: counterclockwise from here, about the
+# centre (h1, v1) away, to (h2, v2) from the centre; in Bezier curves
+# of a quarter circle or less (a chord, without the maths module)
 drawa(h1, v1, h2, v2: int)
 {
-	drawl(h1 + h2, v1 + v2);
+	if(math == nil && (math = load Math Math->PATH) == nil){
+		drawl(h1 + h2, v1 + v2);
+		return;
+	}
+	ch := real o_h + real h1;		# the centre, in units (v down)
+	cv := real o_v + real v1;
+	r := math->sqrt(real h2 * real h2 + real v2 * real v2);
+	if(r < 1.0){
+		drawl(h1 + h2, v1 + v2);
+		return;
+	}
+	# the angles, counterclockwise as the page is seen (y up)
+	a0 := math->atan2(real v1, real -h1);
+	a1 := math->atan2(real -v2, real h2);
+	sweep := a1 - a0;
+	while(sweep <= 0.0)
+		sweep += 2.0 * Math->Pi;
+	n := int math->ceil(sweep / (Math->Pi / 2.0) - 1e-9);
+	if(n < 1)
+		n = 1;
+	d := sweep / real n;
+	k := 4.0 / 3.0 * math->tan(d / 4.0) * r;
+	a := a0;
+	for(i := 0; i < n; i++){
+		b := a + d;
+		(x0, y0) := (ch + r * math->cos(a), cv - r * math->sin(a));
+		(x3, y3) := (ch + r * math->cos(b), cv - r * math->sin(b));
+		x1 := x0 - k * math->sin(a);
+		y1 := y0 - k * math->cos(a);
+		x2 := x3 + k * math->sin(b);
+		y2 := y3 + k * math->cos(b);
+		vj_row(int y3);
+		pg += pdfpos00(big (x1 * 100.0), big (y1 * 100.0)) + " ";
+		pg += pdfpos00(big (x2 * 100.0), big (y2 * 100.0)) + " ";
+		pg += pdfpos00(big (x3 * 100.0), big (y3 * 100.0)) + " c\n";
+		a = b;
+	}
+	outrel(h1 + h2, v1 + v2);
 }
 
 draws(h1, v1, h2, v2: int)

@@ -20,7 +20,10 @@
 #	where fontTools is installed, each subset font read, every glyph
 #	kept its own charstring and every glyph drawn;
 #	output with no device (x T, x res) before its first page is refused
-#	with a reason, where it divided by zero.
+#	with a reason, where it divided by zero;
+#	an arc (D a) is drawn as one, in Bezier curves of a quarter circle
+#	or less, its points on its circle (Neatpost's PDF drew its chord),
+#	and -c writes a page with a drawing (it failed on any).
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -194,6 +197,51 @@ inferno "cd '#U*$tmp'; troff doc.tr | tr2pdf -c >compat.pdf"
 LC_ALL=C grep -aq '/FontFile2' "$tmp/compat.pdf" && LC_ALL=C grep -aq '/ASCIIHexDecode' "$tmp/compat.pdf" &&
     ! LC_ALL=C grep -aq '/FlateDecode' "$tmp/compat.pdf" &&
     pass "-c writes as Neatpost" || failed "-c"
+
+# arcs drawn as arcs (Neatpost drew each one's chord), by -c too (it
+# failed on any drawing: no page's justification was begun): a quarter
+# circle, a half, three quarters, and one nearly flat (radius 15i)
+printf "\\\\D'a 0 -0.5i 0.5i 0'\n.sp 1i\n\\\\D'a 0.5i 0 0.5i 0'\n.sp 1i\n\\\\D'a 0.5i 0 0 -0.5i'\n.sp 1i\n\\\\D'a 0 -15i 1i 14.9666i'\n" >"$tmp/arc.tr"
+inferno "cd '#U*$tmp'; troff arc.tr | tr2pdf -c >arc.pdf"
+if [ ! -s "$tmp/arc.pdf" ]; then
+    failed "arcs: no PDF: $(cat "$tmp/err")"
+elif command -v python3 >/dev/null 2>&1; then
+    if python3 -I - "$tmp/arc.pdf" <<'PY'
+import math, re, sys
+c = open(sys.argv[1], 'rb').read().decode('latin1')
+paths = []
+for m in re.finditer(r'([\d.]+) ([\d.]+) m\n((?:[\d. ]+ c\n)+)', c):
+    pts = [(float(m.group(1)), float(m.group(2)))]
+    segs = []
+    for l in m.group(3).strip().split('\n'):
+        v = [float(x) for x in l.split()[:6]]
+        segs.append((pts[-1], (v[0], v[1]), (v[2], v[3]), (v[4], v[5])))
+        pts.append((v[4], v[5]))
+    paths.append(segs)
+def centre(a, b, c):
+    ax, ay = a; bx, by = b; cx, cy = c
+    d = 2 * (ax * (by - cy) + bx * (cy - ay) + cx * (ay - by))
+    ux = ((ax*ax + ay*ay) * (by - cy) + (bx*bx + by*by) * (cy - ay) + (cx*cx + cy*cy) * (ay - by)) / d
+    uy = ((ax*ax + ay*ay) * (cx - bx) + (bx*bx + by*by) * (ax - cx) + (cx*cx + cy*cy) * (bx - ax)) / d
+    return ux, uy
+def mid(s):
+    return tuple(0.125 * s[0][i] + 0.375 * s[1][i] + 0.375 * s[2][i] + 0.125 * s[3][i] for i in (0, 1))
+print('segments', [len(p) for p in paths])
+ok = [len(p) for p in paths] == [1, 2, 3, 1]
+for p in paths:
+    on = [p[0][0]] + [q for s in p for q in (mid(s), s[3])]
+    cx, cy = centre(on[0], on[len(on) // 2], on[-1])
+    r = [math.hypot(x - cx, y - cy) for x, y in on]
+    print('radius %.2f..%.2f' % (min(r), max(r)))
+    ok = ok and max(r) - min(r) < 0.002 * max(r) + 0.05
+sys.exit(not ok)
+PY
+    then
+        pass "arcs drawn as arcs, by -c too"
+    else
+        failed "arcs: see above"
+    fi
+fi
 
 # no device: said, and failed
 printf 'p1\nDl 100 100\n' >"$tmp/nodev.tr"

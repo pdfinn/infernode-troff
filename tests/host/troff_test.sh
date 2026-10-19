@@ -19,7 +19,10 @@
 #	(AV twice its kern); and a first glyph in no class of a pair's
 #	class definition (class 0: D of DA), which Neatmkfn left unkerned;
 #	with fontTools, every pair of letters in Libertinus Serif and Sans
-#	checked against the font's GPOS.
+#	checked against the font's GPOS;
+#	\s10 to \s39 are sizes of two digits, as in troff and groff (\s11
+#	was a size of 1 and a 1 printed); -ms spaces a picture of no height
+#	(a line and its labels) from the text round it.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -83,6 +86,28 @@ if grep -q 'cAh695h-112cV' "$tmp/kern.out"; then
     echo "PASS: a pair kerned once (AV)"
 else
     echo "FAIL: AV kerned $(grep -o 'cA[^c]*cV' "$tmp/kern.out")"; fail=1
+fi
+# sizes of two digits, \s10 to \s39, as troff and groff read them
+# (Neatroff, in compatibility mode only): \s11 eleven points, not one
+# point and a 1; \s4 one digit
+printf 'A\\s11B\\s0C\\s36D\\s0E\\s4F\\s0G\\s(14H\n.br\n' >"$tmp/size.tr"
+# -ms: a picture pic gave its size, of no height (an arrow, its labels
+# above and below), spaced from the text round it, as Bell's -ms did
+printf '.PP\nbefore\n.PS 0.000i 1.000i\n.PE\nafter\n' >"$tmp/pic0.tr"
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; troff size.tr > size.out; troff -ms pic0.tr > pic0.out" </dev/null >/dev/null 2>&1
+if [ "$(grep -o '^s[0-9]*' "$tmp/size.out" | tr '\n' ' ')" = "s1000 s1000 s1100 s1000 s3600 s1000 s400 s1000 s1400 " ] &&
+    ! grep -q 'c1\|c3' "$tmp/size.out"; then
+    echo "PASS: sizes of two digits (\\s11, \\s36)"
+else
+    echo "FAIL: sizes: $(grep '^s\|^c' "$tmp/size.out" | tr '\n' ' ')"; fail=1
+fi
+# (V of the line after, less V of the line before: a line, and a line's
+# .35 and .65 round the picture)
+gap=$(awk '/^V/ {v = substr($0, 2)} /^cb/ {b = v} /^ca/ {a = v} END {print a - b}' "$tmp/pic0.out")
+if [ "$gap" -ge 2400 ] 2>/dev/null; then
+    echo "PASS: -ms spaces a picture of no height ($gap units)"
+else
+    echo "FAIL: -ms: a picture of no height spaced $gap units"; fail=1
 fi
 if python3 -c 'import fontTools' 2>/dev/null; then
     python3 -I - "$ROOT/fonts/libertinus" > "$tmp/pairs.tr" <<'PY'

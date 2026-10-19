@@ -51,7 +51,9 @@ unquotednext(cmd: int, src: int): string
 	}else{
 		if(c >= 0)
 			sb[len sb] = c;
-		if(nr(R_cp) && cmd == 's' && c >= '1' && c <= '3'){
+		# \s10 to \s39 are sizes of two digits, as in troff and groff
+		# (Neatroff reads them so in compatibility mode only)
+		if(cmd == 's' && c >= '1' && c <= '3'){
 			c = next(src);
 			if(isdigit(c))
 				sb[len sb] = c;

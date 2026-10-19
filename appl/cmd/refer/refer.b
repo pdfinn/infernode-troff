@@ -94,8 +94,12 @@ refmac_auth: string;	# the author-year citation macro
 resetmac := "chapter";	# the requests that begin a chapter
 stdin, stdout: ref Iobuf;
 pending: string;	# the line last read, not yet written (a style's)
+infiles: list of string;	# the files to read after stdin's, "-" standard input
+classic := 0;		# citations as Bell Laboratories' refer set them (-C)
+held: string;		# the line before, a classic citation to be joined to it
+ninline := 0;
 
-usage := "usage: refer [options] <input >output\n" +
+usage := "usage: refer [options] [file ...]\n" +
 	"options:\n" +
 	"\t-p bib    \tspecify the database file (refer's, or BibTeX's: .bib)\n" +
 	"\t-e        \taccumulate references\n" +
@@ -105,7 +109,8 @@ usage := "usage: refer [options] <input >output\n" +
 	"\t-a xy     \tauthor-year citation macro (\\*[xy label])\n" +
 	"\t-sa       \tsort by author last names\n" +
 	"\t-S style  \tset citations in a style (chicago; chicago,british,nodoi,nourl)\n" +
-	"\t-r xy,... \trequests beginning a chapter, for a style (chapter)\n";
+	"\t-r xy,... \trequests beginning a chapter, for a style (chapter)\n" +
+	"\t-C        \tcitations as Bell Laboratories' refer set them\n";
 
 init(nil: ref Draw->Context, args: list of string)
 {
@@ -153,7 +158,13 @@ refermain(args: list of string)
 				v = hd args;
 			}
 		}
+		if(o == 'h' && (len a == 1 || a[0] != '-')){
+			infiles = a :: infiles;
+			continue;
+		}
 		case o {
+		'C' =>
+			classic = 1;
 		'm' =>
 			multiref = 1;
 		'e' =>
@@ -205,7 +216,11 @@ refermain(args: list of string)
 		if(refmac == nil)
 			refmac = "cite";
 	}
-	stdin = bufio->fopen(sys->fildes(0), Bufio->OREAD);
+	infiles = rev(infiles);
+	if(infiles == nil)
+		stdin = bufio->fopen(sys->fildes(0), Bufio->OREAD);
+	else
+		nextfile();
 	stdout = bufio->fopen(sys->fildes(1), Bufio->OWRITE);
 	if(style != nil)
 		refer_style();
@@ -224,7 +239,30 @@ rev(l: list of string): list of string
 
 lnget(): string
 {
-	return stdin.gets('\n');
+	for(;;){
+		if(stdin != nil && (s := stdin.gets('\n')) != nil)
+			return s;
+		if(!nextfile())
+			return nil;
+	}
+}
+
+# the next file named to read; 0 if none is left
+nextfile(): int
+{
+	while(infiles != nil){
+		f := hd infiles;
+		infiles = tl infiles;
+		if(f == "-")
+			stdin = bufio->fopen(sys->fildes(0), Bufio->OREAD);
+		else
+			stdin = bufio->open(f, Bufio->OREAD);
+		if(stdin != nil)
+			return 1;
+		sys->fprint(sys->fildes(2), "refer: cannot read %s: %r\n", f);
+	}
+	stdin = nil;
+	return 0;
 }
 
 lnput(s: string)
@@ -348,20 +386,26 @@ rstrip(s: string): string
 db_ref(f: ref Iobuf, ln: string): ref Rec
 {
 	r := newrec();
-	do{
-		if(len ln > 1 && ln[0] == '%' && ln[1] >= 'A' && ln[1] <= 'Z'){
-			i := 2;
-			while(i < len ln && isspace(ln[i]))
-				i++;
-			v := rstrip(ln[i:]);
-			if(ln[1] == 'A')
-				r.auth[r.nauth++] = ref_author(v);
-			else
-				r.keys[ln[1]] = sdup(v);
-			r.id = -1;
-		}
-	}while((ln = f.gets('\n')) != nil && ln[0] != '\n');
+	do
+		ref_field(r, ln);
+	while((ln = f.gets('\n')) != nil && ln[0] != '\n');
 	return r;
+}
+
+# a field of a record, a line %X value
+ref_field(r: ref Rec, ln: string)
+{
+	if(len ln > 1 && ln[0] == '%' && ln[1] >= 'A' && ln[1] <= 'Z'){
+		i := 2;
+		while(i < len ln && isspace(ln[i]))
+			i++;
+		v := rstrip(ln[i:]);
+		if(ln[1] == 'A')
+			r.auth[r.nauth++] = ref_author(v);
+		else
+			r.keys[ln[1]] = sdup(v);
+		r.id = -1;
+	}
 }
 
 fields: con "LTABERJDVNPITOH";
@@ -487,6 +531,12 @@ refer_seen(label: string): int
 			break;
 	if(i == refs_n)
 		return -1;
+	return refer_number(i);
+}
+
+# refs[i] cited: its number
+refer_number(i: int): int
+{
 	if(refs[i].id < 0){
 		refs[i].id = cites_n++;
 		if(cites_n > len cites){
@@ -514,6 +564,14 @@ refer_quote(s: string): string
 
 # the citation at s replaced by numbers or author and year; the references' numbers
 refer_cite(s: string, auth: int): array of int
+{
+	(id, msg) := refer_cites(s, auth);
+	lnput(msg);
+	return id;
+}
+
+# the references s cites, and the citation that stands for them
+refer_cites(s: string, auth: int): (array of int, string)
 {
 	id := array[256] of int;
 	nid := 0;
@@ -568,8 +626,7 @@ refer_cite(s: string, auth: int): array of int
 		for(k := 0; k < r.nauth; k++)
 			msg += " " + refer_quote(lastname(r.auth[k]));
 	}
-	lnput(msg);
-	return id[0:nid];
+	return (id[0:nid], msg);
 }
 
 isort(a: array of int)
@@ -633,18 +690,26 @@ refer()
 		id: array of int;
 		# .[ rudi17 .]
 		if(len ln > 1 && ln[0] == '.' && ln[1] == '['){
-			lnput(sdup(ln[2:]));
-			if((ln = lnget()) != nil){
-				id = refer_cite(ln, 0);
-				while(ln != nil && (len ln < 2 || ln[0] != '.' || ln[1] != ']'))
-					ln = lnget();
-				if(ln != nil)
-					lnput(ln[2:]);
+			(first, body, last) := refer_block(ln);
+			if(classic){
+				refer_classic(first, body, last);
+				continue;
 			}
+			lnput(sdup(first[2:]));
+			if(body != nil && body[0] == '%'){
+				# a reference written out, not looked up
+				msg := string (refer_inline(body) + 1);
+				lnput(msg);
+				id = array[] of {refer_inline_id};
+			}else
+				id = refer_cite(body, 0);
+			if(last != nil)
+				lnput(last[2:]);
 			if(!accumulate)
 				refer_insert(id);
 			continue;
 		}
+		flush();
 		# .cite rudi17
 		(mac, arg) := refer_reqname(ln);
 		if(mac != nil && arg && (refer_refmac(refmac, mac) || refer_refmac(refmac_auth, mac))){
@@ -685,10 +750,90 @@ refer()
 				r++;
 			s = r;
 		}
-		lnput(ln[s:]);
+		if(classic && s == 0)
+			held = ln;
+		else
+			lnput(ln[s:]);
 		if(!accumulate)
 			refer_insert(id);
 	}
+	flush();
+}
+
+# a .[ block: its first line, what it holds, and its .] line (nil at the end)
+refer_block(first: string): (string, string, string)
+{
+	body := "";
+	while((ln := lnget()) != nil){
+		if(len ln > 1 && ln[0] == '.' && ln[1] == ']')
+			return (first, body, ln);
+		body += ln;
+	}
+	return (first, body, nil);
+}
+
+refer_inline_id := 0;
+
+# a reference written out in a .[ block (its lines %A, %T, ...): its index in refs
+refer_inline(body: string): int
+{
+	r := newrec();
+	(nil, l) := sys->tokenize(body, "\n");
+	for(; l != nil; l = tl l)
+		ref_field(r, hd l);
+	addrec(r);
+	refer_inline_id = refer_number(refs_n - 1);
+	return refer_inline_id;
+}
+
+# the line held, written
+flush()
+{
+	if(held != nil)
+		lnput(held);
+	held = nil;
+}
+
+# a .[ block as Bell Laboratories' refer set it: the citation joined to
+# the line before, between what follows .[ and what follows .] on their
+# lines, or between \*([. and \*(.]; a line ending in . or , has the
+# punctuation each side of it, in \*(<. and \*(>. (-ms shows one)
+refer_classic(first, body, last: string)
+{
+	if(body == "$LIST$\n"){
+		flush();
+		ref_all();
+		if(last != nil)
+			lnput(last[2:]);
+		return;
+	}
+	id: array of int;
+	msg: string;
+	if(body != nil && body[0] == '%'){
+		n := refer_inline(body);
+		id = array[] of {n};
+		msg = string (n + 1);
+	}else
+		(id, msg) = refer_cites(body, 0);
+	st := sdup(first[2:]);
+	en := "";
+	if(last != nil)
+		en = sdup(last[2:]);
+	if(st == "" && en == ""){
+		st = "\\*([.";
+		en = "\\*(.]";
+	}
+	sig := st + msg + en;
+	h := sdup(held);
+	if(h != nil && (h[len h - 1] == '.' || h[len h - 1] == ',')){
+		c := chr(h[len h - 1]);
+		h = h[0:len h - 1] + "\\*(<" + c + sig + "\\*(>" + c;
+	}else
+		h += sig;
+	held = h + "\n";
+	flush();
+	if(!accumulate)
+		refer_insert(id);
 }
 
 #
