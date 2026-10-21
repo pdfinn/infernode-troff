@@ -26,7 +26,11 @@
 #	.na sets lines from the left margin after .ad r (they stayed
 #	right), .ad gives the alignment back; \n(.j is troff's number for
 #	the adjustment (left 0, both 1, centre 3, right 5), Neatroff's own
-#	modes above it, so that .ad \n(.j restores them.
+#	modes above it, so that .ad \n(.j restores them;
+#	classic troff's names: \f(CW our constant width, Plan 9's H and L
+#	under -C; \(Do, \(tm, \(~=, \(sq, \(bx, \(ob, \(lh, \(rh their
+#	characters; \D't n' the lines' thickness; \- a minus sign copied as
+#	a hyphen-minus; -man's .MR.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -208,4 +212,40 @@ print('%d pairs, %d kerned otherwise %s' % (n, len(bad), bad[:5]))
 sys.exit(not (n > 5000 and not bad))
 PY
 fi
+# classic troff's names: CW our constant width (CR), and under -C Plan
+# 9's H (HR) and -man's L (CR); \(Do and Plan 9's \(tm \(~= \(sq \(bx
+# \(ob \(lh \(rh their characters; \D't n' the lines' thickness (0 the
+# default again); \- a minus sign read as a hyphen-minus; -man's .MR
+printf '.mg 1\n\\f(CWcw\\fP \\(Do5 \\(tm \\(~= \\(sq \\(bx \\(ob \\(rh \\fHh\\fP \\fLl\\fP\n.fp 5 CW\n\\f5five\\fP \\fBls \\-l\\fP\n.sp\n\\D'"'"'l 1i 0'"'"'\n.sp\n\\D'"'"'t 3p'"'"'\\D'"'"'l 1i 0'"'"'\\D'"'"'t 0'"'"'\n.sp\n\\D'"'"'l 1i 0'"'"'\n' >"$tmp/alias.tr"
+printf '.TH X 1\n.SH SEE ALSO\n.MR troff 1 ,\n.MR eqn 1 .\n' >"$tmp/mr.1"
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; troff alias.tr > alias.out >[2] alias.err; troff -C alias.tr > aliasc.out >[2] aliasc.err; tr2pdf alias.out > alias.pdf; troff -man mr.1 > mr.out; tr2pdf mr.out > mr.pdf" </dev/null >/dev/null 2>&1
+if [ "$(cat "$tmp/alias.err")" = "troff: failed to mount <H>
+troff: failed to mount <L>" ] && [ ! -s "$tmp/aliasc.err" ] &&
+   ! grep -q '^x font [0-9]* CW' "$tmp/alias.out"; then
+    echo "PASS: CW is CR; H and L (Plan 9's) only under -C"
+else
+    echo "FAIL: font names: $(cat "$tmp/alias.err" "$tmp/aliasc.err" | tr '\n' ' ')"; fail=1
+fi
+if command -v pdftotext >/dev/null 2>&1; then
+    t=$(pdftotext "$tmp/alias.pdf" - | tr '\n' ' ')
+    m=$(pdftotext "$tmp/mr.pdf" - | tr '\n' ' ')
+    case "$t|$m" in
+    *'cw $5 ™ ≃ □ ■ ◦ ☞'*'five ls -l'*'|'*'troff(1), eqn(1).'*)
+        echo "PASS: \\(Do \\(tm \\(~= \\(sq \\(bx \\(ob \\(rh set; \\- copied as -; .MR" ;;
+    *) echo "FAIL: characters, \\-, .MR: $t | $m"; fail=1 ;;
+    esac
+fi
+if grep -q '^Dt 300$' "$tmp/alias.out" && grep -q '^Dt 0$' "$tmp/alias.out" && command -v python3 >/dev/null 2>&1 &&
+   python3 -I - "$tmp/alias.pdf" <<'PY'
+import re, sys, zlib
+d = open(sys.argv[1], 'rb').read()
+w = []
+for m in re.finditer(rb'stream\r?\n(.*?)endstream', d, re.S):
+    try: w += re.findall(rb'([\d.]+) w\n', zlib.decompress(m.group(1)))
+    except Exception: pass
+sys.exit(0 if [float(x) for x in w] == [0.4, 3.0, 0.4] else 1)
+PY
+then echo "PASS: \\D't 3p' a line 3 points thick, \\D't 0' the default again"
+else echo "FAIL: \\D't': $(grep '^D' "$tmp/alias.out" | tr '\n' ' ')"; fail=1; fi
+
 exit $fail

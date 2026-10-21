@@ -1207,15 +1207,27 @@ drawbeg()
 }
 
 l_page, l_size, l_wid, l_cap, l_join: int;	# the lines drawn with
+l_thick := 0;	# troff's D t: their thickness in its units (0: linewidth's)
+l_abs := 0;
+
+drawthick(n: int)
+{
+	if(n < 0)
+		n = 0;
+	l_thick = n;
+}
 
 drawend(close, fill: int)
 {
 	vj_anchor = -1;
 	if(!fill)
 		fill = 2;
-	if(l_page != page_n || l_size != o_s || l_wid != pdf_linewid ||
+	if(l_page != page_n || l_size != o_s || l_wid != pdf_linewid || l_abs != l_thick ||
 			l_cap != pdf_linecap || l_join != pdf_linejoin){
 		lwid := pdf_linewid * o_s / dev_szscale;
+		if(l_thick > 0)	# (thousandths of a point)
+			lwid = int (big l_thick * big 72000 / big devres());
+		l_abs = l_thick;
 		pg += sys->sprint("%d.%03d w\n", lwid / 1000, lwid % 1000);
 		pg += sys->sprint("%d J %d j\n", pdf_linecap, pdf_linejoin);
 		l_page = page_n;

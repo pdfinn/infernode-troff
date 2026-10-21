@@ -275,7 +275,10 @@ and the fonts'
 .B .L
 and their alternations
 .RB ( .BR ,
-.BR .IR ...).
+.BR .IR ...);
+.BI .MR " page section" \fR[\fPpunctuation\fR]\fP,
+groff's reference to a page,
+.IR page ( section ).
 .IR Man (1)
 .B -t
 sets a page so.

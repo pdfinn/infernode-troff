@@ -403,6 +403,11 @@ postpoly()
 postdraw()
 {
 	c := next();
+	if(c == 't'){	# the lines' thickness from here, in units; 0 the default
+		drawthick(nextnum());
+		nexteol();
+		return;
+	}
 	drawbeg();
 	case tolower(c) {
 	'l' =>

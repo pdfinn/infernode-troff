@@ -689,7 +689,7 @@ tr_fp(args: array of string)
 	name := args[2];
 	if(len args > 3)
 		name = args[3];
-	if(dev_mnt(pos, args[2], name) < 0)
+	if(dev_mnt(pos, args[2], name) < 0 && (len args > 3 || (al := fontalias(name)) == nil || dev_mnt(pos, args[2], al) < 0))
 		errmsg("troff: failed to mount <" + args[2] + ">\n");
 }
 

@@ -66,7 +66,7 @@ out_draw(s: string)
 		(n, i) = tok_num(s, i, 'v');
 		outnn(sys->sprint(" %d", n));
 		outnn(" .");			# dpost requires this
-	'c' =>
+	'c' or 't' =>
 		(n, i) = tok_num(s, i, 'm');
 		outnn(sys->sprint(" %d", n));
 	'e' =>

@@ -246,7 +246,27 @@ dev_glyph(c: string, fnt: int): ref Glyph
 	c = cmap_map(c);
 	if(len c >= 4 && c[0:4] == "GID=")
 		return dev_find(c[4:], fnt, 1);
-	return dev_find(c, fnt, 0);
+	g := dev_find(c, fnt, 0);
+	if(g == nil && (u := charalias(c)) != nil)
+		g = dev_find(u, fnt, 0);
+	return g;
+}
+
+# the character a name of classic troff's (Plan 9's tables', and groff's
+# \(Do) is, if no font has the name
+charalias(c: string): string
+{
+	case c {
+	"Do" =>	return "$";
+	"tm" =>	return "\u2122";	# ™
+	"~=" =>	return "\u2243";	# ≃, as Plan 9's tables have it
+	"sq" =>	return "\u25a1";	# □
+	"bx" =>	return "\u25a0";	# ■
+	"ob" =>	return "\u25e6";	# ◦
+	"lh" =>	return "\u261c";	# ☜
+	"rh" =>	return "\u261e";	# ☞
+	}
+	return nil;
 }
 
 # the mounted position of a font
@@ -265,7 +285,32 @@ dev_pos(id: string): int
 			return i;
 	if(fn_name[0] == id)
 		return 0;
-	return dev_mnt(0, id, id);
+	if((pos := dev_mnt(0, id, id)) >= 0 || (al := fontalias(id)) == nil)
+		return pos;
+	# a name troff's documents have for one of our fonts: the font
+	# mounted, or mounted at 0 by this name
+	for(i = 1; i < NFONTS; i++)
+		if(fn_name[i] == al)
+			return i;
+	return dev_mnt(0, id, al);
+}
+
+# the font a font name of classic troff's documents is, if no font has
+# the name: CW (constant width) our CR; in compatibility (-C), Plan 9's
+# H (Helvetica) our HR and -man's L (literal, constant width) our CR
+fontalias(id: string): string
+{
+	case id {
+	"CW" =>
+		return "CR";
+	"H" =>
+		if(nr(R_cp))
+			return "HR";
+	"L" =>
+		if(nr(R_cp))
+			return "CR";
+	}
+	return nil;
 }
 
 # the mounted position of a font
