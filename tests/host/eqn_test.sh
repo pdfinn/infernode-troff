@@ -16,7 +16,11 @@
 #	above and below; its bars (fractions, radicals, bar, under) drawn
 #	as rectangles where the rule glyphs' ink would be (.rules), none
 #	set as a glyph, so none copied with the text, the page drawn as
-#	with the glyphs (within the ink where they overlap).
+#	with the glyphs (within the ink where they overlap);
+#	-C, as Bell Laboratories' eqn (Plan 9's, Heirloom's): space n is
+#	the room before the equation (\x'0-n'), none after, in place of
+#	what its height asks (space 0, the PIC manual's, none); without
+#	-C, space is a word, as Neateqn sets it.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -113,4 +117,19 @@ print('%d of %d pixels of ink differ' % (d, b.sum()))
 sys.exit(not (b.sum() > 10000 and d < 0.06 * b.sum()))
 PY
 fi
+# -C: Bell's space; without it, Neateqn's word
+printf '.EQ\ndelim $$\n.EN\nA $space 0 {a over b}$ B\n' >"$tmp/space.ms"
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; eqn -C space.ms > spaceC.out; eqn space.ms > space0.out" </dev/null >/dev/null 2>&1
+# (the .EQ delim block is an equation too, its room computed in both)
+if grep -qF "\\x'0-0'" "$tmp/spaceC.out" &&
+   [ "$(grep -c bbury "$tmp/spaceC.out")" -lt "$(grep -c bbury "$tmp/space0.out")" ] &&
+   ! grep -q 'f2s\\f2p\\f2a\\f2c\\f2e' "$tmp/spaceC.out" &&
+   grep -q 'f2s\\f2p\\f2a\\f2c\\f2e' "$tmp/space0.out" && ! grep -qF "\\x'0-0'" "$tmp/space0.out"; then
+    echo "PASS: -C: space 0 as Bell's eqn; without it, space a word"
+else
+    echo "FAIL: -C space:"
+    grep -n "x'\|f2s" "$tmp/spaceC.out" "$tmp/space0.out" | head -8 | sed 's/^/    /'
+    fail=1
+fi
+
 exit $fail

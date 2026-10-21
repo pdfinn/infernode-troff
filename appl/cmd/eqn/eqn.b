@@ -180,6 +180,10 @@ init(nil: ref Draw->Context, args: list of string)
 			tagging = 1;
 			continue;
 		}
+		if(a == "-C"){
+			bell = 1;
+			continue;
+		}
 		if(a[1] == 'c'){
 			v: string;
 			if(len a > 2)
@@ -193,7 +197,8 @@ init(nil: ref Draw->Context, args: list of string)
 			sys->fprint(sys->fildes(2), "usage: eqn [options] [file ...] >output\n\n" +
 				"options:\n" +
 				"  -c chars  \tcharacters that chop equations\n" +
-				"  -t        \teach equation tagged, for a tagged PDF\n");
+				"  -t        \teach equation tagged, for a tagged PDF\n" +
+				"  -C        \tBell Laboratories' eqn's commands too (space n)\n");
 			raise "fail:usage";
 		}
 	}
@@ -577,6 +582,12 @@ eqn_commands(): int
 			gsize = "\\n" + escarg(EQNSZ) + sz;
 		else
 			gsize = sz;
+		return 0;
+	}
+	# Bell's (Plan 9's, Heirloom's): the room before the equation, in
+	# place of what its height asks, and none after (space 0: none)
+	if(bell && !tok_jmp("space")){
+		eqn_space = tok_quotes(tok_poptext(1));
 		return 0;
 	}
 	if(!tok_jmp("set")){
@@ -1222,7 +1233,12 @@ eqn_read(style: int): ref Box
 		box_free(sub);
 		stray(n);
 	}
-	box_vertspace(box);
+	if(eqn_space != nil){
+		box_italiccorrection(box);
+		printf(".as " + sregname(box.reg) + " \"\\x'0-" + eqn_space + "'\n");
+		eqn_space = nil;
+	}else
+		box_vertspace(box);
 	nregrm(szreg);
 	return box;
 }

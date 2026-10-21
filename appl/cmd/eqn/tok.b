@@ -193,6 +193,8 @@ tok_keyword(): int
 			return 0;
 	if(e_texfrac && (tok == "choose" || tok == "strut"))	# TeX's \binom and \strut; Neateqn's words
 		return 0;
+	if(bell && tok == "space")	# -C: Bell's command; Neateqn's word
+		return 0;
 	tok_unpreview(tok);
 	return 1;
 }
@@ -314,6 +316,8 @@ tok_eqn(): int
 }
 
 tagging := 0;		# -t: tagged (not Neateqn's)
+bell := 0;		# -C: Bell Laboratories' eqn's commands too (space)
+eqn_space: string;	# space n: the room before the equation, for it alone
 
 # an equation's output; with -t, for a tagged PDF (tr2pdf's), a
 # Formula, its source its alternate description, a displayed one a

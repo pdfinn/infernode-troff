@@ -8,6 +8,8 @@ eqn \- typeset mathematics
 ] [
 .B -t
 ] [
+.B -C
+] [
 .I file ...
 ]
 .SH DESCRIPTION
@@ -315,6 +317,23 @@ described by its eqn, as written (or in words, under
 .BR "set speech 1" );
 a display a block of its own.
 The output is then no longer Neateqn's.
+.TP
+.B -C
+As Bell Laboratories' eqn (Plan 9's and Heirloom's are the same), for
+documents written for it:
+.BI space " n"
+in an equation is the room troff leaves above its line,
+.BI \ex'0- n ' ,
+and none below, in place of what the equation's height asks;
+.B "space 0"
+leaves none, so that an equation in a
+.IR pic (1)
+picture does not move what is drawn after it.
+Neateqn has no
+.BR space ,
+and without
+.B -C
+it is a word, set as one.
 .SH FILES
 .B /lib/troff/eqnrc
 .SH SOURCE

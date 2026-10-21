@@ -163,7 +163,7 @@ Linotron 202's font for programs, PO, unless
 names another):
 .IP
 .EX
-refer -C -e pic.man | pic | eqn | troff -ms '-dpf=CR' |
+refer -C -e pic.man | pic | eqn -C | troff -ms '-dpf=CR' |
 	tr2pdf >pic.pdf
 .EE
 .SH SEE ALSO
