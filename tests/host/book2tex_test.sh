@@ -11,9 +11,10 @@
 #	the bibliography; every brace and environment closed;
 #	tests/book/latex.ms: equations (eqn's sub, sup, over, sqrt,
 #	from and to, matrix, pile, left and right, accents, fonts, a
-#	numbered display; inline between delim's), tables (spans, boxes,
-#	a text block), a picture drawn as a PDF of its own, the size of
-#	the picture, .nf and .ce, strings, the index (makeindex's entries,
+#	numbered display; inline between delim's), tables (spans, boxes
+#	as booktabs' rules, vertical rules only with vrules, a text
+#	block), a picture drawn as a PDF of its own, the size of
+#	its ink, .nf and .ce, strings, the index (makeindex's entries,
 #	sort keys and formats), LaTeX's special characters escaped, troff's
 #	characters by name;
 #	where LuaLaTeX is installed (with biblatex-chicago, epigraph,
@@ -75,17 +76,19 @@ want latex.tex 'Inline $x^{2} + y_{i}^{2}$ and $\frac{\alpha}{\beta}$ and $\sqrt
     '\sum_{i=1}^{n} x_{i} = \int_{0}^{\infty} e^{{{-x}^{2}}} dx \tag{1.1}' \
     '\left( \begin{array}{cr}a & c \\ b & d\end{array} \right) \ \ \lim_{{x \to 0}} \frac{{\sin x}}{x} = 1' \
     '\bar{x} + \vec{y} + {\textrm{max}} - \symbf{X} + \left[ \begin{array}{c}1 \\ 2\end{array} \right] + a \le b \ne c' \
-    '\begin{tabular}{|lr|}' '\multicolumn{2}{|c|}{Heading} \\' 'Plato & 347 \\' \
-    '\begin{tabular}{|l|p{0.40\linewidth}|}' '\textbf{One} & A text block of some length that should wrap inside its cell. \\ \hline' \
+    '\begin{tabular}{lr}' '\toprule' '\multicolumn{2}{c}{Heading} \\' '\midrule' 'Plato & 347 \\' '\bottomrule' \
+    '\begin{tabular}{lp{0.40\linewidth}}' '\textbf{One} & A text block of some length that should wrap inside its cell. \\ \midrule' \
+    '\begin{tabular}{|l|r|}' 'Euclid & 300 \\' \
     '\includegraphics{latex-pic1}' 'A poem'"'"'s line\newline' '\begin{center}' 'Centred' \
     'Done: 50\% \& \$5 \#1 \textasciitilde{} \textasciicircum{} a\_b \{c\} \textbackslash{} -{}- --- ``quoted'"''"'.' \
     'Hello Plato.' '\printindex' '\usepackage{imakeidx}' '\usepackage{graphicx}' &&
     pass "equations, tables, a picture, the index, characters" || failed "latex.ms"
 
-# the picture: a PDF its size
+# the picture: a PDF the size of its ink, two points about it (pic's
+# own size, 129 by 39, leaves out what a label hangs past it)
 if command -v pdfinfo >/dev/null 2>&1; then
     sz=$(pdfinfo "$tmp/latex-pic1.pdf" 2>/dev/null | sed -n 's/^Page size: *\([0-9.]*\) x \([0-9.]*\) pts.*/\1 \2/p')
-    [ "$sz" = "129 39" ] && pass "the picture a PDF its size" || failed "the picture: $sz"
+    [ "$sz" = "131 41" ] && pass "the picture a PDF the size of its ink" || failed "the picture: $sz"
 fi
 
 # braces and environments closed

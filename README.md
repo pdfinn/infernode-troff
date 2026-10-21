@@ -59,8 +59,12 @@ gained `pinned` and `viewing` then.
   text sets them.
 - **Chess.** Diagrams from a position in Forsyth–Edwards notation, and
   moves in figurine notation (♘f3) in the text, by `chess`.
-- **LaTeX for a publisher.** `book2tex` writes the same book as LaTeX,
-  for a publisher who wants it.
+- **LaTeX for a publisher or a journal.** `book2tex` writes the same
+  book, article or memorandum as LaTeX: LaTeX's own classes for
+  LuaLaTeX, or IEEEtran or acmart for pdfLaTeX, as the IEEE's and the
+  ACM's submission systems set a paper (`book2tex -c ieee`,
+  `-c acm,sigconf`). `tests/host/latex_test.sh` checks that every word
+  troff set arrives.
 
 ![Displays set by eqn: the quadratic formula, the Rogers–Ramanujan continued fraction, Ramanujan's series for 1/π, Cardano's formula, Cauchy's integral formula, the Vandermonde determinant, a function defined by cases, and the binomial theorem](docs/images/maths.png)
 
@@ -146,6 +150,7 @@ on their own as well:
     tbl paper.ms | eqn /lib/troff/eqnrc - | troff -ms | tr2pdf >paper.pdf
     troff -man /man/1/troff | tr2pdf >troff.pdf
     book2tex -p works.bib -o book.tex book.ms    # the same book as LaTeX
+    book2tex -c ieee -p works.bib -o paper.tex paper.ms    # a paper for the IEEE
 
 `man book`, `man 6 troff`, `man troff` and `man eqn` describe it all;
 [`docs/TROFF.md`](docs/TROFF.md) is the design, and records what each
@@ -371,8 +376,6 @@ or `.me` file is set by `troff` with the macros its name gives. See
 
 ## Not yet
 
-- `book2tex` writes a book's LaTeX; an article's (`-marticle`) or a
-  memorandum's is not yet written as LaTeX's article class.
 - The tests in `tests/` were written to run inside an InferNode tree
   and have not yet been made to run against the package.
 

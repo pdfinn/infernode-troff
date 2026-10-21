@@ -20,7 +20,7 @@ to read in InferNode's document views.
 | `mkfn` | Font descriptions for troff from OpenType, TrueType and AFM fonts, with each glyph's bounding box (CFF's too) | Neatmkfn, translated |
 | `tr2img` | A page of troff's output painted as the document views paint them (its fonts, drawings and images), as a PPM image | |
 | `mkindex` | A book's index from troff's output: makeindex's entries, sorted word by word as the *Chicago Manual* sorts, Greek and accents included | |
-| `book2tex` | A book written with `-mbook` as LaTeX, for LuaLaTeX, for a publisher who wants it | |
+| `book2tex` | A book, article or memorandum as LaTeX: LaTeX's book and article for LuaLaTeX, or a journal's class (IEEEtran, acmart) for pdfLaTeX | |
 | `book` | Runs them (with `-mbook`, or `-m article` or `-m memo`): refer, chess, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
 
 `troff`, `eqn`, `tbl` (with `-C`), `pic`, and `refer` without a style, write what
@@ -863,13 +863,91 @@ eqn's equations become LaTeX's mathematics:
   `hbar`, `cdots`, `oint`, `oiint`, `bigoplus` and the rest) LaTeX's.
 - An equation between `delim`'s characters is inline.
 
-tbl's tables become `tabular`s, with their rules, spans and text
-blocks. A picture is drawn by `pic`, `troff` and `tr2pdf` as a PDF the
-size of the picture (`book-pic1.pdf`, beside `-o`'s file) and
-included.
+tbl's tables become `tabular`s, with their spans and text blocks; their
+horizontal rules are booktabs' (`\toprule`, `\midrule`, `\bottomrule`),
+and they have vertical rules only if the table asks for them (`vrules`),
+as tbl draws them. A picture is drawn by `pic` (its labels' equations by
+`eqn`, with the document's `delim` and `define`s), `troff` and `tr2pdf`
+as a PDF the size of its ink (`book-pic1.pdf`, beside `-o`'s file) and
+included, never wider than the column; a chess board (`.CB`) likewise,
+by `chess`.
 
 Anything with no LaTeX of its own (a macro of the book's own, say) is
 kept as a comment and named on standard error.
+
+### Articles, memoranda and journals
+
+The class written is the source's: `-mbook`'s is LaTeX's `book`,
+`-marticle`'s its `article` (two columns, or one with `.columns 1`) and
+`-mmemo`'s its `article` with the memorandum's head as troff sets it.
+`-m` names the macros, or the line near the top that says how the file
+is set (`.\" book -m article -S numeric -p works.bib`) does. Citations
+are biblatex's, in the style `-S` names as refer's: `chicago` (the
+Chicago Manual's notes, biblatex-chicago's), `numeric` (numbered in the
+order cited, the number before the sentence's stop as refer sets it) or
+`authordate`. Each is for LuaLaTeX, in Libertinus as troff sets it; a
+character the font lacks (the chess figures) comes from Noto Sans
+Symbols 2 or DejaVu Sans, as troff's fallback does.
+
+`-c` names a journal's class instead, for pdfLaTeX, as the IEEE's and
+the ACM's submission systems set a paper:
+
+    book2tex -c ieee -p works.bib -o paper.tex paper.ms          # IEEEtran, journal
+    book2tex -c ieee,conference -p works.bib -o paper.tex paper.ms
+    book2tex -c acm -p works.bib -o paper.tex paper.ms           # acmart, acmsmall
+    book2tex -c acm,sigconf -p works.bib -o paper.tex paper.ms
+    pdflatex paper; bibtex paper; pdflatex paper; pdflatex paper
+
+| | IEEEtran | acmart |
+|---|---|---|
+| Authors | journal: names in a line, each's affiliation and address a `\thanks`; conference: an `\IEEEauthorblockN` and `\IEEEauthorblockA` each | `\author`, `\affiliation` (`\institution`, `\city`, `\country` from `.affil`'s parts after commas), `\email` |
+| Title | `.subtitle` after a colon | `\subtitle` |
+| Abstract, keywords | after `\maketitle`; `IEEEkeywords` | before `\maketitle`; `\keywords` |
+| Tables | the caption above | the caption above |
+| Figures | | `.alt` as `\Description` |
+| Citations | BibTeX, `IEEEtran.bst`: `\cite{a,b}`, `\cite[p.~5]{a}` | BibTeX, `ACM-Reference-Format.bst` |
+
+acmart wants every affiliation's country: it is `.affil`'s last part
+after a comma (`.affil "Bell Laboratories, Murray Hill, USA"`), and
+without one book2tex writes `[country]` and says so. The rights, the
+venue and the CCS concepts are the ACM's to give.
+
+For pdfLaTeX, the characters inputenc knows (with T1 and TS1: accented
+Latin letters, quotation marks, dashes) are kept as written; a
+mathematical one (Greek, arrows, relations, logical and set-theoretic
+symbols, ℝ) is LaTeX's command, in text or an equation alike
+(`\ensuremath{\rightarrow}`, or `\TextOrMath` where the text has its
+own, as `…` and `×`); any other is said, and written `[U+XXXX]`. Which
+characters inputenc knows was found by asking pdfLaTeX of each one.
+
+### Acceptance
+
+`tests/host/latex_test.sh` takes a technical paper and an essay in the
+humanities (`tests/latex/`) and the examples, sets each with `book`,
+writes its LaTeX for each class, and checks it as a journal would:
+
+- book2tex says nothing; every section, float, numbered equation,
+  note, label and citation of the source is in the LaTeX once; every
+  environment and brace is closed; tables have no vertical rules
+  unasked.
+- For pdfLaTeX, every character is one inputenc knows, or a command.
+- The classes' conventions (IEEEtran's keywords and table captions,
+  acmart's affiliations and abstract, figures described).
+- Where TeX Live is installed: each is set with no error, nothing
+  undefined, no character missing from a font, every work cited in the
+  bibliography.
+- Every word and decimal number troff set (before the references) is
+  in LaTeX's PDF: each must be in a run of three words LaTeX set at
+  least as often, wherever floats went, or, read in another order (a
+  table's cells), set as often. Names with accents and LaTeX's special
+  characters must be there as written.
+
+The checks were tried against fifteen wrong conversions (a phrase,
+a note's sentence, a table's row, a cell's number, a citation, a note,
+a figure, a heading, a label, an equation's number, a word in a
+caption, a Greek word lost; a character pdfLaTeX lacks; an environment
+left open): each is caught. Words reordered or repeated are not: the
+test is that nothing troff set is lost.
 
 ## Manual pages: `-man` and `man -t`
 

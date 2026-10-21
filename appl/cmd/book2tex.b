@@ -1,26 +1,40 @@
 implement Book2tex;
 
 #
-# book2tex - a book written with troff's macros -mbook, as LaTeX
+# book2tex - a book, article or memorandum written with troff's macros
+# (-mbook, -marticle, -mmemo), as LaTeX
 #
-#	book2tex [-p works.bib] [-o book.tex] [book.ms]
+#	book2tex [-c class[,options]] [-m macros] [-S style] [-p works.bib]
+#		[-o book.tex] [book.ms]
 #
-# Each of -mbook's macros is one of LaTeX's (docs/TROFF.md has the
-# table), and is written as that: chapters, sections, quotations,
-# epigraphs, footnotes and endnotes, labels and references, figures
-# and tables with their captions, the contents and lists, citations (biblatex-chicago's \autocite, its notes style
-# the Chicago Manual's, as refer's -S chicago), the bibliography and the
-# index (makeindex's entries, as .index has them).  Troff's escapes
-# become LaTeX's: fonts, characters by name, strings.  An equation
-# (eqn's .EQ, or between the delimiters delim sets) is written as
-# LaTeX's mathematics, a table (tbl's .TS) as a tabular.  A picture
-# (pic's .PS) is drawn by pic, troff and tr2pdf as a PDF of its own,
+# The class written is the source's (-m, or its book directive's: book,
+# article or memo, as LaTeX's book and article), or a journal's that -c
+# names: ieee (IEEEtran, journal or -c ieee,conference) or acm (acmart,
+# acmsmall or -c acm,sigconf and the rest).  A journal's is for
+# pdfLaTeX, as their submission systems set it: its citations BibTeX's,
+# in the journal's style; the characters inputenc does not know written
+# as LaTeX's commands (\ensuremath{\rightarrow}).
+#
+# Each of the macros is one of LaTeX's (docs/TROFF.md has the table),
+# and is written as that: the title, its authors and abstract,
+# chapters, sections, quotations, epigraphs, footnotes and endnotes,
+# labels and references, figures and tables with their captions, the
+# contents and lists, citations, the bibliography and the index
+# (makeindex's entries, as .index has them).  Troff's escapes become
+# LaTeX's: fonts, characters by name, strings.  An equation (eqn's .EQ,
+# or between the delimiters delim sets) is written as LaTeX's
+# mathematics, a table (tbl's .TS) as a tabular, its rules booktabs'
+# (its vertical ones only if it asks, as tbl draws them).  A picture
+# (pic's .PS) or a chess board (chess's .CB) is drawn by pic or chess,
+# troff and tr2pdf as a PDF of its own the size of its ink,
 # book-pic1.pdf and so on beside the output (-o), and included; written
 # to standard output, it is left as a comment.
 #
-# The LaTeX is for LuaLaTeX: Libertinus, as troff sets the book, by
-# fontspec and unicode-math; microtype; biblatex-chicago with biber,
-# from the BibTeX database -p names (the book's stem.bib by default).
+# The source's classes are for LuaLaTeX: Libertinus, as troff sets them,
+# by fontspec and unicode-math; microtype; biblatex with biber, in the
+# style -S names as refer's (chicago, biblatex-chicago's notes, by
+# default; numeric; authordate), from the BibTeX database -p names (the
+# source's stem.bib by default).
 #	lualatex book; biber book; makeindex book; lualatex book; lualatex book
 #
 # A request or macro with no LaTeX of its own is written as a comment
@@ -34,6 +48,8 @@ include "bufio.m";
 	bufio: Bufio;
 	Iobuf: import bufio;
 include "sh.m";
+include "math.m";
+	math: Math;
 
 Book2tex: module
 {
@@ -62,6 +78,7 @@ Out: adt {
 };
 
 cur: ref Out;
+innote := 0;	# the text is a note's
 
 # the input: files, .so's on top
 Inp: adt {
@@ -96,6 +113,37 @@ npics := 0;
 lists: list of string;	# the lists open (enumerate, itemize), innermost first
 infloat := "";	# the float open (figure, table): its pictures and tables centred by it
 floatlabel := "";
+floatat := 0;	# the lines written when the float began, its caption's place above
+alttext := "";	# .alt's description of the next picture
+
+# the class: the source's macros, and what is written for them
+macros := "";	# book, article or memo (-m, the book directive's)
+cls := "";	# book, article, memo, ieee or acm (-c)
+clsopts := "";	# the class's options (-c acm,sigconf)
+style := "";	# the citations': chicago (notes), authordate or numeric (-S)
+styleopts := "";	# its options (chicago,nodoi)
+pdftex := 0;	# for pdfLaTeX (a journal's), not LuaLaTeX
+columns := 2;	# -marticle's (.columns)
+Author: adt {
+	name:	string;
+	affil:	string;
+	email:	string;
+	loc:	string;	# a memorandum's: where, and the extension
+	ext:	string;
+};
+authors: list of ref Author;	# the last first
+abstract := "";
+keywords := "";
+titlemade := 0;
+bibmade := 0;
+memoorg := "";
+memocase := "";
+memofile := "";
+memonumber := "";
+memotype := "MEMORANDUM FOR FILE";
+memokind := "memo";
+eqprelude := "";	# eqn's settings (delim, define), for a picture's labels
+trprelude := "";	# the document's characters (.char, .fp), for a picture's
 
 # strings (.ds), and the characters troff names
 strs: list of (string, string);
@@ -110,6 +158,7 @@ init(c: ref Draw->Context, args: list of string)
 {
 	sys = load Sys Sys->PATH;
 	bufio = load Bufio Bufio->PATH;
+	math = load Math Math->PATH;
 	stderr = sys->fildes(2);
 	ctxt = c;
 	args = tl args;
@@ -118,6 +167,15 @@ init(c: ref Draw->Context, args: list of string)
 		args = tl args;
 		if(o == "-p" && args != nil){
 			bib = hd args;
+			args = tl args;
+		}else if(o == "-c" && args != nil){
+			(cls, clsopts) = split1(hd args, ',');
+			args = tl args;
+		}else if(o == "-m" && args != nil){
+			macros = hd args;
+			args = tl args;
+		}else if(o == "-S" && args != nil){
+			(style, styleopts) = split1(hd args, ',');
 			args = tl args;
 		}else if(o == "-o" && args != nil){
 			outname = hd args;
@@ -140,6 +198,46 @@ init(c: ref Draw->Context, args: list of string)
 		}
 	}
 	inputs = ref Inp(f, srcname, 0) :: nil;
+	if(args != nil)
+		bookdirective(srcname);
+	if(macros == "")
+		macros = "book";
+	case macros {
+	"book" or "article" or "memo" =>	;
+	* =>
+		sys->fprint(stderr, "book2tex: -m %s: not book, article or memo\n", macros);
+		raise "fail:usage";
+	}
+	if(style == "")
+		style = "chicago";
+	case style {
+	"chicago" or "authordate" or "numeric" =>	;
+	* =>
+		sys->fprint(stderr, "book2tex: -S %s: not chicago, authordate or numeric\n", style);
+		raise "fail:usage";
+	}
+	if(cls == "")
+		cls = macros;
+	case cls {
+	"book" or "article" or "memo" =>	;
+	"ieee" or "acm" =>
+		pdftex = 1;
+	* =>
+		sys->fprint(stderr, "book2tex: -c %s: not book, article, memo, ieee or acm\n", cls);
+		raise "fail:usage";
+	}
+	# -marticle's page and type: letter, 10 points, margins of three
+	# quarters of an inch; -mmemo's 11 points, an inch, one column
+	case macros {
+	"article" =>
+		papersize = array[] of {"8.5in", "11in"};
+		margins = array[] of {"0.75in", "0.75in", "0.75in", "0.75in"};
+		ptsize = "10pt";
+	"memo" =>
+		papersize = array[] of {"8.5in", "11in"};
+		margins = array[] of {"1in", "1in", "1in", "1in"};
+		columns = 1;
+	}
 	loadchars();
 	cur = newout();
 	{
@@ -161,18 +259,68 @@ init(c: ref Draw->Context, args: list of string)
 		}
 	}else
 		o = bufio->fopen(sys->fildes(1), Bufio->OWRITE);
-	o.puts(preamble());
+	if(macros != "book" && !titlemade && (title != "" || authors != nil))
+		maketitle();
+	if(havecites && !bibmade && !biblatex()){
+		warn("citations, and no .bibliography: the references set at the end");
+		bibliography();
+	}
+	o.puts(texchars(preamble()));
 	for(l := rev(cur.l); l != nil; l = tl l){
-		o.puts(hd l);
+		o.puts(texchars(hd l));
 		o.putc('\n');
 	}
 	o.puts("\\end{document}\n");
 	o.close();
 }
 
+# s split at its first c: what is before it, and what is after
+split1(s: string, c: int): (string, string)
+{
+	for(i := 0; i < len s; i++)
+		if(s[i] == c)
+			return (s[0:i], s[i + 1:]);
+	return (s, "");
+}
+
+# the options book(1) is given in the source's first lines, as the
+# document views read them: .\" book -m article -S numeric -p works.bib;
+# those given here first
+bookdirective(name: string)
+{
+	f := bufio->open(name, Bufio->OREAD);
+	if(f == nil)
+		return;
+	for(n := 0; n < 20 && (s := f.gets('\n')) != nil; n++){
+		if(!prefix(".\\\"", s))
+			continue;
+		(nil, w) := sys->tokenize(s[3:], " \t\r\n");
+		if(w == nil || hd w != "book")
+			continue;
+		for(w = tl w; w != nil && tl w != nil; w = tl w){
+			v := hd tl w;
+			case hd w {
+			"-m" =>
+				if(macros == "")
+					macros = v;
+			"-S" =>
+				if(style == "")
+					(style, styleopts) = split1(v, ',');
+			"-p" =>
+				if(bib == "")
+					bib = v;
+			* =>
+				continue;
+			}
+			w = tl w;
+		}
+		return;
+	}
+}
+
 usage()
 {
-	sys->fprint(stderr, "usage: book2tex [-p works.bib] [-o book.tex] [book.ms]\n");
+	sys->fprint(stderr, "usage: book2tex [-c class[,options]] [-m macros] [-S style] [-p works.bib] [-o book.tex] [book.ms]\n");
 	raise "fail:usage";
 }
 
@@ -432,6 +580,7 @@ text(o: ref Out, s: string): string
 {
 	r := "";
 	i := 0;
+	col := 0;	# unfilled (.nf), the column: its spaces kept, tabs every eight
 	while(i < len s){
 		c := s[i];
 		if(c == '\\' && i + 1 < len s){
@@ -455,6 +604,21 @@ text(o: ref Out, s: string): string
 				continue;
 			}
 		}
+		# (a space between words is a space; one more, or one leading
+		# the line, kept)
+		if(o.nf && (c == ' ' || c == '\t') && !(c == ' ' && i > 0 && s[i - 1] != ' ' && s[i - 1] != '\t' &&
+				i + 1 < len s && s[i + 1] != ' ' && s[i + 1] != '\t')){
+			n := 1;
+			if(c == '\t')
+				n = 8 - col % 8;
+			for(; n > 0; n--){
+				r += "~";
+				col++;
+			}
+			i++;
+			continue;
+		}
+		col++;
 		t: string;
 		case c {
 		'#' or '$' or '%' or '&' or '_' or '{' or '}' =>
@@ -705,9 +869,12 @@ strval(o: ref Out, n: string): string
 	return "";
 }
 
-# a citation: \autocite[loc]{key}, or \autocites[loc]{key}[loc]{key}
+# a citation: \autocite[loc]{key}, or \autocites[loc]{key}[loc]{key};
+# BibTeX's: \cite{key,key}, or \cite[loc]{key}, \cite{key}
 cites(cmd: string, s: string): string
 {
+	if(!biblatex())
+		return bibtexcites(s);
 	r := "";
 	n := 0;
 	(nil, l) := sys->tokenize(s, ";");
@@ -731,6 +898,66 @@ cites(cmd: string, s: string): string
 	if(n > 1)
 		return cmd + "s" + r;
 	return cmd + r;
+}
+
+bibtexcites(s: string): string
+{
+	keys, all: list of string;
+	haveloc := 0;
+	(nil, l) := sys->tokenize(s, ";");
+	for(; l != nil; l = tl l){
+		c := trim(hd l);
+		if(c == "")
+			continue;
+		(key, loc) := split1(c, ' ');
+		loc = trim(loc);
+		keys = key :: keys;
+		if(loc != ""){
+			haveloc = 1;
+			# a number or a range a page or pages, as refer's numbered
+			# style has it (p. 5, pp. 151--57); anything else as given
+			pl := range(textarg(loc));
+			if(isdigit(pl[0])){
+				if(contains(pl, "-"))
+					pl = "pp.~" + pl;
+				else
+					pl = "p.~" + pl;
+			}
+			all = "\\cite[" + pl + "]{" + key + "}" :: all;
+		}else
+			all = "\\cite{" + key + "}" :: all;
+	}
+	if(!haveloc)
+		return "\\cite{" + join(rev(keys), ",") + "}";
+	return join(rev(all), ", ");
+}
+
+# a citation after the text it cites: a note's mark after its
+# punctuation (Chicago's notes), else the citation before it, joined to
+# the word by a tie (spaces~[1]. as refer's numbered style sets it)
+citeattach(o: ref Out, c: string)
+{
+	if(o.l == nil || hd o.l == ""){
+		attach(o, c);
+		return;
+	}
+	if(biblatex() && style == "chicago"){
+		# in a note, the citation is in its text, after a space; in the
+		# text, a note's mark, after the word or its punctuation
+		if(innote && !suffix(" ", hd o.l))
+			c = " " + c;
+		attach(o, c);
+		return;
+	}
+	l := hd o.l;
+	i := len l;
+	while(i > 0 && (l[i - 1] == '.' || l[i - 1] == ',' || l[i - 1] == ';' || l[i - 1] == ':' ||
+			l[i - 1] == '!' || l[i - 1] == '?'))
+		i--;
+	j := i;
+	while(j > 0 && l[j - 1] == ' ')
+		j--;
+	o.l = (l[0:j] + "~" + c + l[i:]) :: tl o.l;
 }
 
 # 315-16 as 315--16
@@ -883,17 +1110,61 @@ request(s: string)
 	"subtitle" =>
 		subtitle = textarg(join(a, " "));
 	"author" =>
-		author = textarg(join(a, " "));
+		if(macros == "book"){
+			author = textarg(join(a, " "));
+			authors = ref Author(author, "", "", "", "") :: nil;
+		}else{
+			authors = ref Author(textarg(arg(a, 0)), "", "", textarg(arg(a, 1)), textarg(arg(a, 2))) :: authors;
+			if(author != "")
+				author += " \\and ";
+			author += (hd authors).name;
+		}
+	"affil" =>
+		if(authors != nil)
+			(hd authors).affil = textarg(join(a, " "));
+	"email" =>
+		if(authors != nil)
+			(hd authors).email = textarg(join(a, " "));
+	"keywords" =>
+		keywords = textarg(join(a, " "));
+	"abstract" =>
+		t := captured(".endabstract");
+		if(titlemade){
+			block("\\begin{abstract}");
+			emit(cur, t);
+			emit(cur, "\\end{abstract}");
+			cur.noindent = 1;
+		}else
+			abstract = t;
+	"endabstract" =>
+		;
+	"columns" =>
+		if(arg(a, 0) == "1" || arg(a, 0) == "2")
+			columns = int arg(a, 0);
+	"org" =>
+		memoorg = textarg(join(a, " "));
+	"case" =>
+		memocase = textarg(join(a, " "));
+	"file" =>
+		memofile = textarg(join(a, " "));
+	"number" =>
+		memonumber = textarg(join(a, " "));
+	"memotype" =>
+		memotype = textarg(join(a, " "));
+	"kind" =>
+		memokind = arg(a, 0);
+	"signature" =>
+		blankline();
+		block("\\begin{flushright}");
+		names: list of string;
+		for(al := authors; al != nil; al = tl al)
+			names = (hd al).name :: names;
+		emit(cur, join(names, "\\\\"));
+		emit(cur, "\\end{flushright}");
 	"date" =>
 		date = textarg(join(a, " "));
 	"maketitle" =>
-		t := title;
-		if(subtitle != "")
-			t += "\\\\[1ex]\\large " + subtitle;
-		block("\\title{" + t + "}");
-		emit(cur, "\\author{" + author + "}");
-		emit(cur, "\\date{" + date + "}");
-		emit(cur, "\\maketitle");
+		maketitle();
 	"frontmatter" =>
 		numbered = 0;
 		block("\\frontmatter");
@@ -928,7 +1199,10 @@ request(s: string)
 		}
 		if(arg(a, 1) != "")
 			emit(cur, "\\label{" + arg(a, 1) + "}");
-	"section" or "subsection" or "subsubsection" =>
+	"section" or "subsection" or "subsubsection" or "section*" =>
+		# (an article's first section makes its title, if nothing has)
+		if(macros != "book" && !titlemade && (title != "" || authors != nil))
+			maketitle();
 		blankline();
 		block("\\" + name + "{" + textarg(arg(a, 0)) + "}");
 		if(arg(a, 1) != "")
@@ -962,17 +1236,36 @@ request(s: string)
 	"label" =>
 		closefont(cur);
 		attach(cur, "\\label{" + arg(a, 0) + "}");
-	"figure" or "table" =>
+	"figure" or "table" or "figure*" or "table*" =>
 		blankline();
 		infloat = name;
 		floatlabel = arg(a, 0);
-		block("\\begin{" + name + "}[tbp]");
+		if(suffix("*", name))
+			block("\\begin{" + name + "}[tp]");
+		else
+			block("\\begin{" + name + "}[tbp]");
 		emit(cur, "\\centering");
+		floatat = nlines(cur);
 	"caption" =>
-		block("\\caption{" + textarg(join(a, " ")) + "}");
+		c := "\\caption{" + textarg(join(a, " ")) + "}" :: nil;
 		if(floatlabel != "")
-			emit(cur, "\\label{" + floatlabel + "}");
-	"endfigure" or "endtable" =>
+			c = "\\label{" + floatlabel + "}" :: c;
+		closefont(cur);
+		# a journal's table has its caption above it
+		if(pdftex && prefix("table", infloat) && floatat > 0)
+			insertat(cur, floatat, c);
+		else
+			for(c = rev(c); c != nil; c = tl c)
+				emit(cur, hd c);
+		cur.intext = 0;
+	"alt" =>
+		closefont(cur);
+		t := textarg(join(a, " "));
+		if(cls == "acm" && prefix("figure", infloat))
+			emit(cur, "\\Description{" + t + "}");
+		else
+			emit(cur, "% alt: " + t);
+	"endfigure" or "endtable" or "endfigure*" or "endtable*" =>
 		block("\\end{" + infloat + "}");
 		infloat = "";
 		floatlabel = "";
@@ -1020,11 +1313,13 @@ request(s: string)
 	"cite" =>
 		havecites = 1;
 		closefont(cur);
-		attach(cur, cites("\\autocite", trim(rest)));
+		if(biblatex())
+			citeattach(cur, cites("\\autocite", trim(rest)));
+		else
+			citeattach(cur, cites("\\cite", trim(rest)));
 	"bibliography" =>
-		blankline();
 		havecites = 1;
-		block("\\printbibliography[heading=bibintoc]");
+		bibliography();
 	"index" =>
 		haveindex = 1;
 		closefont(cur);
@@ -1040,7 +1335,16 @@ request(s: string)
 		table();
 	"PS" =>
 		havepics = 1;
-		picture(s);
+		picture(s, ".PE", "pic");
+	"CB" =>
+		havepics = 1;
+		picture(s, ".CE", "chess");
+	"char" or "fzoom" or "fspecial" or "fp" =>
+		# a character's glyph, for troff; LaTeX's fonts have their own.
+		# A picture's labels are set by troff, with them
+		trprelude += s + "\n";
+		closefont(cur);
+		emit(cur, "% troff: " + s);
 	"br" =>
 		if(cur.intext && !cur.nf){
 			closefont(cur);
@@ -1102,8 +1406,15 @@ request(s: string)
 	"pn" =>
 		block("\\setcounter{page}{" + arg(a, 0) + "}");
 	"papersize" =>
-		papersize[0] = dimen(arg(a, 0));
-		papersize[1] = dimen(arg(a, 1));
+		case arg(a, 0) {
+		"a4" =>	papersize = array[] of {"21cm", "29.7cm"};
+		"a5" =>	papersize = array[] of {"14.8cm", "21cm"};
+		"b5" =>	papersize = array[] of {"17.6cm", "25cm"};
+		"letter" =>	papersize = array[] of {"8.5in", "11in"};
+		* =>
+			papersize[0] = dimen(arg(a, 0));
+			papersize[1] = dimen(arg(a, 1));
+		}
 	"margins" =>
 		for(k := 0; k < 4; k++)
 			if(arg(a, k) != "")
@@ -1113,13 +1424,375 @@ request(s: string)
 			ptsize = arg(a, 1) + "pt";
 	"ne" or "ti" or "in" or "ll" or "ad" or "na" or "nh" or "hy" or "ps" or "vs" or
 	"ls" or "ns" or "rs" or "pl" or "po" or "ta" or "lg" or "tm" or "ev" or "ss" or
-	"cs" or "fp" or "ff" or "mtp" or "mte" or "mtpc" or "wo" or "mg" or "rules" or "kn" =>
+	"cs" or "ff" or "mtp" or "mte" or "mtpc" or "wo" or "mg" or "rules" or "kn" =>
 		;
 	* =>
 		warn("." + name + " not written as LaTeX");
 		closefont(cur);
 		emit(cur, "% troff: " + s);
 	}
+}
+
+# whether the citations are biblatex's (biber's), not BibTeX's (a journal's)
+biblatex(): int
+{
+	return !pdftex;
+}
+
+# the database: -p's, or the source's stem.bib
+bibfile(): string
+{
+	if(bib != "")
+		return bib;
+	b := srcname;
+	for(i := len b - 1; i >= 0 && b[i] != '/'; i--)
+		if(b[i] == '.'){
+			b = b[0:i];
+			break;
+		}
+	bib = b + ".bib";
+	warn("citations, and no database (-p): " + bib + " is taken to be it");
+	return bib;
+}
+
+# the references: biblatex's, or BibTeX's in the journal's style
+bibliography()
+{
+	bibmade = 1;
+	blankline();
+	if(biblatex()){
+		if(cls == "book")
+			block("\\printbibliography[heading=bibintoc]");
+		else
+			block("\\printbibliography");
+		return;
+	}
+	b := bibfile();
+	if(suffix(".bib", b))
+		b = b[0:len b - 4];
+	else
+		warn(b + " is not BibTeX's, as BibTeX needs");
+	bst := "IEEEtran";
+	if(cls == "acm")
+		bst = "ACM-Reference-Format";
+	block("\\bibliographystyle{" + bst + "}");
+	emit(cur, "\\bibliography{" + b + "}");
+}
+
+# the title, as the class makes it: the authors, their affiliations and
+# addresses, the abstract and keywords
+maketitle()
+{
+	titlemade = 1;
+	blankline();
+	al: list of ref Author;
+	for(l := authors; l != nil; l = tl l)
+		al = hd l :: al;
+	case cls {
+	"book" =>
+		t := title;
+		if(subtitle != "")
+			t += "\\\\[1ex]\\large " + subtitle;
+		block("\\title{" + t + "}");
+		emit(cur, "\\author{" + author + "}");
+		emit(cur, "\\date{" + date + "}");
+		emit(cur, "\\maketitle");
+		if(abstract != ""){
+			emit(cur, "\\begin{quotation}\\noindent\\textbf{Abstract.} " + abstract + "\\end{quotation}");
+			abstract = "";
+		}
+	"ieee" =>
+		ieeetitle(al);
+	"acm" =>
+		acmtitle(al);
+	"memo" =>
+		if(memokind == "report")
+			articletitle(al);
+		else
+			memohead(al);
+	* =>
+		articletitle(al);
+	}
+	cur.noindent = 1;
+}
+
+articletitle(al: list of ref Author)
+{
+	t := title;
+	if(subtitle != "")
+		t += "\\\\[1ex]\\large " + subtitle;
+	block("\\title{" + t + "}");
+	a := "";
+	for(; al != nil; al = tl al){
+		au := hd al;
+		if(a != "")
+			a += "\n\\and ";
+		a += au.name;
+		if(au.affil != "")
+			a += "\\\\ " + au.affil;
+		if(au.loc != "")
+			a += "\\\\ " + trim(au.loc + " " + au.ext);
+		if(au.email != "")
+			a += "\\\\ \\texttt{" + au.email + "}";
+	}
+	emit(cur, "\\author{" + a + "}");
+	emit(cur, "\\date{" + date + "}");
+	emit(cur, "\\maketitle");
+	if(abstract != "" || keywords != ""){
+		emit(cur, "\\begin{abstract}");
+		if(abstract != "")
+			emit(cur, abstract);
+		if(keywords != "")
+			emit(cur, "\\par\\medskip\\noindent\\textit{Keywords:} " + keywords);
+		emit(cur, "\\end{abstract}");
+	}
+}
+
+# IEEEtran's: in a journal, the authors' names in a line and where each
+# is in a note (\thanks); at a conference, a block for each
+ieeetitle(al: list of ref Author)
+{
+	t := title;
+	if(subtitle != ""){
+		if(t != "" && (suffix("?", t) || suffix("!", t) || suffix(":", t)))
+			t += " " + subtitle;
+		else
+			t += ": " + subtitle;
+	}
+	block("\\title{" + t + "}");
+	a := "";
+	if(hasopt(clsopts, "conference")){
+		for(; al != nil; al = tl al){
+			au := hd al;
+			if(a != "")
+				a += "\n\\and\n";
+			a += "\\IEEEauthorblockN{" + au.name + "}";
+			w := au.affil;
+			if(au.loc != "")
+				w = join2(w, trim(au.loc + " " + au.ext), "\\\\ ");
+			if(au.email != "")
+				w = join2(w, au.email, "\\\\ ");
+			if(w != "")
+				a += "\n\\IEEEauthorblockA{" + w + "}";
+		}
+	}else{
+		n := 0;
+		for(l := al; l != nil; l = tl l)
+			n++;
+		thanks := "";
+		k := 0;
+		for(; al != nil; al = tl al){
+			au := hd al;
+			k++;
+			if(k > 1 && k == n && n > 2)
+				a += ", and ";
+			else if(k > 1 && k == n)
+				a += " and ";
+			else if(k > 1)
+				a += ", ";
+			a += au.name;
+			w := "";
+			if(au.affil != "")
+				w = au.name + " is with " + au.affil;
+			if(au.email != ""){
+				if(w == "")
+					w = au.name + "'s e-mail is " + au.email;
+				else
+					w += " (e-mail: " + au.email + ")";
+			}
+			if(w != "")
+				thanks += "\n\\thanks{" + w + ".}";
+		}
+		a += thanks;
+	}
+	emit(cur, "\\author{" + a + "}");
+	if(date != "")
+		emit(cur, "% date: " + date);
+	emit(cur, "\\maketitle");
+	if(abstract != ""){
+		emit(cur, "\\begin{abstract}");
+		emit(cur, abstract);
+		emit(cur, "\\end{abstract}");
+	}
+	if(keywords != ""){
+		emit(cur, "\\begin{IEEEkeywords}");
+		emit(cur, keywords);
+		emit(cur, "\\end{IEEEkeywords}");
+	}
+}
+
+# acmart's: each author, the institution and address; the abstract and
+# keywords before \maketitle
+acmtitle(al: list of ref Author)
+{
+	block("\\title{" + title + "}");
+	if(subtitle != "")
+		emit(cur, "\\subtitle{" + subtitle + "}");
+	for(; al != nil; al = tl al){
+		au := hd al;
+		emit(cur, "\\author{" + au.name + "}");
+		# acmart wants the country: the affiliation's last part, after
+		# a comma (.affil "Bell Laboratories, Murray Hill, USA")
+		w := au.affil;
+		if(au.loc != "")
+			w = join2(w, trim(au.loc + " " + au.ext), ", ");
+		# (and its city, the part before, if there are three)
+		country: string;
+		(w, country) = lastpart(w);
+		city := "";
+		if(country != "" && contains(w, ","))
+			(w, city) = lastpart(w);
+		if(country == ""){
+			warn("acmart wants each affiliation's country: .affil's last part, after a comma");
+			country = "[country]";
+		}
+		if(city != "")
+			city = "\\city{" + city + "}";
+		emit(cur, "\\affiliation{\\institution{" + w + "}" + city + "\\country{" + country + "}}");
+		if(au.email != "")
+			emit(cur, "\\email{" + au.email + "}");
+	}
+	if(date != "")
+		emit(cur, "% date: " + date);
+	if(abstract != ""){
+		emit(cur, "\\begin{abstract}");
+		emit(cur, abstract);
+		emit(cur, "\\end{abstract}");
+	}
+	if(keywords != "")
+		emit(cur, "\\keywords{" + keywords + "}");
+	emit(cur, "\\maketitle");
+}
+
+# a technical memorandum's head, as -mmemo sets it: the organization at
+# the right; the subject (and its case and file) at the left, the date,
+# the authors and the number at the right; the kind below, across
+memohead(al: list of ref Author)
+{
+	if(memoorg != ""){
+		block("\\begin{flushright}");
+		emit(cur, "\\textbf{\\large " + memoorg + "}");
+		emit(cur, "\\end{flushright}");
+		emit(cur, "\\vspace{0.3in}");
+	}
+	block("\\noindent\\begin{minipage}[t]{0.55\\textwidth}");
+	emit(cur, "\\raggedright\\textit{\\small subject:} \\textbf{" + title + "}");
+	if(subtitle != "")
+		emit(cur, "\\\\ \\textbf{" + subtitle + "}");
+	cf := "";
+	if(memocase != "")
+		cf = "Case " + memocase;
+	if(memofile != "")
+		cf = join2(cf, "File " + memofile, " --- ");
+	if(cf != "")
+		emit(cur, "\\\\[0.4ex] {\\small " + cf + "}");
+	emit(cur, "\\end{minipage}\\hfill");
+	emit(cur, "\\begin{minipage}[t]{0.4\\textwidth}");
+	emit(cur, "\\raggedright");
+	if(date != "")
+		emit(cur, "\\textit{\\small date:} \\textbf{" + date + "}\\\\[0.5ex]");
+	first := 1;
+	for(; al != nil; al = tl al){
+		au := hd al;
+		if(first)
+			emit(cur, "\\textit{\\small from:} \\textbf{" + au.name + "}\\\\");
+		else
+			emit(cur, "\\textbf{" + au.name + "}\\\\");
+		w := trim(au.loc + " " + au.ext);
+		if(w != "")
+			emit(cur, "{\\small " + w + "}\\\\");
+		first = 0;
+	}
+	if(memonumber != "")
+		emit(cur, "[0.5ex]\\textit{\\small TM:} \\textbf{" + memonumber + "}");
+	emit(cur, "\\end{minipage}");
+	emit(cur, "\\begin{center}");
+	emit(cur, "\\textbf{" + memotype + "}");
+	emit(cur, "\\end{center}");
+	if(abstract != ""){
+		emit(cur, "\\begin{quote}");
+		emit(cur, "\\small " + abstract);
+		emit(cur, "\\end{quote}");
+	}
+}
+
+# s's last part after a comma, and what is before it
+lastpart(s: string): (string, string)
+{
+	for(i := len s - 1; i >= 0; i--)
+		if(s[i] == ',')
+			return (trim(s[0:i]), trim(s[i + 1:]));
+	return (s, "");
+}
+
+join2(a, b, sep: string): string
+{
+	if(a == "")
+		return b;
+	if(b == "")
+		return a;
+	return a + sep + b;
+}
+
+# whether o (options separated by commas) has w
+hasopt(o, w: string): int
+{
+	(nil, l) := sys->tokenize(o, ",");
+	for(; l != nil; l = tl l)
+		if(hd l == w)
+			return 1;
+	return 0;
+}
+
+# a block of the source's text (an abstract's), until end, as LaTeX's
+captured(end: string): string
+{
+	o := cur;
+	closefont(o);
+	n := newout();
+	cur = n;
+	while((s := readline()) != nil){
+		if(prefix(end, s))
+			break;
+		if(trim(s) == "")
+			paragraph();
+		else if(s[0] == '.' || s[0] == '\'')
+			request(s);
+		else
+			textline(n, s);
+	}
+	closefont(n);
+	cur = o;
+	l := rev(n.l);
+	while(l != nil && hd l == "")
+		l = tl l;
+	t := join(l, "\n");
+	while(suffix("\n", t))
+		t = t[0:len t - 1];
+	return t;
+}
+
+# the lines written
+nlines(o: ref Out): int
+{
+	n := 0;
+	for(l := o.l; l != nil; l = tl l)
+		n++;
+	return n;
+}
+
+# lines l (the last first) put after the first at lines written
+insertat(o: ref Out, at: int, l: list of string)
+{
+	top: list of string;
+	for(k := nlines(o) - at; k > 0 && o.l != nil; k--){
+		top = hd o.l :: top;
+		o.l = tl o.l;
+	}
+	for(l = rev(l); l != nil; l = tl l)
+		o.l = hd l :: o.l;
+	for(; top != nil; top = tl top)
+		o.l = hd top :: o.l;
 }
 
 # a blank line before a heading
@@ -1190,6 +1863,7 @@ note(end, cmd, textcmd: string)
 	}
 	n := newout();
 	cur = n;
+	innote++;
 	while((s := readline()) != nil){
 		if(len s > 1 && s[0] == '.' && trim(s[1:]) == end)
 			break;
@@ -1202,6 +1876,7 @@ note(end, cmd, textcmd: string)
 	}
 	closefont(n);
 	cur = o;
+	innote--;
 	body := join(rev(n.l), "\n");
 	if(marked)
 		cmd = textcmd;
@@ -1311,6 +1986,8 @@ readdisplay(a: list of string): (string, string, int)
 		src += s + "\n";
 	ealigned = 0;
 	m := trim(eqn(src, 1));
+	if(m == "")	# delim, define: a picture's labels' too
+		eqprelude += ".EQ\n" + src + ".EN\n";
 	return (m, label, ealigned);
 }
 
@@ -1853,8 +2530,14 @@ efont(f, s: string): string
 	case f {
 	"R" =>	return "\\mathrm{" + s + "}";
 	"I" =>	return "\\mathit{" + s + "}";
-	"B" =>	return "\\symbf{" + s + "}";
-	"BI" =>	return "\\symbfit{" + s + "}";
+	"B" =>
+		if(pdftex)
+			return "\\mathbf{" + s + "}";
+		return "\\symbf{" + s + "}";
+	"BI" =>
+		if(pdftex)
+			return "\\boldsymbol{" + s + "}";
+		return "\\symbfit{" + s + "}";
 	"TT" =>	return "\\mathtt{" + s + "}";
 	}
 	return s;
@@ -2081,7 +2764,7 @@ lower(s: string): string
 }
 
 eops := array[] of {
-	(",...,", ",\\ldots,"), ("...", "\\ldots "), ("<=", "\\le "), (">=", "\\ge "),
+	(",...,", ",\\ldots,"), ("...", "\\dots "), ("<=", "\\le "), (">=", "\\ge "),
 	("==", "\\equiv "), ("!=", "\\ne "), ("->", "\\to "), ("<-", "\\gets "),
 	("+-", "\\pm "), ("<<", "\\ll "), (">>", "\\gg "), (":=", "\\mathrel{:}= "),
 };
@@ -2248,6 +2931,7 @@ table()
 	centred := 0;
 	box := 0;
 	allbox := 0;
+	vr := 0;	# vrules: its vertical rules drawn, as tbl draws them
 	s := readline();
 	if(s == nil)
 		return;
@@ -2262,6 +2946,8 @@ table()
 			box = 2;
 		else if(contains(o, "box") || contains(o, "frame"))
 			box = 1;
+		if(contains(o, "vrules"))
+			vr = 1;
 		k := strindex(o, "tab(");
 		if(k >= 0 && k + 4 < len s)
 			tab = s[k + 4];
@@ -2334,7 +3020,8 @@ table()
 			b = first[c].bars;
 		if(allbox || box && c == 0)
 			b = box + allbox;
-		spec += bars(b);
+		if(vr)
+			spec += bars(b);
 		key := 'l';
 		if(first != nil && c < len first)
 			key = first[c].key;
@@ -2343,7 +3030,9 @@ table()
 		else
 			spec += align(key);
 	}
-	if(allbox || box)
+	if(!vr)
+		;
+	else if(allbox || box)
 		spec += bars(box + allbox);
 	else if(first != nil && len first > 0)
 		spec += bars(first[len first - 1].after);
@@ -2355,17 +3044,20 @@ table()
 		emit(cur, "\\par\\noindent");
 	emit(cur, "\\begin{tabular}{" + spec + "}");
 	if(box || allbox)
-		emit(cur, hline(box + allbox));
+		emit(cur, hrule(vr, box + allbox, 1, 0));
 	rl := rev2(rows);
 	ff := revf(rowfmt);
+	firstrow := 1;
 	for(; rl != nil; rl = tl rl){
 		(cells, rule) := hd rl;
 		f := hd ff;
 		ff = tl ff;
 		if(cells == nil){
-			emit(cur, hline(rule));
+			emit(cur, hrule(vr, rule, firstrow && !box && !allbox, tl rl == nil && !box && !allbox));
+			firstrow = 0;
 			continue;
 		}
+		firstrow = 0;
 		line := "";
 		k := 0;
 		while(k < ncols){
@@ -2402,9 +3094,9 @@ table()
 			if(span > 1 || align(key) != align(fk) && key != '^' && key != 's' && !textcol[k]){
 				lb := "";
 				rb := "";
-				if(k == 0)
+				if(k == 0 && vr)
 					lb = bars(box + allbox);
-				if(allbox || k + span == ncols && box)
+				if(vr && (allbox || k + span == ncols && box))
 					rb = bars(box + allbox);
 				cell = "\\multicolumn{" + string span + "}{" + lb + align(key) + rb + "}{" + cell + "}";
 			}
@@ -2415,11 +3107,11 @@ table()
 		}
 		line += " \\\\";
 		if(allbox && tl rl != nil && (hd tl rl).t0 != nil)
-			line += " \\hline";
+			line += " " + hrule(vr, 1, 0, 0);
 		emit(cur, line);
 	}
 	if(box || allbox)
-		emit(cur, hline(box + allbox));
+		emit(cur, hrule(vr, box + allbox, 0, 1));
 	emit(cur, "\\end{tabular}");
 	if(infloat != "")
 		;
@@ -2437,6 +3129,21 @@ bars(n: int): string
 	while(n-- > 0)
 		s += "|";
 	return s;
+}
+
+# a horizontal rule: with the vertical ones, \hline, to meet them;
+# without, booktabs' (its top, middle and bottom)
+hrule(vr, n, top, bottom: int): string
+{
+	if(vr)
+		return hline(n);
+	if(top)
+		return "\\toprule";
+	if(bottom)
+		return "\\bottomrule";
+	if(n >= 2)
+		return "\\midrule[\\heavyrulewidth]";
+	return "\\midrule";
 }
 
 hline(n: int): string
@@ -2629,13 +3336,15 @@ tblcells(s: string, tab: int): array of string
 # pic's pictures
 #
 
-picture(first: string)
+# a picture (pic's, .PS to .PE) or a chess board (chess's, .CB to .CE):
+# drawn as a PDF of its own, by its preprocessor, troff and tr2pdf
+picture(first, end, cmd: string)
 {
 	closefont(cur);
 	src := first + "\n";
 	while((s := readline()) != nil){
 		src += s + "\n";
-		if(prefix(".PE", s))
+		if(prefix(end, s))
 			break;
 	}
 	npics++;
@@ -2650,19 +3359,21 @@ picture(first: string)
 				break;
 	}
 	name := stem + "-pic" + string npics;
-	emit(cur, "% pic:");
+	emit(cur, "% " + cmd + ":");
 	for((nil, l) := sys->tokenize(src, "\n"); l != nil; l = tl l)
 		emit(cur, "% " + hd l);
-	if(outname != nil && drawpic(src, name)){
+	if(outname != nil && drawpic(src, name, cmd)){
 		base := name;
 		for(i := len base - 1; i >= 0; i--)
 			if(base[i] == '/'){
 				base = base[i + 1:];
 				break;
 			}
-		centrein("\\includegraphics{" + base + "}");
+		# (set for troff's page, a picture may be wider than a journal's
+		# column: it is made narrower, never wider)
+		centrein("\\resizebox{\\ifdim\\width>\\linewidth\\linewidth\\else\\width\\fi}{!}{\\includegraphics{" + base + "}}");
 	}else
-		centrein("\\fbox{\\textit{a picture (pic)}}");
+		centrein("\\fbox{\\textit{a picture (" + cmd + ")}}");
 	cur.noindent = 1;
 }
 
@@ -2678,9 +3389,21 @@ centrein(s: string)
 	emit(cur, "\\end{center}");
 }
 
-# a picture as a PDF of its own: pic's .PS line gives its height and
-# width; troff sets it on a page that size, tr2pdf writes it
-drawpic(src, name: string): int
+# what troff sets a picture with: -mbook's fonts (small capitals, the
+# fallback, the chess figures), as the book has them
+figfonts: con ".fp 11 SC R\n.ff SC +smcp\n.fp 12 DF\n.fp 14 CH\n" +
+	".char \u2654 \\f[CH]\\N'uni2654'\n.char \u2655 \\f[CH]\\N'uni2655'\n" +
+	".char \u2656 \\f[CH]\\N'uni2656'\n.char \u2657 \\f[CH]\\N'uni2657'\n" +
+	".char \u2658 \\f[CH]\\N'uni2658'\n.char \u2659 \\f[CH]\\N'uni2659'\n" +
+	".char \u265a \\f[CH]\\N'uni265A'\n.char \u265b \\f[CH]\\N'uni265B'\n" +
+	".char \u265c \\f[CH]\\N'uni265C'\n.char \u265d \\f[CH]\\N'uni265D'\n" +
+	".char \u265e \\f[CH]\\N'uni265E'\n.char \u265f \\f[CH]\\N'uni265F'\n";
+
+# a picture as a PDF of its own: pic's (chess's) .PS line gives its
+# height and width; troff sets it on a page that size, with the
+# document's characters and fonts, tr2pdf writes it.  Its labels'
+# equations are eqn's, with the document's delim and defines
+drawpic(src, name, cmd: string): int
 {
 	sh := load Sh Sh->PATH;
 	if(sh == nil){
@@ -2688,14 +3411,21 @@ drawpic(src, name: string): int
 		return 0;
 	}
 	tmp := name + ".pic";
+	pipe := cmd + " < " + quote(tmp);
+	if(cmd == "pic" && eqprelude != ""){
+		src = eqprelude + src;
+		pipe += " | eqn /lib/troff/eqnrc -";
+	}
 	if(writefile(tmp, src) < 0)
 		return 0;
-	err := sh->system(ctxt, "pic < " + quote(tmp) + " > " + quote(name + ".tr"));
+	err := sh->system(ctxt, pipe + " > " + quote(name + ".tr"));
 	if(err != nil){
-		warn("pic: " + err);
+		warn(cmd + ": " + err);
 		return 0;
 	}
 	out := readfile(name + ".tr");
+	if(cmd == "pic" && eqprelude != "")
+		out = noxspace(out);
 	ht := 0.0;
 	wd := 0.0;
 	for((nil, l) := sys->tokenize(out, "\n"); l != nil; l = tl l)
@@ -2708,14 +3438,33 @@ drawpic(src, name: string): int
 			break;
 		}
 	if(ht <= 0.0 || wd <= 0.0){
-		warn("pic gave no size for " + name);
+		warn(cmd + " gave no size for " + name);
 		return 0;
 	}
+	# pic's size leaves out its labels' text, which may hang past the
+	# drawing (a label ljust at its right edge): the picture is set
+	# once on a page with room about it, where its ink is found, and
+	# again on a page that size
 	pw := int (wd * 72.0 + 0.999) + 2;
 	ph := int (ht * 72.0 + 0.999) + 2;
-	doc := sys->sprint(".pl %dp\n.po 1p\n.ll %dp\n.vs 0\n\\X'papersize %dx%d'\n.sp |1p\n", ph, pw, pw, ph) +
-		".de PS\n..\n.de PE\n..\n" + out;
-	if(writefile(name + ".tr", doc) < 0)
+	(po, top) := (1, 1);
+	pad := 144;
+	if(writefile(name + ".tr", picdoc(pw + 2 * pad, ph + 2 * pad, pad, pad, out)) < 0)
+		return 0;
+	err = sh->system(ctxt, "troff < " + quote(name + ".tr") + " > " + quote(name + ".t1"));
+	if(err == nil){
+		(ok, x0, y0, x1, y1) := inkbox(readfile(name + ".t1"));
+		if(ok){
+			m := 2.0;
+			pw = int (x1 - x0 + 2.0 * m + 0.999);
+			ph = int (y1 - y0 + 2.0 * m + 0.999);
+			# (its ink moved from x0, y0 to m, m)
+			po = int (m - (x0 - real pad));
+			top = int (m - (y0 - real pad));
+		}
+	}
+	sys->remove(name + ".t1");
+	if(writefile(name + ".tr", picdoc(pw, ph, po, top, out)) < 0)
 		return 0;
 	err = sh->system(ctxt, "troff < " + quote(name + ".tr") + " | tr2pdf > " + quote(name + ".pdf"));
 	sys->remove(tmp);
@@ -2725,6 +3474,228 @@ drawpic(src, name: string): int
 		return 0;
 	}
 	return 1;
+}
+
+# what troff sets a picture by: a page pw by ph points, the picture's
+# origin po and top points in, the document's characters and fonts
+picdoc(pw, ph, po, top: int, out: string): string
+{
+	# (a sign would make .po's and .sp's relative: -1p as 0-1p)
+	return sys->sprint(".pl %dp\n.po 0%+dp\n.ll %dp\n.vs 0\n\\X'papersize %dx%d'\n.sp |0%+dp\n", ph, po, pw, pw, ph, top) +
+		figfonts + trprelude + ".de PS\n..\n.de PE\n..\n" + out;
+}
+
+# the box troff's output inks on its first page, in points: its glyphs
+# (each from where it is set, by the em of its size: troff's output
+# gives a word's last glyph no width) and what it draws
+inkbox(s: string): (int, real, real, real, real)
+{
+	res := 720.0;
+	scale := 1.0;
+	size := 10.0;
+	h := 0.0;
+	v := 0.0;
+	(x0, y0, x1, y1) := (1e9, 1e9, -1e9, -1e9);
+	n := 0;
+	i := 0;
+	pages := 0;
+	while(i < len s){
+		c := s[i++];
+		case c {
+		' ' or '\t' or '\n' or 'w' =>
+			;
+		'x' =>
+			(l, e) := restofline(s, i);
+			i = e;
+			(nil, w) := sys->tokenize(l, " \t");
+			if(w != nil && tl w != nil){
+				if(hd w == "res" || hd w == "r")
+					res = real hd tl w;
+				else if(hd w == "sizescale")
+					scale = real hd tl w;
+			}
+		'#' =>
+			(nil, i) = restofline(s, i);
+		'p' =>
+			(nil, i) = number(s, i);
+			if(++pages > 1)
+				i = len s;
+			h = v = 0.0;
+		's' =>
+			k: int;
+			(k, i) = number(s, i);
+			# (devutf's sizes are hundredths of a point, its sizescale
+			# not in the output)
+			if(scale == 1.0 && k >= 400)
+				size = real k / 100.0;
+			else
+				size = real k / scale;
+		'f' =>
+			(nil, i) = number(s, i);
+		'H' =>
+			k: int;
+			(k, i) = number(s, i);
+			h = real k;
+		'V' =>
+			k: int;
+			(k, i) = number(s, i);
+			v = real k;
+		'h' =>
+			k: int;
+			(k, i) = number(s, i);
+			h += real k;
+		'v' =>
+			k: int;
+			(k, i) = number(s, i);
+			v += real k;
+		'n' =>
+			(nil, i) = number(s, i);
+			(nil, i) = number(s, i);
+		'c' or 'C' or 'N' =>
+			if(c == 'c')
+				i++;
+			else if(c == 'C')
+				while(i < len s && s[i] != ' ' && s[i] != '\n')
+					i++;
+			else
+				(nil, i) = number(s, i);
+			em := size * res / 72.0;
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h, v - 0.8 * em);
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h + em, v + 0.25 * em);
+			n++;
+		'D' =>
+			(l, e) := restofline(s, i);
+			i = e;
+			(x0, y0, x1, y1, h, v) = drawn(l, x0, y0, x1, y1, h, v);
+			n++;
+		* =>
+			if(c >= '0' && c <= '9' && i + 1 < len s){	# nnc: a move, then a glyph
+				h += real ((c - '0') * 10 + s[i] - '0');
+				i += 2;
+				em := size * res / 72.0;
+				(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h, v - 0.8 * em);
+				(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h + em, v + 0.25 * em);
+				n++;
+			}else
+				(nil, i) = restofline(s, i);
+		}
+	}
+	if(n == 0)
+		return (0, 0.0, 0.0, 0.0, 0.0);
+	k := 72.0 / res;
+	return (1, x0 * k, y0 * k, x1 * k, y1 * k);
+}
+
+grow(x0, y0, x1, y1, x, y: real): (real, real, real, real)
+{
+	if(x < x0)
+		x0 = x;
+	if(x > x1)
+		x1 = x;
+	if(y < y0)
+		y0 = y;
+	if(y > y1)
+		y1 = y;
+	return (x0, y0, x1, y1);
+}
+
+# a drawing (troff's D): the box grown by it, and where it ends
+drawn(l: string, x0, y0, x1, y1, h, v: real): (real, real, real, real, real, real)
+{
+	l = trim(l);
+	if(l == "")
+		return (x0, y0, x1, y1, h, v);
+	cmd := l[0];
+	(nil, w) := sys->tokenize(l[1:], " \t");
+	a: list of real;
+	for(; w != nil; w = tl w)
+		a = real hd w :: a;
+	na := 0;
+	for(t := a; t != nil; t = tl t)
+		na++;
+	nums := array[na] of real;
+	for(; a != nil; a = tl a)
+		nums[--na] = hd a;
+	case cmd {
+	'c' =>	# a circle: its diameter
+		if(len nums >= 1){
+			d := nums[0];
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h, v - d / 2.0);
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h + d, v + d / 2.0);
+			h += d;
+		}
+	'e' =>	# an ellipse: its width and height
+		if(len nums >= 2){
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h, v - nums[1] / 2.0);
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h + nums[0], v + nums[1] / 2.0);
+			h += nums[0];
+		}
+	'a' =>	# an arc: to its centre, then to its end; the circle bounds it
+		if(len nums >= 4){
+			cx := h + nums[0];
+			cy := v + nums[1];
+			r := hypot(nums[0], nums[1]);
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, cx - r, cy - r);
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, cx + r, cy + r);
+			h = cx + nums[2];
+			v = cy + nums[3];
+		}
+	* =>	# lines, splines, polygons: moves from point to point
+		(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h, v);
+		for(k := 0; k + 1 < len nums; k += 2){
+			h += nums[k];
+			v += nums[k + 1];
+			(x0, y0, x1, y1) = grow(x0, y0, x1, y1, h, v);
+		}
+	}
+	return (x0, y0, x1, y1, h, v);
+}
+
+hypot(x, y: real): real
+{
+	return math->sqrt(x * x + y * y);
+}
+
+# the rest of the line from i, and where the next begins
+restofline(s: string, i: int): (string, int)
+{
+	j := i;
+	while(j < len s && s[j] != '\n')
+		j++;
+	if(j < len s)
+		return (s[i:j], j + 1);
+	return (s[i:j], j);
+}
+
+# a number at i (after spaces), and where it ends
+number(s: string, i: int): (int, int)
+{
+	while(i < len s && (s[i] == ' ' || s[i] == '\t'))
+		i++;
+	neg := 0;
+	if(i < len s && s[i] == '-'){
+		neg = 1;
+		i++;
+	}
+	n := 0;
+	while(i < len s && s[i] >= '0' && s[i] <= '9')
+		n = n * 10 + s[i++] - '0';
+	if(neg)
+		n = -n;
+	return (n, i);
+}
+
+# eqn's output without the extra space it asks for a line whose
+# equation is taller than the line (\x): a picture is set with .vs 0,
+# so every label's would be, and the picture pushed off its page; pic
+# places each label itself
+noxspace(s: string): string
+{
+	r := "";
+	for((nil, l) := sys->tokenize(s, "\n"); l != nil; l = tl l)
+		if(!(prefix(".if ", hd l) && contains(hd l, ".as ") && contains(hd l, "\\x'")))
+			r += hd l + "\n";
+	return r;
 }
 
 quote(s: string): string
@@ -2764,27 +3735,420 @@ readfile(name: string): string
 	return s;
 }
 
+
+#
+# characters, for pdfLaTeX: those LaTeX's inputenc knows (UTF-8 with
+# the fonts T1 and TS1) are kept; a mathematical one is LaTeX's command
+# for it, in text or mathematics alike (\ensuremath); any other said
+#
+
+# the characters inputenc knows, as pdfLaTeX was found to (first, last)
+utfok := array[] of {
+	16r00A0, 16r0125, 16r0128, 16r0137, 16r0139, 16r013E, 16r0141, 16r0148,
+	16r014A, 16r0165, 16r0168, 16r017E, 16r0192, 16r0192, 16r01C4, 16r01D4,
+	16r01E2, 16r01E3, 16r01E6, 16r01EB, 16r01F0, 16r01F0, 16r01F4, 16r01F5,
+	16r0218, 16r021B, 16r0232, 16r0233, 16r0237, 16r0237, 16r1E02, 16r1E03,
+	16r1E0D, 16r1E0D, 16r1E1E, 16r1E21, 16r1E25, 16r1E25, 16r1E30, 16r1E31,
+	16r1E37, 16r1E37, 16r1E43, 16r1E43, 16r1E45, 16r1E45, 16r1E47, 16r1E47,
+	16r1E5B, 16r1E5B, 16r1E63, 16r1E63, 16r1E6D, 16r1E6D, 16r1E8E, 16r1E91,
+	16r1E9E, 16r1E9E, 16r1EF2, 16r1EF3, 16r200C, 16r200C, 16r2010, 16r2016,
+	16r2018, 16r201A, 16r201C, 16r201E, 16r2020, 16r2022, 16r2026, 16r2026,
+	16r2030, 16r2031, 16r2039, 16r203B, 16r203D, 16r203D, 16r2044, 16r2044,
+	16r204E, 16r204E, 16r2052, 16r2052, 16r20A1, 16r20A1, 16r20A4, 16r20A4,
+	16r20A6, 16r20A6, 16r20A9, 16r20A9, 16r20AB, 16r20AC, 16r20B1, 16r20B1,
+	16r2103, 16r2103, 16r2116, 16r2117, 16r211E, 16r211E, 16r2120, 16r2120,
+	16r2122, 16r2122, 16r2126, 16r2127, 16r212E, 16r212E, 16r2190, 16r2193,
+	16r2329, 16r232A, 16r25E6, 16r25E6, 16r25EF, 16r25EF, 16r266A, 16r266A,
+	16r27E8, 16r27E9, 16rFB00, 16rFB06
+};
+
+texchars(s: string): string
+{
+	if(!pdftex)
+		return s;
+	i := 0;
+	while(i < len s && s[i] < 16r80)
+		i++;
+	if(i >= len s)
+		return s;
+	r := s[0:i];
+	for(; i < len s; i++){
+		c := s[i];
+		if(c < 16r80){
+			r[len r] = c;
+			continue;
+		}
+		m := mathsym(c);
+		if(m != nil){
+			t := textsym(c);
+			if(t != nil)
+				r += "\\TextOrMath{" + t + "}{" + m + "}";
+			else
+				r += "\\ensuremath{" + m + "}";
+			continue;
+		}
+		if(knownutf(c)){
+			r[len r] = c;
+			continue;
+		}
+		warn(sys->sprint("U+%04X (%c) has no LaTeX for pdfLaTeX: written as [U+%04X]", c, c, c));
+		r += sys->sprint("[U+%04X]", c);
+	}
+	return r;
+}
+
+knownutf(c: int): int
+{
+	for(k := 0; k + 1 < len utfok; k += 2)
+		if(c >= utfok[k] && c <= utfok[k + 1])
+			return 1;
+	return 0;
+}
+
+# a character's text, where LaTeX has it in text as well (TS1's)
+textsym(c: int): string
+{
+	case c {
+	16r2026 =>	return "\\textellipsis{}";
+	16rd7 =>	return "\\texttimes{}";
+	16rf7 =>	return "\\textdiv{}";
+	16rb1 =>	return "\\textpm{}";
+	16rb7 =>	return "\\textperiodcentered{}";
+	16rb0 =>	return "\\textdegree{}";
+	16rac =>	return "\\textlnot{}";
+	16r2020 =>	return "\\textdagger{}";
+	16r2021 =>	return "\\textdaggerdbl{}";
+	16r2190 =>	return "\\textleftarrow{}";
+	16r2191 =>	return "\\textuparrow{}";
+	16r2192 =>	return "\\textrightarrow{}";
+	16r2193 =>	return "\\textdownarrow{}";
+	16r2016 =>	return "\\textbardbl{}";
+	16r2212 =>	return "\\textminus{}";
+	}
+	return nil;
+}
+
+# a character's mathematics, LaTeX's (amssymb's)
+mathsym(c: int): string
+{
+	case c {
+	16r3b1 =>	return "\\alpha";
+	16r3b2 =>	return "\\beta";
+	16r3b3 =>	return "\\gamma";
+	16r3b4 =>	return "\\delta";
+	16r3b5 =>	return "\\varepsilon";
+	16r3b6 =>	return "\\zeta";
+	16r3b7 =>	return "\\eta";
+	16r3b8 =>	return "\\theta";
+	16r3b9 =>	return "\\iota";
+	16r3ba =>	return "\\kappa";
+	16r3bb =>	return "\\lambda";
+	16r3bc =>	return "\\mu";
+	16r3bd =>	return "\\nu";
+	16r3be =>	return "\\xi";
+	16r3bf =>	return "o";
+	16r3c0 =>	return "\\pi";
+	16r3c1 =>	return "\\rho";
+	16r3c2 =>	return "\\varsigma";
+	16r3c3 =>	return "\\sigma";
+	16r3c4 =>	return "\\tau";
+	16r3c5 =>	return "\\upsilon";
+	16r3c6 =>	return "\\varphi";
+	16r3c7 =>	return "\\chi";
+	16r3c8 =>	return "\\psi";
+	16r3c9 =>	return "\\omega";
+	16r3d1 =>	return "\\vartheta";
+	16r3d5 =>	return "\\phi";
+	16r3d6 =>	return "\\varpi";
+	16r3f1 =>	return "\\varrho";
+	16r3f5 =>	return "\\epsilon";
+	16r393 =>	return "\\Gamma";
+	16r394 =>	return "\\Delta";
+	16r398 =>	return "\\Theta";
+	16r39b =>	return "\\Lambda";
+	16r39e =>	return "\\Xi";
+	16r3a0 =>	return "\\Pi";
+	16r3a3 =>	return "\\Sigma";
+	16r3a5 =>	return "\\Upsilon";
+	16r3a6 =>	return "\\Phi";
+	16r3a8 =>	return "\\Psi";
+	16r3a9 =>	return "\\Omega";
+	16r391 =>	return "\\mathrm{A}";
+	16r392 =>	return "\\mathrm{B}";
+	16r395 =>	return "\\mathrm{E}";
+	16r396 =>	return "\\mathrm{Z}";
+	16r397 =>	return "\\mathrm{H}";
+	16r399 =>	return "\\mathrm{I}";
+	16r39a =>	return "\\mathrm{K}";
+	16r39c =>	return "\\mathrm{M}";
+	16r39d =>	return "\\mathrm{N}";
+	16r39f =>	return "\\mathrm{O}";
+	16r3a1 =>	return "\\mathrm{P}";
+	16r3a4 =>	return "\\mathrm{T}";
+	16r3a7 =>	return "\\mathrm{X}";
+	16r2190 =>	return "\\leftarrow";
+	16r2191 =>	return "\\uparrow";
+	16r2192 =>	return "\\rightarrow";
+	16r2193 =>	return "\\downarrow";
+	16r2194 =>	return "\\leftrightarrow";
+	16r2195 =>	return "\\updownarrow";
+	16r2196 =>	return "\\nwarrow";
+	16r2197 =>	return "\\nearrow";
+	16r2198 =>	return "\\searrow";
+	16r2199 =>	return "\\swarrow";
+	16r21a0 =>	return "\\twoheadrightarrow";
+	16r21a3 =>	return "\\rightarrowtail";
+	16r21a6 =>	return "\\mapsto";
+	16r21a9 =>	return "\\hookleftarrow";
+	16r21aa =>	return "\\hookrightarrow";
+	16r21cc =>	return "\\rightleftharpoons";
+	16r21d0 =>	return "\\Leftarrow";
+	16r21d1 =>	return "\\Uparrow";
+	16r21d2 =>	return "\\Rightarrow";
+	16r21d3 =>	return "\\Downarrow";
+	16r21d4 =>	return "\\Leftrightarrow";
+	16r21dd =>	return "\\leadsto";
+	16r27f5 =>	return "\\longleftarrow";
+	16r27f6 =>	return "\\longrightarrow";
+	16r27f7 =>	return "\\longleftrightarrow";
+	16r27f8 =>	return "\\Longleftarrow";
+	16r27f9 =>	return "\\Longrightarrow";
+	16r27fa =>	return "\\Longleftrightarrow";
+	16r27fc =>	return "\\longmapsto";
+	16rac =>	return "\\neg";
+	16r2200 =>	return "\\forall";
+	16r2203 =>	return "\\exists";
+	16r2204 =>	return "\\nexists";
+	16r2227 =>	return "\\wedge";
+	16r2228 =>	return "\\vee";
+	16r22a2 =>	return "\\vdash";
+	16r22a3 =>	return "\\dashv";
+	16r22a4 =>	return "\\top";
+	16r22a5 =>	return "\\bot";
+	16r22a8 =>	return "\\models";
+	16r22a9 =>	return "\\Vdash";
+	16r22ac =>	return "\\nvdash";
+	16r22ad =>	return "\\nvDash";
+	16r25a1 =>	return "\\Box";
+	16r25fb =>	return "\\Box";
+	16r25c7 =>	return "\\Diamond";
+	16r25ca =>	return "\\lozenge";
+	16r2234 =>	return "\\therefore";
+	16r2235 =>	return "\\because";
+	16r2208 =>	return "\\in";
+	16r2209 =>	return "\\notin";
+	16r220b =>	return "\\ni";
+	16r2282 =>	return "\\subset";
+	16r2283 =>	return "\\supset";
+	16r2286 =>	return "\\subseteq";
+	16r2287 =>	return "\\supseteq";
+	16r228a =>	return "\\subsetneq";
+	16r228b =>	return "\\supsetneq";
+	16r2284 =>	return "\\not\\subset";
+	16r222a =>	return "\\cup";
+	16r2229 =>	return "\\cap";
+	16r2205 =>	return "\\emptyset";
+	16r2216 =>	return "\\setminus";
+	16r2115 =>	return "\\mathbb{N}";
+	16r2124 =>	return "\\mathbb{Z}";
+	16r211a =>	return "\\mathbb{Q}";
+	16r211d =>	return "\\mathbb{R}";
+	16r2102 =>	return "\\mathbb{C}";
+	16r2119 =>	return "\\mathbb{P}";
+	16r22c3 =>	return "\\bigcup";
+	16r22c2 =>	return "\\bigcap";
+	16r2118 =>	return "\\wp";
+	16r2135 =>	return "\\aleph";
+	16r228e =>	return "\\uplus";
+	16r2293 =>	return "\\sqcap";
+	16r2294 =>	return "\\sqcup";
+	16r228f =>	return "\\sqsubset";
+	16r2291 =>	return "\\sqsubseteq";
+	16r2292 =>	return "\\sqsupseteq";
+	16r2264 =>	return "\\le";
+	16r2265 =>	return "\\ge";
+	16r2260 =>	return "\\ne";
+	16r2248 =>	return "\\approx";
+	16r2261 =>	return "\\equiv";
+	16r223c =>	return "\\sim";
+	16r2243 =>	return "\\simeq";
+	16r2245 =>	return "\\cong";
+	16r221d =>	return "\\propto";
+	16r226a =>	return "\\ll";
+	16r226b =>	return "\\gg";
+	16r227a =>	return "\\prec";
+	16r227b =>	return "\\succ";
+	16r2aaf =>	return "\\preceq";
+	16r2ab0 =>	return "\\succeq";
+	16r227c =>	return "\\preccurlyeq";
+	16r227d =>	return "\\succcurlyeq";
+	16r2223 =>	return "\\mid";
+	16r2224 =>	return "\\nmid";
+	16r2225 =>	return "\\parallel";
+	16r2226 =>	return "\\nparallel";
+	16r2250 =>	return "\\doteq";
+	16r225c =>	return "\\triangleq";
+	16r2254 =>	return "\\mathrel{:}=";
+	16r22b2 =>	return "\\lhd";
+	16r22b3 =>	return "\\rhd";
+	16r22b4 =>	return "\\unlhd";
+	16r22b5 =>	return "\\unrhd";
+	16r22c8 =>	return "\\bowtie";
+	16r2266 =>	return "\\leqq";
+	16r2267 =>	return "\\geqq";
+	16r2272 =>	return "\\lesssim";
+	16r2273 =>	return "\\gtrsim";
+	16r226e =>	return "\\not<";
+	16r226f =>	return "\\not>";
+	16r2270 =>	return "\\nleq";
+	16r2271 =>	return "\\ngeq";
+	16r2262 =>	return "\\not\\equiv";
+	16r2249 =>	return "\\not\\approx";
+	16r2241 =>	return "\\nsim";
+	16rd7 =>	return "\\times";
+	16rf7 =>	return "\\div";
+	16rb1 =>	return "\\pm";
+	16r2213 =>	return "\\mp";
+	16rb7 =>	return "\\cdot";
+	16r22c5 =>	return "\\cdot";
+	16r2219 =>	return "\\bullet";
+	16r2218 =>	return "\\circ";
+	16r2295 =>	return "\\oplus";
+	16r2296 =>	return "\\ominus";
+	16r2297 =>	return "\\otimes";
+	16r2298 =>	return "\\oslash";
+	16r2299 =>	return "\\odot";
+	16r2211 =>	return "\\sum";
+	16r220f =>	return "\\prod";
+	16r2210 =>	return "\\coprod";
+	16r222b =>	return "\\int";
+	16r222c =>	return "\\iint";
+	16r222d =>	return "\\iiint";
+	16r222e =>	return "\\oint";
+	16r2202 =>	return "\\partial";
+	16r2207 =>	return "\\nabla";
+	16r221a =>	return "\\surd";
+	16r221e =>	return "\\infty";
+	16r2032 =>	return "'";
+	16r2033 =>	return "''";
+	16r2034 =>	return "'''";
+	16r2026 =>	return "\\ldots";
+	16r22ef =>	return "\\cdots";
+	16r22ee =>	return "\\vdots";
+	16r22f1 =>	return "\\ddots";
+	16r2113 =>	return "\\ell";
+	16r210f =>	return "\\hbar";
+	16r2217 =>	return "\\ast";
+	16r22c6 =>	return "\\star";
+	16r2212 =>	return "-";
+	16rb0 =>	return "^{\\circ}";
+	16r2220 =>	return "\\angle";
+	16r2221 =>	return "\\measuredangle";
+	16r25b3 =>	return "\\triangle";
+	16r25bd =>	return "\\triangledown";
+	16r2660 =>	return "\\spadesuit";
+	16r2663 =>	return "\\clubsuit";
+	16r2661 =>	return "\\heartsuit";
+	16r2662 =>	return "\\diamondsuit";
+	16r2665 =>	return "\\heartsuit";
+	16r2666 =>	return "\\diamondsuit";
+	16r22c0 =>	return "\\bigwedge";
+	16r22c1 =>	return "\\bigvee";
+	16r2a00 =>	return "\\bigodot";
+	16r2a01 =>	return "\\bigoplus";
+	16r2a02 =>	return "\\bigotimes";
+	16r2a04 =>	return "\\biguplus";
+	16r2a06 =>	return "\\bigsqcup";
+	16r2240 =>	return "\\wr";
+	16r2020 =>	return "\\dagger";
+	16r2021 =>	return "\\ddagger";
+	16r2127 =>	return "\\mho";
+	16r2111 =>	return "\\Im";
+	16r211c =>	return "\\Re";
+	16r2136 =>	return "\\beth";
+	16r2016 =>	return "\\|";
+	16r230a =>	return "\\lfloor";
+	16r230b =>	return "\\rfloor";
+	16r2308 =>	return "\\lceil";
+	16r2309 =>	return "\\rceil";
+	16r27e8 =>	return "\\langle";
+	16r27e9 =>	return "\\rangle";
+	16r2329 =>	return "\\langle";
+	16r232a =>	return "\\rangle";
+	16r27e6 =>	return "[\\![";
+	16r27e7 =>	return "]\\!]";
+	}
+	return nil;
+}
+
 #
 # the preamble: what the book uses
 #
 
 preamble(): string
 {
-	s := "% made by book2tex from " + srcname + "; for LuaLaTeX:\n";
-	s += "%\tlualatex; biber; makeindex; lualatex; lualatex\n";
-	s += "\\documentclass[" + ptsize + ",openright]{book}\n";
-	s += "\\usepackage[paperwidth=" + papersize[0] + ",paperheight=" + papersize[1] +
-		",top=" + margins[0] + ",bottom=" + margins[1] +
-		",inner=" + margins[2] + ",outer=" + margins[3] + "]{geometry}\n";
-	s += "\\usepackage{amsmath}\n";
-	s += "\\usepackage{fontspec}\n";
-	s += "\\usepackage{unicode-math}\n";
-	s += "\\setmainfont{Libertinus Serif}\n";
-	s += "\\setsansfont{Libertinus Sans}\n";
-	s += "\\setmonofont{Libertinus Mono}\n";
-	s += "\\setmathfont{Libertinus Math}\n";
-	s += "\\usepackage{microtype}\n";
-	s += "\\setlength{\\parindent}{1.5em}\n";
+	s := "% made by book2tex from " + srcname;
+	if(pdftex){
+		s += "; for pdfLaTeX:\n";
+		if(havecites)
+			s += "%\tpdflatex; bibtex; pdflatex; pdflatex\n";
+		else
+			s += "%\tpdflatex; pdflatex\n";
+	}else
+		s += "; for LuaLaTeX:\n%\tlualatex; biber; makeindex; lualatex; lualatex\n";
+	geom := "\\usepackage[paperwidth=" + papersize[0] + ",paperheight=" + papersize[1] +
+		",top=" + margins[0] + ",bottom=" + margins[1];
+	case cls {
+	"book" =>
+		s += "\\documentclass[" + ptsize + ",openright]{book}\n";
+		s += geom + ",inner=" + margins[2] + ",outer=" + margins[3] + "]{geometry}\n";
+	"article" or "memo" =>
+		o := ptsize;
+		if(columns == 2)
+			o += ",twocolumn";
+		s += "\\documentclass[" + o + "]{article}\n";
+		s += geom + ",left=" + margins[2] + ",right=" + margins[3];
+		if(columns == 2)
+			s += ",columnsep=0.2in";
+		s += "]{geometry}\n";
+	"ieee" =>
+		o := clsopts;
+		if(o == "")
+			o = "journal";
+		s += "\\documentclass[" + o + "]{IEEEtran}\n";
+	"acm" =>
+		o := clsopts;
+		if(o == "")
+			o = "acmsmall";
+		s += "\\documentclass[" + o + "]{acmart}\n";
+		s += "% the rights and the venue, as the journal gives them:\n";
+		s += "% \\setcopyright{...} \\acmJournal{...} \\acmDOI{...}\n";
+	}
+	if(pdftex){
+		if(cls != "acm"){
+			s += "\\usepackage[T1]{fontenc}\n";
+			s += "\\usepackage{amsmath,amssymb}\n";
+		}
+		if(cls == "ieee"){
+			s += "\\interdisplaylinepenalty=2500\n";
+			if(havecites)
+				s += "\\usepackage{cite}\n";
+		}
+	}else{
+		s += "\\usepackage{amsmath}\n";
+		s += "\\usepackage{fontspec}\n";
+		s += "\\usepackage{unicode-math}\n";
+		# a character Libertinus lacks (the chess figures) from another
+		# font, as troff takes DejaVu Sans's
+		s += "\\directlua{luaotfload.add_fallback(\"bookfallback\", {\"Noto Sans Symbols 2:mode=node;\", \"DejaVu Sans:mode=node;\"})}\n";
+		s += "\\setmainfont{Libertinus Serif}[RawFeature={fallback=bookfallback}]\n";
+		s += "\\setsansfont{Libertinus Sans}[RawFeature={fallback=bookfallback}]\n";
+		s += "\\setmonofont{Libertinus Mono}[RawFeature={fallback=bookfallback}]\n";
+		s += "\\setmathfont{Libertinus Math}\n";
+		s += "\\usepackage{microtype}\n";
+		if(cls == "book")
+			s += "\\setlength{\\parindent}{1.5em}\n";
+	}
 	if(haveepigraph){
 		s += "\\usepackage{epigraph}\n";
 		s += "\\setlength{\\epigraphwidth}{0.6\\textwidth}\n";
@@ -2792,33 +4156,46 @@ preamble(): string
 	}
 	if(haveendnotes){
 		s += "\\usepackage{endnotes}\n";
-		s += "\\counterwithin*{endnote}{chapter}\n";
+		if(cls == "book")
+			s += "\\counterwithin*{endnote}{chapter}\n";
 		s += "\\renewcommand{\\enoteheading}{}\n";
 		s += "\\renewcommand{\\notesname}{Notes}\n";
 	}
-	if(havecites){
-		b := bib;
-		if(b == ""){
-			b = srcname;
-			for(i := len b - 1; i >= 0 && b[i] != '/'; i--)
-				if(b[i] == '.'){
-					b = b[0:i];
-					break;
-				}
-			b += ".bib";
-			warn("citations, and no database (-p): " + b + " is taken to be it");
-		}else if(!suffix(".bib", b))
+	if(havecites && biblatex()){
+		b := bibfile();
+		if(!suffix(".bib", b))
 			warn(b + " is not BibTeX's, as biblatex needs");
-		s += "\\usepackage[notes,backend=biber]{biblatex-chicago}\n";
+		case style {
+		"numeric" =>
+			s += "\\usepackage[style=numeric-comp,sorting=none,backend=biber]{biblatex}\n";
+		"authordate" =>
+			s += "\\usepackage[authordate" + bibopts() + ",backend=biber]{biblatex-chicago}\n";
+		* =>
+			s += "\\usepackage[notes" + bibopts() + ",backend=biber]{biblatex-chicago}\n";
+		}
 		s += "\\addbibresource{" + b + "}\n";
 	}
 	if(haveindex){
 		s += "\\usepackage{imakeidx}\n";
 		s += "\\makeindex[intoc,columns=2]\n";
 	}
-	if(havepics)
+	if(havepics && cls != "acm")
 		s += "\\usepackage{graphicx}\n";
-	s += "\\usepackage[hidelinks]{hyperref}\n";
+	if(havetables && cls != "acm")
+		s += "\\usepackage{booktabs}\n";
+	if(cls != "ieee" && cls != "acm")
+		s += "\\usepackage[hidelinks]{hyperref}\n";
 	s += "\\begin{document}\n";
 	return s;
+}
+
+# refer's style options as biblatex-chicago's (nodoi, nourl)
+bibopts(): string
+{
+	o := "";
+	if(hasopt(styleopts, "nodoi"))
+		o += ",doi=false";
+	if(hasopt(styleopts, "nourl"))
+		o += ",url=false";
+	return o;
 }

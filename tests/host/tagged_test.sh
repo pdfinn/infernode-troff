@@ -213,8 +213,8 @@ def span(c):
 widths = [[sum(span(c) for c in row) for row in child_rows] for child_rows in
           [[child(tr) for tr in child(t)] for t in tables]]
 th = [c for row in rows for c in row if c['/S'] == '/TH']
-check(len(tables) == 3 and all(len(set(w)) == 1 and w[0] == 2 for w in widths) and len(th) == 3 and
-      th[0]['/A']['/ColSpan'] == 2 and th[0]['/A']['/Scope'] == '/Column' and len(child(tables[2])) == 62,
+check(len(tables) == 4 and all(len(set(w)) == 1 and w[0] == 2 for w in widths) and len(th) == 3 and
+      th[0]['/A']['/ColSpan'] == 2 and th[0]['/A']['/Scope'] == '/Column' and len(child(tables[3])) == 62,
       'the tables in rows of cells, the heading spanning two', (widths, [(c['/S'], c.get('/A')) for c in th]))
 # a table's kids its rows, a row's its cells: a note set at a page's foot
 # between two rows is the table's neighbour
