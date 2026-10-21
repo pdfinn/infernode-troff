@@ -74,6 +74,18 @@ Endnotes, set under their chapters' names by
 .BR ".label " \fIname\fP,  " \e*[ref " \fIname\fP],  " \e*[pageref " \fIname\fP]
 A cross-reference: the chapter, section, figure or table, and the page.
 .TP
+.BR \e*[TeX] ", " \e*[LaTeX]
+TeX's and LaTeX's names as their logos are set (TeX's E lowered,
+LaTeX's A small and raised), in the text or a heading, in its size and
+font; read as the words in a PDF (searched, copied, heard), and written
+as
+.B \eTeX{}
+and
+.B \eLaTeX{}
+by book2tex.
+.B -ms
+has them too.
+.TP
 .B ".contents"
 The table of contents.
 .TP

@@ -100,6 +100,7 @@ LaTeX without being LaTeX.
 | `text\*[fnmark]` then `.fn` ... `.fe` | `\footnote{...}` |
 | `text\*[enmark]` then `.en` ... `.ee`; `.notes` | `\endnote{...}`; `\theendnotes` |
 | `.label name`; `\*[ref name]`, `\*[pageref name]` | `\label`, `\ref`, `\pageref` |
+| `\*[TeX]`, `\*[LaTeX]` (their logos, in the text or a heading; `-ms` too) | `\TeX{}`, `\LaTeX{}` |
 | `.contents` | `\tableofcontents` |
 | `.cite key [loc][; key loc]` | `\autocite[loc]{key}` (biblatex-chicago) |
 | `\*[cite key loc]` within a note of one's own | `\cite[loc]{key}` |

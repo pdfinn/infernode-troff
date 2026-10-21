@@ -861,6 +861,8 @@ strval(o: ref Out, n: string): string
 	"cite" =>
 		havecites = 1;
 		return cites("\\cite", arg);
+	"TeX" or "LaTeX" =>	# (tmac.logos's: LaTeX's own)
+		return "\\" + name + "{}";
 	}
 	for(l := strs; l != nil; l = tl l)
 		if((hd l).t0 == name)

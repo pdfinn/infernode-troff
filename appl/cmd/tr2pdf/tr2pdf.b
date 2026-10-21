@@ -587,6 +587,14 @@ postps()
 	"tag" =>
 		if(!compat)
 			tag_cmd(arg);
+	"text" =>
+		# what follows, to endtext, read as a word (a logo's letters)
+		(t, nil) := word(arg);
+		if(!compat)
+			atext_begin(t);
+	"endtext" =>
+		if(!compat)
+			atextend();
 	"vstretch" =>
 		v := scanints(arg, 1);
 		if(!compat && len v == 1)
@@ -702,9 +710,27 @@ titletext(s: string): string
 		'h' or 'v' or 'w' or 'X' or 'o' or 'D' or 'l' or 'L' or 'Z' or 'b' or 'x' or 'R' =>
 			if(i < len s){
 				d := s[i++];
+				b := i;
 				while(i < len s && s[i] != d)
 					i++;
 				i++;
+				# \X'text TeX' to \X'endtext': the word, not its letters
+				if(c == 'X' && i - 1 <= len s){
+					(w, t) := word(s[b:i - 1]);
+					if(w == "text"){
+						(t, nil) = word(t);
+						r += t;
+						end := "\\X";
+						end[len end] = d;
+						end += "endtext";
+						end[len end] = d;
+						for(e := i; e + len end <= len s; e++)
+							if(s[e:e + len end] == end){
+								i = e + len end;
+								break;
+							}
+					}
+				}
 			}
 		'&' or '|' or '^' or '%' or 'c' or 'u' or 'd' or 'a' or 'z' or ':' =>
 			;

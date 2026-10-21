@@ -1544,6 +1544,7 @@ docpageend(nil: int)
 		o_flush();
 		pg += "ET\n";
 	}else{
+		atextend();
 		tagent = tag_pageend();
 		textend();
 		vj_pageend();

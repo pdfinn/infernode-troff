@@ -751,6 +751,8 @@ Computing Science Technical Report No. \\*(MN
 .rr a- b- c- d- e- f- g- h- i- j- k- l- m-
 ..
 .so \*(sd/tmac.skeep
+.\" TeX's and LaTeX's logos: \*[TeX], \*[LaTeX]
+.so /lib/tmac/tmac.logos
 .de EQ  \"equation, breakout and display
 .nr EF \\n(.u
 .rm EE

@@ -18,6 +18,7 @@
 .\"	.label name, \*[ref name], \*[pageref name]	(the second pass's)
 .\"	.contents			the table of contents (the second pass's)
 .\"	.cite key loc			refer -S chicago's notes; .bibliography
+.\"	\*[TeX], \*[LaTeX]		their logos (tmac.logos)
 .\"	.index "term!sub|see{other}"	an index entry, as makeindex's;
 .\"	.printindex			the index (mkindex(1)'s, the
 .\"					second pass's), in two columns
@@ -127,6 +128,9 @@
 .char ♟ \f[CH]\N'uni265F'
 .\" and a character none has is said, not dropped without a word
 .mg 1
+.\"
+.\" TeX's and LaTeX's logos: \*[TeX], \*[LaTeX]
+.so /lib/tmac/tmac.logos
 .\"
 .\" rules (tbl's, \l's of \(ul, \L's) drawn as lines, not glyphs
 .rules 1
