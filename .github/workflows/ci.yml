@@ -69,6 +69,14 @@ jobs:
         export PATH="$INFERNODE/Linux/amd64/bin:$PATH"
         mk ROOT="$INFERNODE" install
 
+    - name: Add troff's document kinds to Xenith's
+      # as README.md has the user add them, to InferNode's own file
+      run: |
+        d="$INFERNODE/lib/xenith/doctypes"
+        printf 'troff\tbinary\t/dis/xenith/doc/trodoc.dis\tmagic=x\\x20T\\x20\n' >>"$d"
+        printf 'roff\tsource\t/dis/xenith/doc/trodoc.dis\t.ms .mm .me .man .roff .tr .t\n' >>"$d"
+        tail -2 "$d"
+
     - name: Lay the package over InferNode
       run: python3 "$PKG/tools/ci-tree.py" "$TREE" "$INFERNODE" "$PKG"
 
@@ -80,8 +88,8 @@ jobs:
         for t in "$PKG"/tests/host/*_test.sh; do
           n=$(basename "$t" .sh)
           echo "::group::$n"
-          ROOT="$TREE" timeout 1800 sh "$TREE/tests/host/$n.sh"
-          st=$?
+          st=0
+          ROOT="$TREE" timeout 1800 sh "$TREE/tests/host/$n.sh" || st=$?
           echo "::endgroup::"
           case $st in
           0) echo "$n: passed" ;;
