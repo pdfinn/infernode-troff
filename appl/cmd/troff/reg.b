@@ -114,6 +114,8 @@ num_str(id: int): string
 			return directory(in_filename());
 		'$' =>
 			return sys->sprint("%d", in_nargs() - 1);
+		'j' =>
+			return sys->sprint("%d", adj_classic(nr(R_j), nr(R_na)));
 		}
 	}
 	if(dev_szscale > 1 && (s == ".s" || s == ".s0"))	# points, as ever

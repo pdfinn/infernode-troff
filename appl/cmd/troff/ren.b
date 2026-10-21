@@ -396,7 +396,10 @@ ren_passline(fmt: ref Fmt): int
 		if((ad & AD_XN) == AD_RN)
 			ad = AD_R;
 	}else{
-		if((ad & AD_X) == 0){
+		# .na: not adjusted, from the left margin (the right in text
+		# set right to left), whatever .ad said: troff's, Plan 9's and
+		# groff's; .ad gives the alignment back
+		if(nr(R_na) || (ad & AD_X) == 0){
 			if(nr(R_td) > 0)
 				ad = AD_R;
 			else

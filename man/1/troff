@@ -40,7 +40,8 @@ OpenType's features and kerning, a paragraph filled at once
 (English and Ancient Greek here).
 For the same input and fonts, on a device with no
 .B sizescale
-(below), its output is, byte for byte, Neatroff's.
+(below), its output is, byte for byte, Neatroff's, but where it does
+as troff did (Plan 9's, groff's), below.
 .PP
 Its preprocessors
 .IR eqn (1),
@@ -107,7 +108,39 @@ Read macro packages from
 (default
 .BR /lib/tmac ).
 .SS "Not Neatroff's"
-These are this troff's; with none of them requested,
+Where Neatroff departs from troff (Plan 9's, groff's, Bell's) and a
+document written now would be set wrongly, this troff does as troff
+does:
+.TP
+.BR \es10 " to " \es39
+are sizes of two digits (Neatroff reads one, but in compatibility mode).
+.TP
+.B .na
+sets lines from the left margin, whatever
+.B .ad
+said
+.RB ( .ad
+gives the alignment back); Neatroff kept a right or a centred one.
+.TP
+.B \en(.j
+is troff's number for the adjustment: 0 left (or
+.BR .na ),
+1 both margins, 3 centre, 5 right, 2 and 4 centre and right under
+.BR .na ;
+Neatroff's own modes (whole paragraphs, and the rest) above them, from
+32, so that
+.B .ad \en(.j
+restores them too.
+.IR tbl 's
+.B ".if \en(.j=0 .na"
+and -ms's
+.B ".ad \en(SJ"
+read it so.
+.TP
+.B .rules
+is on (below): rules are drawn as lines.
+.PP
+These are this troff's own; with none of them requested,
 it sets as Neatroff sets.
 .TP
 .BI .mtp " n"
@@ -154,7 +187,17 @@ of rule characters
 .BR \e(rn ,
 .BR \e(br ...)
 are drawn, each a rectangle where its glyphs' ink would be, not set as
-glyphs side by side.
+glyphs side by side; on unless
+.B ".rules 0"
+(Neatroff's) says not.
+A box rule
+.RB ( \e(br ,
+tbl's sides) meets the underrules
+.RB ( \e(ul ,
+tbl's rules) at their outer edges: tbl ends it 2% of an em below a
+row's baseline, where Bell's devices drew
+.BR \e(ul ,
+and Libertinus's is deeper.
 .TP
 .BI .mg " n"
 With

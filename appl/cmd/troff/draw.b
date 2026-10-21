@@ -27,14 +27,17 @@ vchar(c: string): int
 }
 
 # .rules: \l's and \L's of rule characters drawn as lines, as long as
-# they are, not as a font's glyphs set side by side (not Neatroff's).
+# they are, not as a font's glyphs set side by side (not Neatroff's);
+# on unless .rules 0 says not: a font's rule glyphs (\(ru an underscore,
+# \(br none at all in Libertinus) set side by side left tbl's boxes with
+# no sides and their rules underscores.
 # A rule is drawn where the glyphs' ink would be: a rectangle from the
 # bottom of the glyph's box to its top (\(ul, \(ru and \(rn: eqn's
 # fractions, bars and radicals, tbl's rules, placed by those boxes), or
 # from its left to its right (\(br, \(bv, |); through the character's
 # .char where it has one (eqnrc's).  A glyph with no box is drawn as a
 # line, at the baseline or the left of the glyph.
-n_rules := 0;
+n_rules := 1;
 
 hrule(c: string): int
 {
@@ -131,15 +134,30 @@ ren_vline(wb: ref Wb, l: int, c: string)
 		mg_warn = 0;
 		hw := cwid(c);
 		mg_warn = mg;
+		# its top and bottom, from here (down positive)
+		(t, b) := (0, l);
+		if(l < 0)
+			(t, b) = (l, 0);
+		if(c == "br"){
+			# the box rule meets the underrule, at its outer edges: tbl
+			# (Plan 9's, Bell's) runs one from 2% of an em below a
+			# row's baseline (where Bell's devices drew \(ul) up to the
+			# baseline of the rule above; this font's \(ul is deeper
+			(nil, ub, nil, ut) := rulebox("ul");
+			if(ut > ub){
+				t += -ut;
+				b += -ub - SC_EM() * 2 / 100;
+			}
+		}
 		(left, nil, right, nil) := rulebox(c);
 		if(right > left){
-			if(l < 0)
-				rulerect(wb, left, l, right - left, -l);
-			else
-				rulerect(wb, left, 0, right - left, l);
+			rulerect(wb, left, t, right - left, b - t);
 			wb_vmov(wb, l);
-		}else
-			wb_drawl(wb, 'l', 0, l);
+		}else{
+			wb_vmov(wb, b);
+			wb_drawl(wb, 'l', 0, t - b);
+			wb_vmov(wb, l - t);
+		}
 		wb_hmov(wb, hw);
 		return;
 	}

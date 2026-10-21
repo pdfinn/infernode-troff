@@ -512,7 +512,8 @@ table's rules, and an equation's (its fractions', radicals', bars and
 underlines), are drawn as lines, and a picture is centred with space
 about it.
 
-The rules come from troff's `.rules`. It draws `\l`'s and `\L`'s of
+The rules come from troff's `.rules`, on for every document (`.rules 0`
+sets Neatroff's glyphs again). It draws `\l`'s and `\L`'s of
 rule characters as lines, not as a font's glyphs set side by side,
 which leave joins and are copied with the text. Each line is a filled
 rectangle exactly where the glyphs' ink would be. Its place and

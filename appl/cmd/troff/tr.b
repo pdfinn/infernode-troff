@@ -311,6 +311,47 @@ tr_el(nil: array of string)
 		cp_blk(1);
 }
 
+# The adjustment as \n(.j gives it, troff's number (Plan 9's, groff's):
+# adjusting (1) or not (0, .na), and twice the alignment (0 both margins
+# or left, 1 centre, 2 right), so left is 0, both 1, centre 3, right 5;
+# Neatroff's modes besides (whole paragraphs, keshideh, the alternative
+# filling, no-fill alignment) above them, as their flags (32 and up), so
+# that .ad \n(.j restores them too.  tbl's .if \n(.j=0 .na and -ms's
+# .ad \n(SJ read it so (Neatroff's own flags read 16 for both margins:
+# tbl took any adjustment for one and undid .na after a table).
+adj_classic(j, na: int): int
+{
+	n: int;
+	case j & AD_X {
+	AD_C =>	n = 3;
+	AD_R =>	n = 5;
+	* =>	n = 0;
+		if(j & AD_B)
+			n = 1;
+	}
+	if(na)
+		n &= ~1;
+	return n | (j & ~(AD_X | AD_B) & 16rfff);
+}
+
+# .ad n: troff's number, as \n(.j gives it
+adj_fromclassic(n: int)
+{
+	c := n & 16r1f;
+	j := n & ~16r1f & 16rfff;
+	case c >> 1 {
+	1 =>	j |= AD_C;
+	2 =>	j |= AD_R;
+	* =>	if(c & 1)
+			j |= AD_B;
+		else
+			j |= AD_L;
+	}
+	nrset(R_j, j);
+	if(c >= 2 && !(c & 1))	# centre or right, not adjusting: .na
+		nrset(R_na, 1);
+}
+
 tr_na(nil: array of string)
 {
 	nrset(R_na, 1);
@@ -323,7 +364,7 @@ tr_ad(args: array of string)
 		return;
 	s := args[1];
 	if(isdigit(at(s, 0)))
-		nrset(R_j, atoi(s) & 16rfff);
+		adj_fromclassic(atoi(s));
 	else{
 		j := 0;
 		for(i := 0; i < len s; i++){

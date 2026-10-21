@@ -55,9 +55,8 @@ Aristotle	322
 It is a translation of Plan 9's
 .IR tbl ;
 for the same input its output is, byte for byte, Plan 9's.
-Under
-.B -mbook
-a table's rules are drawn as lines
+A table's rules are drawn as lines, its box rules meeting its
+underrules at the corners
 .RB ( .rules
 in
 .IR troff (1)).
