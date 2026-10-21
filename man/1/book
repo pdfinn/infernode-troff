@@ -63,8 +63,8 @@ with the database
 by default, with its options:
 .B "-S chicago,british,nodoi"
 as a British thesis has them),
-.IR chess (1),
 .IR pic (1),
+.IR chess (1),
 .IR tbl (1)
 and
 .IR eqn (1)

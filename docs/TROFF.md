@@ -21,7 +21,7 @@ to read in InferNode's document views.
 | `tr2img` | A page of troff's output painted as the document views paint them (its fonts, drawings and images), as a PPM image | |
 | `mkindex` | A book's index from troff's output: makeindex's entries, sorted word by word as the *Chicago Manual* sorts, Greek and accents included | |
 | `book2tex` | A book, article or memorandum as LaTeX: LaTeX's book and article for LuaLaTeX, or a journal's class (IEEEtran, acmart) for pdfLaTeX | |
-| `book` | Runs them (with `-mbook`, or `-m article` or `-m memo`): refer, chess, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
+| `book` | Runs them (with `-mbook`, or `-m article` or `-m memo`): refer, pic, chess, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
 
 `troff`, `eqn`, `tbl` (with `-C`), `pic`, and `refer` without a style, write what
 the C programs they came from write, byte for byte, but where those
@@ -50,7 +50,7 @@ and all, where the reader was in it. `Live` again stops it. (If the
 document is already shown beside the text, a `Zerox`'d twin
 `Render`ed, `Live` in either tag turns it on and off; `Render` in the
 document's window goes back to the text.) A book, article or
-memorandum is set by `book -l`, the whole pipeline (refer, chess, pic,
+memorandum is set by `book -l`, the whole pipeline (refer, pic, chess,
 tbl, eqn, troff as often as its references need) with no PDF. A line
 near the top says how:
 
@@ -813,7 +813,7 @@ goes:
   up dimensions it has. Measuring boxes is 1.6 seconds of troff's 5.6.
 - tr2pdf's deflate, in Limbo, is two thirds of its time; level 1 for
   6 saves a fifth of it for a file a sixth larger.
-- book runs the preprocessors (refer, chess, pic, tbl, eqn) once, not
+- book runs the preprocessors (refer, pic, chess, tbl, eqn) once, not
   for every pass of troff.
 
 The 23 displays alone (`tests/eqn/hard.ms`) take 0.6 seconds, emu's
