@@ -1019,6 +1019,40 @@ tr_tr(args: array of string)
 	}
 }
 
+# .cflags n c ...: groff's; of its flags only 4, a line may break after
+# the characters (a URL's / and .), as after \:; n without 4 takes it
+# away
+brk_after: ref Dict;
+
+tr_cflags(args: array of string)
+{
+	if(len args < 3)
+		return;
+	if(brk_after == nil)
+		brk_after = dict_make(64);
+	on := eval(args[1], 0) & 4;
+	for(k := 2; k < len args; k++){
+		s := args[k];
+		i := 0;
+		for(;;){
+			(t, c, ni) := charread(s, i);
+			if(t < 0)
+				break;
+			i = ni;
+			if(on)
+				dict_put(brk_after, c, 1);
+			else
+				dict_put(brk_after, c, 0);
+		}
+	}
+}
+
+# whether a line may break after c (.cflags 4)
+c_brkafter(c: string): int
+{
+	return brk_after != nil && dict_get(brk_after, c) > 0;
+}
+
 # character definitions (.char)
 cdef_src := array[NCDEFS] of string;	# the character
 cdef_dst := array[NCDEFS] of string;	# its definition
@@ -1435,6 +1469,7 @@ cmds := array[] of {
 	Cmd("c2", A_REQ),
 	Cmd("cc", A_REQ),
 	Cmd("ce", A_REQ),
+	Cmd("cflags", A_REQ),
 	Cmd("ch", A_REQ),
 	Cmd("char", A_DS),
 	Cmd("chop", A_REG1),
@@ -1569,6 +1604,7 @@ cmd_run(i: int, args: array of string)
 	"ch" =>		tr_ch(args);
 	"char" =>	tr_char(args);
 	"chop" =>	tr_chop(args);
+	"cflags" =>	tr_cflags(args);
 	"cl" =>		tr_cl(args);
 	"co" =>		tr_co(args);
 	"co+" =>	tr_coa(args);

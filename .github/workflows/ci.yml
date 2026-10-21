@@ -1,0 +1,100 @@
+name: CI
+
+# The package's tests (tests/host/*_test.sh), run as they are run by hand:
+# InferNode built (its SDL3 emulator, run with SDL_VIDEODRIVER=dummy, and
+# its Dis tree), this package built against it, the two laid over each
+# other (tools/ci-tree.py) as the tests' ROOT. TeX Live with the journals'
+# classes (IEEEtran, acmart) and biblatex-chicago is installed, so that
+# latex_test sets the LaTeX book2tex writes and checks it word for word
+# against troff's PDF; without them those checks are skipped, not passed.
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Build and test (Linux AMD64)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    env:
+      INFERNODE: ${{ github.workspace }}/infernode
+      PKG: ${{ github.workspace }}/troff
+      TREE: ${{ github.workspace }}/tree
+
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        path: troff
+
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        repository: infernode-os/infernode
+        path: infernode
+
+    - name: Install build and test dependencies
+      run: |
+        sudo apt-get update && sudo apt-get install -y \
+          build-essential cmake ninja-build \
+          libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev \
+          libwayland-dev libxkbcommon-dev libegl-dev libgles-dev \
+          libxtst-dev libdrm-dev libgbm-dev \
+          libfido2-dev libudev-dev patchelf \
+          poppler-utils python3-fonttools python3-pypdf python3-pil fonts-dejavu-core \
+          texlive-latex-extra texlive-luatex texlive-publishers texlive-science \
+          texlive-bibtex-extra texlive-humanities texlive-fonts-extra texlive-plain-generic biber
+
+    - name: Install Libertinus for LuaLaTeX
+      run: |
+        mkdir -p ~/.fonts
+        cp "$PKG"/fonts/libertinus/*.otf ~/.fonts/
+        fc-cache -f
+
+    - name: Build SDL3 and InferNode
+      working-directory: infernode
+      run: |
+        chmod +x install-sdl3.sh build-linux-amd64.sh
+        ./install-sdl3.sh
+        ./build-linux-amd64.sh
+        export ROOT="$INFERNODE" PATH="$INFERNODE/Linux/amd64/bin:$PATH"
+        ./tools/verify-dis-build.sh
+
+    - name: Build the package
+      working-directory: troff
+      run: |
+        export PATH="$INFERNODE/Linux/amd64/bin:$PATH"
+        mk ROOT="$INFERNODE" install
+
+    - name: Add troff's document kinds to Xenith's
+      # as README.md has the user add them, to InferNode's own file
+      run: |
+        d="$INFERNODE/lib/xenith/doctypes"
+        printf 'troff\tbinary\t/dis/xenith/doc/trodoc.dis\tmagic=x\\x20T\\x20\n' >>"$d"
+        printf 'roff\tsource\t/dis/xenith/doc/trodoc.dis\t.ms .mm .me .man .roff .tr .t\n' >>"$d"
+        tail -2 "$d"
+
+    - name: Lay the package over InferNode
+      run: python3 "$PKG/tools/ci-tree.py" "$TREE" "$INFERNODE" "$PKG"
+
+    - name: Run the tests
+      env:
+        SDL_VIDEODRIVER: dummy
+      run: |
+        failed=""
+        for t in "$PKG"/tests/host/*_test.sh; do
+          n=$(basename "$t" .sh)
+          echo "::group::$n"
+          st=0
+          ROOT="$TREE" timeout 1800 sh "$TREE/tests/host/$n.sh" || st=$?
+          echo "::endgroup::"
+          case $st in
+          0) echo "$n: passed" ;;
+          77) echo "$n: skipped" ;;
+          *) echo "::error::$n failed ($st)"; failed="$failed $n" ;;
+          esac
+        done
+        [ -z "$failed" ] || { echo "failed:$failed"; exit 1; }

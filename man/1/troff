@@ -139,6 +139,55 @@ read it so.
 .TP
 .B .rules
 is on (below): rules are drawn as lines.
+.TP
+.B \ef(CW
+classic troff's constant width, is this troff's
+.BR CR ;
+with
+.B -C
+also Plan 9's
+.B H
+.RB ( HR )
+and -man's
+.B L
+.RB ( CR ).
+A name no font has that classic troff's documents use is its
+character:
+.B \e(Do
+.RB ( $ ),
+.B \e(tm
+(™),
+.B \e(~=
+(≃),
+.B \e(sq
+(□),
+.B \e(bx
+(■),
+.B \e(ob
+(◦),
+.B \e(lh
+(☜),
+.B \e(rh
+(☞).
+.TP
+.BI ".cflags " "n c ..."
+groff's: with 4 in
+.IR n ,
+a line may break after each of the characters
+.I c
+(as after
+.BR \e: );
+without it, not.
+The other flags are not this troff's.
+.TP
+.BI \eD't " n" '
+The lines drawn after it are
+.I n
+units thick (\eD't 0' the default again); Neatroff's dropped it.
+.TP
+.B \e-
+A minus sign, read (searched, copied) as a hyphen-minus, so that an
+option copied from a page is one a shell takes.
 .PP
 These are this troff's own; with none of them requested,
 it sets as Neatroff sets.

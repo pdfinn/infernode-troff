@@ -1,0 +1,19 @@
+.pl 3i
+.de hd
+.tm header at \\n(nl
+'sp .5i
+..
+.de ft
+.tm footer at \\n(nl page \\n%
+'bp
+..
+.wh 0 hd
+.wh -1i ft
+.nf
+a
+.sp 2i
+b
+.ch ft -.5i
+c
+.sp 1i
+d

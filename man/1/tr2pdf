@@ -102,6 +102,25 @@ shows it, but its lower left corner here (not its box's 0 0), ink of the
 .B Figure
 that holds it, and one object however many pages show it.
 .TP
+.BI "D t" " n"
+troff's
+.BR "\eD't n'" :
+the lines drawn after it
+.I n
+units thick; 0, the width
+.B linewidth
+gives.
+.TP
+.BI "linkbeg " target
+.TP
+.B linkend
+What is set between them a link to
+.I target
+(a URI, or
+.BI # name\fR),
+a rectangle on each line it is set on, from its first glyph to its
+last (a URL broken across lines).
+.TP
 .BI "text " word
 .TP
 .B endtext

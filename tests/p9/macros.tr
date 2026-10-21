@@ -1,0 +1,22 @@
+.de xx
+.tm args \\n(.$ [\\$1] [\\$2] [\\$3]
+..
+.xx a "b c" d
+.xx "" x
+.xx a\ b c
+.de yy
+.tm star [\\$*] at [\\$@]
+..
+.yy p q r
+.am xx
+.tm appended
+..
+.xx z
+.de zz END
+.tm in zz
+.END
+.zz
+.de ww
+.tm zero [\\$0]
+..
+.ww

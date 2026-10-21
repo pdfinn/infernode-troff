@@ -320,6 +320,9 @@ wb_putbuf(wb: ref Wb, c: string)
 		return;
 	}
 	zerowidth := c_hymark(c);
+	# a name of classic troff's no font has (\(Do, \(tm): its character
+	if(len c >= 2 && (u := charalias(c)) != nil && dev_find(cmap_map(c), wb.f, 0) == nil)
+		(c, c0, c1) = (u, at(u, 0), at(u, 1));
 	g: ref Glyph;
 	if(!zerowidth)	# else not used
 		g = dev_glyph(c, wb.f);
@@ -336,6 +339,11 @@ wb_putbuf(wb: ref Wb, c: string)
 	wb.icleft = 0;
 	if(!zerowidth)
 		wb.lastg = g;
+	# \- a minus sign set, read as a hyphen-minus (tr2pdf's x X text),
+	# so that an option copied from a page (\-o) is one a shell takes
+	mi := !nr(R_cp) && g != nil && c0 == ecc() && c1 == '-' && len c == 2;
+	if(mi)
+		wb.sbuf += ecs() + "X\u0002text -\u0002";
 	if(len c <= 1 || c0 == ecc() || c0 == c_ni){
 		if(c0 == c_ni && c1 == ecc())
 			wb.sbuf += ecs() + ecs();
@@ -345,6 +353,8 @@ wb_putbuf(wb: ref Wb, c: string)
 		wb.sbuf += ecs() + "(" + c;
 	else
 		wb.sbuf += ecs() + "C'" + c + "'";
+	if(mi)
+		wb.sbuf += ecs() + "X\u0002endtext\u0002";
 	if(!zerowidth){
 		gf: ref Font;
 		if(g != nil)
@@ -578,6 +588,12 @@ wb_drawl(wb: ref Wb, c: int, h, v: int)
 	wb.h += h;
 	wb.v += v;
 	wb_stsb(wb);
+}
+
+wb_drawt(wb: ref Wb, n: int)
+{
+	wb_flush(wb);
+	wb.sbuf += sys->sprint("%sD't %du'", ecs(), n);
 }
 
 wb_drawc(wb: ref Wb, c: int, r: int)

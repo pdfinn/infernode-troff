@@ -1,0 +1,43 @@
+.ll 2i
+.ad b
+Now is the time for all good men to come to the aid of the party.
+.br
+.ad l
+Now is the time for all good men to come to the aid of the party.
+.br
+.ad c
+Now is the time.
+.br
+.ad r
+Now is the time.
+.br
+.na
+Now is the time for all good men.
+.br
+.ce 2
+centred one
+centred two
+not centred
+.br
+.ce
+a
+.ul 1
+underlined line
+plain
+.cu 1
+cont under
+.ti 1i
+temporary indent
+.in 1i
+indented
+.in
+.ls 2
+double one
+.br
+double two
+.ls 1
+.nf
+no   fill    spaces
+.fi
+fill   spaces
+.br

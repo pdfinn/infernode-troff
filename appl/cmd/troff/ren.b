@@ -689,7 +689,7 @@ tr_fp(args: array of string)
 	name := args[2];
 	if(len args > 3)
 		name = args[3];
-	if(dev_mnt(pos, args[2], name) < 0)
+	if(dev_mnt(pos, args[2], name) < 0 && (len args > 3 || (al := fontalias(name)) == nil || dev_mnt(pos, args[2], al) < 0))
 		errmsg("troff: failed to mount <" + args[2] + ">\n");
 }
 
@@ -873,6 +873,8 @@ ren_put(wb: ref Wb, c: string, src: int)
 		wb_putexpand(wb, c);
 	else
 		wb_put(wb, c);
+	if(c_brkafter(c))	# .cflags 4: a break point after it
+		wb_put(wb, c_bp);
 }
 
 # read a character and place it in wb

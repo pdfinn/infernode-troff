@@ -267,6 +267,9 @@ ren_dcmd(wb: ref Wb, s: string)
 	'c' =>
 		(h1, i) = tok_num(s, i, 'm');
 		wb_drawc(wb, c, h1);
+	't' =>	# the lines' thickness from here, in units (troff's); 0 the default
+		(h1, i) = tok_num(s, i, 'u');
+		wb_drawt(wb, h1);
 	'e' =>
 		(h1, i) = tok_num(s, i, 'm');
 		(v1, i) = tok_num(s, i, 'v');

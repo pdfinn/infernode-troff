@@ -1,0 +1,17 @@
+.ec !
+.tm !n(.s
+.ec
+.tm \n(.s
+.eo
+.tm \n(.s
+.ec
+.cc #
+#tm cc
+#cc
+.c2 ,
+,tm c2 nobreak
+.tr ab
+.tm tr abc
+aabbcc
+.br
+.tr aa

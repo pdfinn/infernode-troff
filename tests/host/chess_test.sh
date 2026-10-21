@@ -13,6 +13,8 @@
 #	with its file and line, and chess failing;
 #	book(1) running it on a book with a board, the PDF's Figure
 #	described by the position, a figure in its text (♔d3) set in CH,
+#	a picture beside the board set too (pic runs first: a board is
+#	set between .PS and .PE, which pic would read again),
 #	not in the fallback (DejaVu Sans, which has them too);
 #	tr2img painting the board: its dark squares grey, a piece's ink on
 #	its square and none on an empty one.
@@ -67,13 +69,17 @@ colour red
 .CB
 fen 8/8/8/8/8/8/8/8
 MS
-# a book: words, then a board with a king and a pawn each
+# a book: words, then a board with a king and a pawn each, and a picture
 cat >"$tmp/b.ms" <<'MS'
 .chapter "Kings and pawns" kp
 The opposition decides it: after 1.\fB♔d3\fP White keeps it.
 .CB
 fen 8/8/4k3/8/4P3/4K3/8/8 w
 .CE
+.alt "A box, the opposition."
+.PS
+box "opposition"
+.PE
 MS
 SDL_VIDEODRIVER=dummy with_timeout 300 "$EMU" -c1 -pheap=1024m -pmain=1024m -r"$ROOT" /dis/sh.dis -c \
     "cd '#U*$tmp'; chess start.ms > start.pre >[2] start.err; echo status \$status > start.st;
@@ -148,6 +154,8 @@ for m in re.finditer(rb'stream\r?\n(.*?)endstream', pdf, re.S):
 desc = b'Chess diagram. White: King e3, Pawn e4. Black: King e6. White to move.'
 check(b'/S /Figure' in text and desc in text, 'book: chess run, the PDF\'s Figure described by the position',
       (len(pdf), read('book.err')[-300:]))
+check(b'A box, the opposition.' in text and 'pic:' not in read('book.err'),
+      'book: a picture beside a board set too, pic not reading the board', read('book.err')[-300:])
 fonts = set(re.findall(rb'/BaseFont /[A-Z]{6}\+([^\s/]+)', pdf))
 check(b'CH' in fonts and not any(b'DejaVu' in f for f in fonts),
       'book: a figure in the text (♔d3) from CH, not the fallback\'s', fonts)

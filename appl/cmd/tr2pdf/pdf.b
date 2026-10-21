@@ -793,6 +793,8 @@ dec3(n: int): string
 
 o_queue(g: ref Glyph)
 {
+	if(lk_url != nil)
+		lkspan_glyph(g);
 	if(!compat){
 		tag_glyph(g);
 		textbeg();
@@ -973,6 +975,90 @@ ispdf(path: string): int
 		return 0;
 	b := array[5] of byte;
 	return sys->readn(fd, b, 5) == 5 && string b == "%PDF-";
+}
+
+# x X linkbeg url ... x X linkend: a link of the glyphs between, a
+# rectangle on each line (each segment) they are set on, from the first
+# glyph's left to the last's right, as high as an em and a fifth, a
+# quarter of one below the baseline (as -mbook's links)
+lk_url: string;
+lk_seg := 0;		# a segment open
+lk_h0, lk_h1, lk_v: int;
+lk_tagged := 0;		# its Link element opened (tagged), its rectangle to be set
+
+lkspan_beg(url: string)
+{
+	lkspan_end();
+	lk_url = url;
+}
+
+lkspan_end()
+{
+	if(lk_url == nil)
+		return;
+	lkspan_close();
+	lk_url = nil;
+}
+
+lkspan_glyph(g: ref Glyph)
+{
+	w := font_wid(g.fnt, o_s, g.wid);
+	if(lk_seg && o_v != lk_v)
+		lkspan_close();
+	if(!lk_seg){
+		(lk_seg, lk_h0, lk_h1, lk_v) = (1, o_h, o_h + w, o_v);
+		lk_tagged = 0;
+		if(tagged && !compat && ann_n < len ann){
+			# the Link element now, round what follows on this line
+			em := o_s * devres() / (72 * dev_szscale);
+			(h, v) := (o_h, o_v);
+			o_v += em / 4;
+			s := "<<\n  /Type /Annot\n  /Subtype /Link\n" + lkrect(lk_h0, lk_h0 + 16r10000000) +
+				"  /Border [0 0 0]\n  /A << /S /URI /URI " + pdftext_static(lk_url) + " >>\n";
+			lk_tagged = tag_link(s, 16r10000000, -em * 6 / 5);
+			(o_h, o_v) = (h, v);
+		}
+	}else if(o_h + w > lk_h1)
+		lk_h1 = o_h + w;
+}
+
+# where t is in s from i; -1, nowhere
+lkfind(s, t: string, i: int): int
+{
+	if(i < 0)
+		return -1;
+	for(; i + len t <= len s; i++)
+		if(s[i:i + len t] == t)
+			return i;
+	return -1;
+}
+
+# the segment's rectangle, its annotation's /Rect
+lkrect(h0, h1: int): string
+{
+	em := o_s * devres() / (72 * dev_szscale);
+	return "  /Rect [" + pdfpos(h0, lk_v + em / 4) + " " + pdfpos(h1, lk_v + em / 4 - em * 6 / 5) + "]\n";
+}
+
+lkspan_close()
+{
+	if(!lk_seg)
+		return;
+	lk_seg = 0;
+	if(lk_tagged){
+		# its rectangle where its glyphs are, and nothing after them in it
+		i := lkfind(lnk_dict, "  /Rect [", 0);
+		j := lkfind(lnk_dict, "\n", i);
+		if(i >= 0 && j >= 0)
+			lnk_dict = lnk_dict[0:i] + lkrect(lk_h0, lk_h1) + lnk_dict[j + 1:];
+		lnk_h1 = lk_h1;
+		return;
+	}
+	(h, v) := (o_h, o_v);
+	em := o_s * devres() / (72 * dev_szscale);
+	(o_h, o_v) = (lk_h0, lk_v + em / 4);
+	outlink(lk_url, lk_h1 - lk_h0, -em * 6 / 5);
+	(o_h, o_v) = (h, v);
 }
 
 outlink(lnk: string, hwid, vwid: int)
@@ -1207,15 +1293,27 @@ drawbeg()
 }
 
 l_page, l_size, l_wid, l_cap, l_join: int;	# the lines drawn with
+l_thick := 0;	# troff's D t: their thickness in its units (0: linewidth's)
+l_abs := 0;
+
+drawthick(n: int)
+{
+	if(n < 0)
+		n = 0;
+	l_thick = n;
+}
 
 drawend(close, fill: int)
 {
 	vj_anchor = -1;
 	if(!fill)
 		fill = 2;
-	if(l_page != page_n || l_size != o_s || l_wid != pdf_linewid ||
+	if(l_page != page_n || l_size != o_s || l_wid != pdf_linewid || l_abs != l_thick ||
 			l_cap != pdf_linecap || l_join != pdf_linejoin){
 		lwid := pdf_linewid * o_s / dev_szscale;
+		if(l_thick > 0)	# (thousandths of a point)
+			lwid = int (big l_thick * big 72000 / big devres());
+		l_abs = l_thick;
 		pg += sys->sprint("%d.%03d w\n", lwid / 1000, lwid % 1000);
 		pg += sys->sprint("%d J %d j\n", pdf_linecap, pdf_linejoin);
 		l_page = page_n;
@@ -1545,6 +1643,7 @@ docpageend(nil: int)
 		pg += "ET\n";
 	}else{
 		atextend();
+		lkspan_close();
 		tagent = tag_pageend();
 		textend();
 		vj_pageend();

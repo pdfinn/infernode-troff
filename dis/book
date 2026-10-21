@@ -6,8 +6,8 @@
 # -m names the macros, -mbook's or a class built on them: article
 # (-marticle, a journal's article in two columns), memo (-mmemo).
 # Citations are set by refer(1) from the database, in the style
-# (chicago); chess diagrams, pictures, tables and equations by chess(1),
-# pic(1), tbl(1) and eqn(1),
+# (chicago); pictures, chess diagrams, tables and equations by pic(1),
+# chess(1), tbl(1) and eqn(1),
 # if there are any (eqn with its settings for the fonts,
 # /lib/troff/eqnrc); the book by troff(1) -mbook, as
 # often as its table of contents and references need to be set again
@@ -51,7 +51,7 @@ new=$stem.aux.new
 ind=$stem.ind
 indnew=$stem.ind.new
 
-# chess diagrams, pictures, tables and equations: chess, pic, tbl, eqn
+# pictures, chess diagrams, tables and equations: pic, chess, tbl, eqn
 # (after its settings for the fonts), if there are any
 boards=0
 grep -s '^\.CB' $src && boards=1
@@ -84,9 +84,10 @@ fn eqns {
 	if {~ $math 1} {eqn -t} {cat}
 }
 # the preprocessors once (what they make depends on no pass), then troff
-# as often as the book needs
+# as often as the book needs.  pic before chess: a board is set as pic
+# sets a picture, between .PS w h and .PE, which pic would read again.
 pre=$stem.pre
-input | cite | boards | pics | tbls | eqns >$pre
+input | cite | pics | boards | tbls | eqns >$pre
 fn pass {
 	troff -m^$macros '-rbook-final='^$final '-dbook-aux='^$aux '-dbook-ind='^$ind $pre >$tr >[2]$err
 	grep '^aux:' $err | sed 's/^aux://' >$new

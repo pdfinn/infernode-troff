@@ -349,3 +349,11 @@
 \%\&\f1\\$1\f5\\$2\f1\\$3
 .HY
 ..
+.\" .MR page section [punctuation]: a reference to a manual page, as
+.\" groff's man has it (and .IR writes it): page(section), the name in
+.\" italic
+.de MR
+.nh
+.an-alt \& 2 1 "\\$1" "(\\$2)\\$3"
+.HY
+..

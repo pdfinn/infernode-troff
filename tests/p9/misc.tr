@@ -1,0 +1,46 @@
+.tl 'left'center'right'
+.lt 2i
+.tl 'L'C'R'
+.pc #
+.tl 'page #'''
+.mc |
+margin char
+.br
+.mc
+.nm 1 1
+numbered
+.br
+again
+.br
+.nm
+.nn 1
+.ss 18
+wide spaces here
+.br
+.ss 12
+.cs R 20
+ab
+.cs R
+.bd I 3
+.ft I
+bold
+.ft R
+.lg 0
+fi ffl
+.lg
+.sv 1i
+.os
+.ns
+.sp 1
+.rs
+.sp 1
+.mk m
+.tm mk \nm
+.rt
+.ig
+.tm ignored
+..
+.ig XX
+.tm also
+.XX
+.tm endig

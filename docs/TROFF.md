@@ -21,7 +21,7 @@ to read in InferNode's document views.
 | `tr2img` | A page of troff's output painted as the document views paint them (its fonts, drawings and images), as a PPM image | |
 | `mkindex` | A book's index from troff's output: makeindex's entries, sorted word by word as the *Chicago Manual* sorts, Greek and accents included | |
 | `book2tex` | A book, article or memorandum as LaTeX: LaTeX's book and article for LuaLaTeX, or a journal's class (IEEEtran, acmart) for pdfLaTeX | |
-| `book` | Runs them (with `-mbook`, or `-m article` or `-m memo`): refer, chess, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
+| `book` | Runs them (with `-mbook`, or `-m article` or `-m memo`): refer, pic, chess, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
 
 `troff`, `eqn`, `tbl` (with `-C`), `pic`, and `refer` without a style, write what
 the C programs they came from write, byte for byte, but where those
@@ -50,7 +50,7 @@ and all, where the reader was in it. `Live` again stops it. (If the
 document is already shown beside the text, a `Zerox`'d twin
 `Render`ed, `Live` in either tag turns it on and off; `Render` in the
 document's window goes back to the text.) A book, article or
-memorandum is set by `book -l`, the whole pipeline (refer, chess, pic,
+memorandum is set by `book -l`, the whole pipeline (refer, pic, chess,
 tbl, eqn, troff as often as its references need) with no PDF. A line
 near the top says how:
 
@@ -101,6 +101,8 @@ LaTeX without being LaTeX.
 | `text\*[enmark]` then `.en` ... `.ee`; `.notes` | `\endnote{...}`; `\theendnotes` |
 | `.label name`; `\*[ref name]`, `\*[pageref name]` | `\label`, `\ref`, `\pageref` |
 | `\*[TeX]`, `\*[LaTeX]` (their logos, in the text or a heading; `-ms` too) | `\TeX{}`, `\LaTeX{}` |
+| `.url address [after]`, `.link address "text" [after]` | `\url{address}`, `\href{address}{text}` (IEEEtran: `text (\url{address})`) |
+| `.appendix` | `\appendix` (IEEEtran: `\appendices`) |
 | `.contents` | `\tableofcontents` |
 | `.cite key [loc][; key loc]` | `\autocite[loc]{key}` (biblatex-chicago) |
 | `\*[cite key loc]` within a note of one's own | `\cite[loc]{key}` |
@@ -811,7 +813,7 @@ goes:
   up dimensions it has. Measuring boxes is 1.6 seconds of troff's 5.6.
 - tr2pdf's deflate, in Limbo, is two thirds of its time; level 1 for
   6 saves a fifth of it for a file a sixth larger.
-- book runs the preprocessors (refer, chess, pic, tbl, eqn) once, not
+- book runs the preprocessors (refer, pic, chess, tbl, eqn) once, not
   for every pass of troff.
 
 The 23 displays alone (`tests/eqn/hard.ms`) take 0.6 seconds, emu's
@@ -977,6 +979,24 @@ each macro by where it puts its words.
 The toolchain's own pages are `troff(1)`, `eqn(1)`, `tbl(1)`, `pic(1)`,
 `refer(1)`, `tr2pdf(1)`, `mkfn(1)`, `book(1)` (with `book2tex` and
 `mkindex`) and `troff(6)`, the macro packages.
+
+## Checking against Plan 9's troff
+
+`tools/p9compare` sets the same input with Plan 9's troff (from
+plan9port) and with this one, then shows the two side by side.
+`build.sh [dir]` fetches plan9port's troff and builds it. `compare.sh
+[-q] [file.tr ...]`, with `ROOT` naming the tree troff runs in, sets
+each file both ways. By default it sets the probes in `tests/p9/`:
+registers, conditions, diversions, traps, environments, escapes, tabs,
+widths and the rest. Each page is reduced to text: every line's place
+in points, its words, and its size and font where they change. The two
+pages are then diffed, along with what each troff wrote on its standard
+error. The two use different devices and fonts, so a difference is a
+thing to read, not a failure; that is why this is a tool, not a test.
+
+CI (`.github/workflows/ci.yml`) builds InferNode and this package over
+it, installs TeX Live with the journals' classes, and runs every
+`tests/host/*_test.sh`.
 
 ## Speed: what was done, and what was left
 

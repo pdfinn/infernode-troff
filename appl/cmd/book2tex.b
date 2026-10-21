@@ -109,6 +109,7 @@ havecites := 0;
 haveindex := 0;
 havepics := 0;
 havetables := 0;
+haveurls := 0;
 numbered := 1;	# chapters numbered (\mainmatter's)
 chapnum := 0;
 enhead := "";	# the heading of the chapter's endnotes, until its first
@@ -1029,6 +1030,19 @@ openparen(o: ref Out): int
 	return 1;
 }
 
+# a URL in \url's argument: its % and # escaped, as hyperref has them in
+# another command's
+urlesc(s: string): string
+{
+	r := "";
+	for(i := 0; i < len s; i++){
+		if(s[i] == '%' || s[i] == '#')
+			r += "\\";
+		r[len r] = s[i];
+	}
+	return r;
+}
+
 # 315-16 as 315--16
 range(s: string): string
 {
@@ -1373,6 +1387,30 @@ request(s: string)
 		if(o != "")
 			o = "[" + o + "]";
 		centrein("\\includegraphics" + o + "{" + f + "}");
+	"url" or "link" =>
+		# a URL (.url address [after]), or text a link to one (.link
+		# address "text" [after]): hyperref's; IEEEtran's has none, the
+		# address after the text
+		haveurls = 1;
+		closefont(cur);
+		u := "\\url{" + urlesc(arg(a, 0)) + "}";
+		after := arg(a, 1);
+		if(name == "link"){
+			if(cls == "ieee")
+				u = textarg(arg(a, 1)) + " (" + u + ")";
+			else
+				u = "\\href{" + urlesc(arg(a, 0)) + "}{" + textarg(arg(a, 1)) + "}";
+			after = arg(a, 2);
+		}
+		textline(cur, "");
+		joinlast(cur, u + textarg(after));
+	"appendix" =>
+		# (IEEEtran's \appendix is one appendix with no title of its
+		# own: \appendices letters sections with theirs)
+		if(cls == "ieee")
+			block("\\appendices");
+		else
+			block("\\appendix");
 	"listoffigures" =>
 		block("\\listoffigures");
 	"listoftables" =>
@@ -4205,6 +4243,8 @@ preamble(): string
 		}
 		if(cls == "ieee"){
 			s += "\\interdisplaylinepenalty=2500\n";
+			if(haveurls)
+				s += "\\usepackage{url}\n";
 			if(havecites)
 				s += "\\usepackage{cite}\n";
 		}
