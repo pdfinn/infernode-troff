@@ -4,6 +4,8 @@ tbl \- typeset tables
 .SH SYNOPSIS
 .B tbl
 [
+.B -C
+] [
 .B -ms
 ] [
 .B -mm
@@ -54,12 +56,38 @@ Aristotle	322
 .PP
 It is a translation of Plan 9's
 .IR tbl ;
+under
+.BR -C ,
 for the same input its output is, byte for byte, Plan 9's.
-A table's rules are drawn as lines, its box rules meeting its
-underrules at the corners
+.PP
+A table's horizontal rules
+.RB ( _ ,
+.BR = ,
+the top and foot of a
+.BR box )
+are drawn; its vertical rules (a
+.B |
+between columns, a box's sides) are not, as the style manuals have it
+(Chicago's, APA's, the IEEE's), the room for them between the columns
+kept.
+A table that wants them says so with the option
+.BR vrules :
+.IP
+.EX
+\&.TS
+box vrules;
+c | c.
+.EE
+.PP
+Rules are drawn as lines, a box's sides meeting its underrules at the
+corners
 .RB ( .rules
 in
 .IR troff (1)).
+.TP
+.B -C
+As Bell Laboratories' tbl (Plan 9's): every vertical rule drawn, its
+output Plan 9's.
 .TP
 .B -ms
 .TP

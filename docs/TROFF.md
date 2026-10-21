@@ -12,7 +12,7 @@ to read in InferNode's document views.
 |---|---|---|
 | `troff` | Sets troff's input: paragraph-at-once filling, OpenType kerning, ligatures and features, hyphenation (English and Ancient Greek) | Neatroff, translated (byte-identical output on ~500 documents) |
 | `eqn` | Mathematics: TeX's rules for setting it, in troff; Libertinus Math's sized brackets, radicals and operators (`/lib/troff/eqnrc`) | Neateqn, translated (byte-identical output) |
-| `tbl` | Tables | Plan 9's tbl, translated (byte-identical output) |
+| `tbl` | Tables, their vertical rules only when asked (`vrules`) | Plan 9's tbl, translated (byte-identical output under `-C`) |
 | `pic` | Pictures | Plan 9's pic, translated (byte-identical output; its grammar through Inferno's yacc) |
 | `refer` | Citations by key from BibTeX's and refer's databases; with `-S chicago`, the *Chicago Manual of Style*'s notes and bibliography (18th edition) | Neatrefer, translated, with a BibTeX reader and styles of its own |
 | `chess` | Chess diagrams from Forsyth–Edwards notation, as pictures, described in words for a tagged PDF | |
@@ -23,7 +23,7 @@ to read in InferNode's document views.
 | `book2tex` | A book written with `-mbook` as LaTeX, for LuaLaTeX, for a publisher who wants it | |
 | `book` | Runs them (with `-mbook`, or `-m article` or `-m memo`): refer, chess, pic, tbl and eqn (each if there is anything for it), troff `-mbook` until its references settle, tr2pdf | |
 
-`troff`, `eqn`, `tbl`, `pic`, and `refer` without a style, write what
+`troff`, `eqn`, `tbl` (with `-C`), `pic`, and `refer` without a style, write what
 the C programs they came from write, byte for byte, but where those
 loop for ever or crash; `tr2pdf -c` and `mkfn -c` do too. Troff's, on
 a device with no `sizescale`: `devutf`'s `sizescale 100` keeps sizes in
@@ -511,6 +511,13 @@ Kernighan's); `book` runs each when a book has any. Under `-mbook` a
 table's rules, and an equation's (its fractions', radicals', bars and
 underlines), are drawn as lines, and a picture is centred with space
 about it.
+
+A table's horizontal rules are drawn and its vertical ones are not:
+no `|` between columns, no sides to a `box`, as the style manuals ask
+(Chicago's, APA's, the IEEE's, booktabs'). The room for them between
+the columns is kept. A table that wants them asks with the option
+`vrules` (`box vrules;`); `tbl -C` draws every one, as Bell's tbl did,
+and writes Plan 9's tbl's output byte for byte.
 
 The rules come from troff's `.rules`, on for every document (`.rules 0`
 sets Neatroff's glyphs again). It draws `\l`'s and `\L`'s of

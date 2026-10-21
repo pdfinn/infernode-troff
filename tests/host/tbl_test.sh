@@ -2,7 +2,7 @@
 #
 # tbl_test.sh — tbl(1), the table preprocessor:
 #
-#	its output is Plan 9 tbl's: tests/tbl/tbl.out was made by Plan 9's
+#	under -C its output is Plan 9 tbl's: tests/tbl/tbl.out was made by Plan 9's
 #	tbl (as Neatroff uses it) from tests/tbl/tbl.ms (boxed, all-boxed,
 #	double-boxed and expanded tables, spans across and down, fonts,
 #	sizes and widths, text blocks, numbers aligned, alphabetic
@@ -14,6 +14,8 @@
 #	a line outside a table, and one in a text block, longer than C's
 #	buffers (5120 and 4096 bytes) is passed on whole, not cut in two
 #	with a word;
+#	a table's vertical rules (|, a box's sides) are left out unless it
+#	asks for them with vrules (or tbl -C), its horizontal rules drawn;
 #	under -ms, a boxed table's rules are drawn as lines, the box rules
 #	meeting the underrules at the corners (\(br set nothing and \(ul
 #	underscores); text set .na stays ragged after a table.
@@ -34,7 +36,7 @@ long=$(awk 'BEGIN { for (i = 0; i < 1500; i++) printf "w%04d ", i }')
 printf '%s\n.TS\nl.\nT{\n%s\nT}\n.TE\n' "$long" "$long" >"$tmp/long.ms"
 
 with_timeout 120 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c \
-    "tbl < /tests/tbl/tbl.ms > '#U*$tmp/tbl.out'; tbl < '#U*$tmp/span.ms' > '#U*$tmp/span.out'; tbl < '#U*$tmp/box.ms' | troff -mbook > '#U*$tmp/box.tr'; tbl < '#U*$tmp/long.ms' > '#U*$tmp/long.out'" \
+    "tbl -C < /tests/tbl/tbl.ms > '#U*$tmp/tbl.out'; tbl < '#U*$tmp/span.ms' > '#U*$tmp/span.out'; tbl < '#U*$tmp/box.ms' | troff -mbook > '#U*$tmp/box.tr'; tbl < '#U*$tmp/long.ms' > '#U*$tmp/long.out'" \
     </dev/null >"$tmp/emu.log" 2>&1
 
 if cmp -s "$tmp/tbl.out" tests/tbl/tbl.out; then
@@ -69,9 +71,10 @@ fi
 # (\(br set nothing, \(ul was underscores), the box rules' ends on the
 # underrules' outer edges; text set .na stays ragged after a table (tbl's
 # .if \n(.j=0 .na, which troff's \n(.j never let be 0)
-printf '.TS\nbox;\nl | l.\nab\tcd\n_\nef\tgh\n.TE\n' >"$tmp/box.ms"
+printf '.TS\nbox vrules;\nl | l.\nab\tcd\n_\nef\tgh\n.TE\n' >"$tmp/box.ms"
+printf '.TS\nbox;\nl | l.\nab\tcd\n_\nef\tgh\n.TE\n' >"$tmp/nov.ms"
 printf '.LP\n.na\nBefore the table, some words set ragged.\n.TS\nl l.\na\tb\n.TE\nAfter the table the words are still set ragged, not justified, as they were before it, and on and on until the line is full and more.\n' >"$tmp/na.ms"
-with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; tbl box.ms | troff -ms > box.out; tbl na.ms | troff -ms > na.out" </dev/null >/dev/null 2>&1
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; tbl box.ms | troff -ms > box.out; tbl nov.ms | troff -ms > nov.out; tbl -C nov.ms | troff -ms > novC.out; tbl na.ms | troff -ms > na.out" </dev/null >/dev/null 2>&1
 if python3 -I - "$tmp/box.out" <<'PY'
 import re, sys
 h = v = 0
@@ -127,6 +130,19 @@ then
     echo "PASS: .na kept after a table"
 else
     echo "FAIL: .na after a table: the line justified"; fail=1
+fi
+
+# by default no vertical rules: a boxed table with a | between its
+# columns draws its four horizontal rules (top, the underrule, bottom)
+# and nothing upright; -C, as Bell's tbl, draws the three upright too
+nvert() { grep -c '^Dl 0 ' "$1" 2>/dev/null; }
+nhorz() { grep -c '^DP' "$1" 2>/dev/null; }
+if [ "$(nvert "$tmp/nov.out")" = 0 ] && [ "$(nhorz "$tmp/nov.out")" -ge 3 ] &&
+   [ "$(nvert "$tmp/novC.out")" = 3 ] && [ "$(nvert "$tmp/box.out")" = 3 ]; then
+    echo "PASS: vertical rules only when asked (vrules, -C); horizontal always"
+else
+    echo "FAIL: vertical rules: default $(nvert "$tmp/nov.out") upright $(nhorz "$tmp/nov.out") across, -C $(nvert "$tmp/novC.out"), vrules $(nvert "$tmp/box.out")"
+    fail=1
 fi
 
 exit $fail

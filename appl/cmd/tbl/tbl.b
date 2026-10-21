@@ -3,8 +3,10 @@ implement Tbl;
 #
 # tbl - troff's preprocessor for tables
 #
-# A translation of Plan 9's tbl (as Neatroff uses it) into Limbo; for
-# the same input it writes the same output, byte for byte.
+# A translation of Plan 9's tbl (as Neatroff uses it) into Limbo; under
+# -C, for the same input it writes the same output, byte for byte.
+# Without it a table's vertical rules are drawn only when it asks
+# (vrules).
 #
 # Its text is handled as bytes: each byte of the input is a character
 # of the strings here (from 0 to 255), and each is written back as the
@@ -120,6 +122,8 @@ evenup: array of int;
 F1 := 0;
 F2 := 0;
 allflg := 0;
+vrulesflg := 0;	# vrules: the table's vertical rules drawn
+bell := 0;	# -C: every vertical rule drawn, as Bell's tbl
 leftover: string;
 hasleftover := 0;
 textflg := 0;
@@ -286,6 +290,8 @@ swapin(): int
 			pr1403 = 1;
 		if(a == "-t")
 			tagging = 1;
+		if(a == "-C")
+			bell = 1;
 		if(a == "-")
 			break;
 		sargs = tl sargs;
@@ -342,7 +348,7 @@ optnames := array[] of {
 	"expand", "EXPAND", "center", "CENTER", "box", "BOX",
 	"allbox", "ALLBOX", "doublebox", "DOUBLEBOX", "frame", "FRAME",
 	"doubleframe", "DOUBLEFRAME", "tab", "TAB", "linesize", "LINESIZE",
-	"delim", "DELIM",
+	"delim", "DELIM", "vrules", "VRULES",
 };
 
 setopt(i: int, v: int)
@@ -358,7 +364,16 @@ setopt(i: int, v: int)
 	7 =>	tab = v;
 	8 =>	linsize = v;
 	9 =>	delim1 = v;
+	10 =>	vrulesflg = v;
 	}
+}
+
+# a table's vertical rules (|, a box's sides) are drawn only when it
+# asks with vrules, or under -C: none, as the style manuals have it
+# (Chicago's, APA's, booktabs'), their room between the columns kept
+vlines(): int
+{
+	return bell || vrulesflg;
 }
 
 getcomm()
@@ -1351,7 +1366,7 @@ deftail()
 	for(c := 0; c < ncol; c++){
 		lf: int;
 		(lf, lwid) = left(nlin - 1, c);
-		if(lf >= 0){
+		if(lf >= 0 && vlines()){
 			out(".if \\n(#" + ch(linestop[lf] + 'a' - 1) + ">=0 .sp -1\n");
 			out(".if \\n(#" + ch(linestop[lf] + 'a' - 1) + ">=0 ");
 			tohcol(c);
@@ -1359,7 +1374,7 @@ deftail()
 			out("\\h'|\\n(TWu'\n");
 		}
 	}
-	if(boxflg || allflg || dboxflg){	# right hand line
+	if((boxflg || allflg || dboxflg) && vlines()){	# right hand line
 		out(".if \\n(#a>=0 .sp -1\n");
 		out(".if \\n(#a>=0 \\h'|\\n(TWu'");
 		if(dboxflg)
@@ -1483,7 +1498,7 @@ putline(i: int, nl: int)
 		uphalf := 0;
 		if(watchout == 0 && i + 1 < nlin)
 			(lf, lwid) = left(i, c);
-		if(watchout == 0 && i + 1 < nlin && lf >= 0){
+		if(watchout == 0 && i + 1 < nlin && lf >= 0 && vlines()){
 			tohcol(c);
 			drawvert(lf, i, c, lwid);
 			vct += 2;
@@ -1711,7 +1726,7 @@ funnies(stl: int, lin: int)
 	for(c = 0; c < ncol; c++){
 		if(stl + 1 < nlin)
 			(lf, lwid) = left(stl, c);
-		if(stl + 1 < nlin && lf >= 0){
+		if(stl + 1 < nlin && lf >= 0 && vlines()){
 			if(dv++ == 0)
 				out(".sp -1\n");
 			tohcol(c);
