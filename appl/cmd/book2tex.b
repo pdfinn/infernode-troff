@@ -79,6 +79,9 @@ Out: adt {
 
 cur: ref Out;
 innote := 0;	# the text is a note's
+closeparen := 0;	# a note's ) to be \bibcloseparen, its ( a citation's open
+parendepth := 0;	# the parentheses opened since
+notecited := 0;	# the note's last line ends in a citation
 
 # the input: files, .so's on top
 Inp: adt {
@@ -548,6 +551,11 @@ textline(o: ref Out, s: string)
 {
 	j := o.cont;
 	o.cont = 0;
+	# (after a citation in a note, its punctuation joined to it)
+	if(innote && notecited && s != "" && (s[0] == ',' || s[0] == ';' || s[0] == ':' || s[0] == ')' ||
+			s[0] == ']' || s[0] == '?' || s[0] == '!' || s[0] == '.'))
+		j = 1;
+	notecited = 0;
 	t := text(o, s);
 	if(o.noindent && !j){
 		t = "\\noindent " + t;
@@ -606,6 +614,19 @@ text(o: ref Out, s: string): string
 		}
 		# (a space between words is a space; one more, or one leading
 		# the line, kept)
+		# (a note's ) closing the ( a citation was in: biblatex's)
+		if(closeparen > 0 && innote){
+			if(c == '(')
+				parendepth++;
+			else if(c == ')' && parendepth > 0)
+				parendepth--;
+			else if(c == ')'){
+				r += fontsync(o) + "\\bibcloseparen{}";
+				closeparen--;
+				i++;
+				continue;
+			}
+		}
 		if(o.nf && (c == ' ' || c == '\t') && !(c == ' ' && i > 0 && s[i - 1] != ' ' && s[i - 1] != '\t' &&
 				i + 1 < len s && s[i + 1] != ' ' && s[i + 1] != '\t')){
 			n := 1;
@@ -946,8 +967,23 @@ citeattach(o: ref Out, c: string)
 	if(biblatex() && style == "chicago"){
 		# in a note, the citation is in its text, after a space; in the
 		# text, a note's mark, after the word or its punctuation
-		if(innote && !suffix(" ", hd o.l))
-			c = " " + c;
+		if(innote){
+			# (citations one after another apart by semicolons; in
+			# parentheses, biblatex's, so that the citation's own are
+			# brackets, as the Chicago Manual has them)
+			l := hd o.l;
+			if(notecited)
+				c = "; " + c;
+			else if(!suffix(" ", l) && !suffix("(", l))
+				c = " " + c;
+			if(openparen(o)){
+				closeparen++;
+				parendepth = 0;
+			}
+			attach(o, c);
+			notecited = 1;
+			return;
+		}
 		attach(o, c);
 		return;
 	}
@@ -960,6 +996,37 @@ citeattach(o: ref Out, c: string)
 	while(j > 0 && l[j - 1] == ' ')
 		j--;
 	o.l = (l[0:j] + "~" + c + l[i:]) :: tl o.l;
+}
+
+# the note's last ( not closed made biblatex's \bibopenparen; whether
+# there was one
+openparen(o: ref Out): int
+{
+	a := array[nlines(o)] of string;
+	k := len a;
+	for(l := o.l; l != nil; l = tl l)
+		a[--k] = hd l;
+	(ln, at) := (-1, -1);
+	stk: list of (int, int);
+	for(k = 0; k < len a; k++)
+		for(i := 0; i < len a[k]; i++)
+			case a[k][i] {
+			'\\' =>
+				i++;
+			'(' =>
+				stk = (k, i) :: stk;
+			')' =>
+				if(stk != nil)
+					stk = tl stk;
+			}
+	if(stk == nil)
+		return 0;
+	(ln, at) = hd stk;
+	a[ln] = a[ln][0:at] + "\\bibopenparen{}" + a[ln][at + 1:];
+	o.l = nil;
+	for(k = 0; k < len a; k++)
+		o.l = a[k] :: o.l;
+	return 1;
 }
 
 # 315-16 as 315--16
@@ -1876,9 +1943,14 @@ note(end, cmd, textcmd: string)
 		else
 			textline(n, s);
 	}
+	# (a note ending in a citation ends with a full stop)
+	if(notecited && n.l != nil && hd n.l != "" && !suffix(".", hd n.l))
+		n.l = (hd n.l + ".") :: tl n.l;
 	closefont(n);
 	cur = o;
 	innote--;
+	closeparen = 0;
+	notecited = 0;
 	body := join(rev(n.l), "\n");
 	if(marked)
 		cmd = textcmd;
@@ -4174,6 +4246,14 @@ preamble(): string
 			s += "\\usepackage[authordate" + bibopts() + ",backend=biber]{biblatex-chicago}\n";
 		* =>
 			s += "\\usepackage[notes" + bibopts() + ",backend=biber]{biblatex-chicago}\n";
+		}
+		if(style != "numeric"){
+			# a short note's title the title to its colon, its subtitle
+			# left out (CMOS 14.30), as refer's: unless the work has one
+			s += "\\DeclareSourcemap{\\maps[datatype=bibtex]{\\map[overwrite=false]{\n";
+			s += "  \\step[fieldsource=title, match=\\regexp{\\A(.+?):\\s}, final]\n";
+			s += "  \\step[fieldset=shorttitle, origfieldval]\n";
+			s += "  \\step[fieldsource=shorttitle, match=\\regexp{\\A(.+?):\\s.*\\Z}, replace=\\regexp{$1}]}}}\n";
 		}
 		s += "\\addbibresource{" + b + "}\n";
 	}

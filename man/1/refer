@@ -72,6 +72,26 @@ translators and editors; inclusive pages (315\(en16); the bibliography
 sorted as the Manual sorts it: by the first author, a work by that
 author alone before those written with others, those by the others'
 names, then by title.
+A citation in a note of one's own
+.RB ( .fn
+or
+.BR .en )
+is in the note's text, not a note of its own (the Manual's 14.37):
+after the word before it, in full or shortened as any other; in
+parentheses, its own parentheses brackets (6.101); two in a row apart
+by a semicolon; the punctuation after it joined to it; a note ending in
+one ending with a full stop:
+.IP
+.EX
+\&.fn
+See also
+\&.cite macintyre1981 60-61
+on the project; in outline (
+\&.cite aristotle1999 1107a
+), though Foot did not say so.
+\&.fe
+.EE
+.PP
 .IR Book (1)
 runs it so.
 .PP

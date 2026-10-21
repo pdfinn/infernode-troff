@@ -844,6 +844,16 @@ refer_style()
 {
 	while((ln := lnget()) != nil){
 		(mac, arg) := refer_reqname(ln);
+		# a note of the author's own (-mbook's .fn and .en, -ms's .FS)
+		case mac {
+		"fn" or "en" or "FS" =>
+			innote = 1;
+			noteparens = 0;
+		"fe" or "ee" or "FE" =>
+			innote = 0;
+		}
+		if(innote && mac == nil)
+			noteparens += parens(ln);
 		if(mac != nil && refer_refmac(resetmac, mac)){
 			for(i := 0; i < refs_n; i++)
 				refs[i].cited = 0;
@@ -860,14 +870,14 @@ refer_style()
 			c := sdup(ln[2:]);
 			while((ln = lnget()) != nil && (len ln < 2 || ln[0] != '.' || ln[1] != ']'))
 				c += " " + sdup(ln);
-			footnote(cite(c, 1));
+			footnote(cite(c, !notecites()));
 			continue;
 		}
 		if(mac != nil && arg && refer_refmac(refmac, mac)){
 			i := 1;
 			while(i < len ln && ln[i] != ' ')
 				i++;
-			footnote(cite(sdup(ln[i:]), 1));
+			footnote(cite(sdup(ln[i:]), !notecites()));
 			continue;
 		}
 		put(inline(ln));
@@ -875,12 +885,97 @@ refer_style()
 	put(nil);
 }
 
-# write the line before; keep s
+innote := 0;	# in a note of the author's own
+noteparens := 0;	# the parentheses its text has left open
+notejoin := 0;	# the line before ends in a citation in a note
+
+# whether a citation is in the text of the note it is in (a style's
+# notes, in a note of the author's own), not a note of its own
+notecites(): int
+{
+	return innote && !style->inline();
+}
+
+# write the line before; keep s.  A citation in a note before s: s's
+# punctuation joined to it (, ; : ) ] ? !), the note's end its full stop
 put(s: string)
 {
+	if(notejoin && pending != nil){
+		notejoin = 0;
+		p := chomp(pending);
+		(mac, nil) := refer_reqname(s);
+		if(s != nil && len s > 0 && (s[0] == ',' || s[0] == ';' || s[0] == ':' || s[0] == ')' ||
+				s[0] == ']' || s[0] == '?' || s[0] == '!'))
+			p += "\\c";
+		else if((s == nil || mac == "fe" || mac == "ee" || mac == "FE") && !endspunct(p))
+			p += ".";
+		pending = p + "\n";
+	}
+	notejoin = 0;
 	if(pending != nil)
 		lnput(pending);
 	pending = s;
+}
+
+# the parentheses s opens, less those it closes (troff's \(xx aside)
+parens(s: string): int
+{
+	n := 0;
+	for(i := 0; i < len s; i++)
+		if(s[i] == '\\')
+			i++;
+		else if(s[i] == '(')
+			n++;
+		else if(s[i] == ')')
+			n--;
+	return n;
+}
+
+# a citation's parentheses as brackets (troff's \(xx aside)
+brackets(s: string): string
+{
+	for(i := 0; i < len s; i++)
+		if(s[i] == '\\')
+			i++;
+		else if(s[i] == '(')
+			s[i] = '[';
+		else if(s[i] == ')')
+			s[i] = ']';
+	return s;
+}
+
+# s without its newline and the blanks before it
+chomp(s: string): string
+{
+	while(len s > 0 && (s[len s - 1] == '\n' || isspace(s[len s - 1])))
+		s = s[0:len s - 1];
+	return s;
+}
+
+# a citation in the text of a note of the author's own, as the Chicago
+# Manual has it (14.37): run into the note's sentence after the word
+# before it (or an opening parenthesis), not a note in the note; one
+# after another apart by semicolons
+notecite(text: string)
+{
+	if(pending == nil || len pending == 0 || pending[0] == '.' || pending[0] == '\''){
+		put(text + "\n");
+		notejoin = 1;
+		return;
+	}
+	# (in parentheses, its own are brackets: CMOS 6.101)
+	if(noteparens > 0)
+		text = brackets(text);
+	p := chomp(pending);
+	sep := " ";
+	if(notejoin)
+		sep = "; ";
+	else if(len p > 0 && (p[len p - 1] == '(' || p[len p - 1] == '['))
+		sep = "";
+	else if(len p >= 2 && p[len p - 2:] == "\\c")
+		(p, sep) = (p[0:len p - 2], "");
+	pending = p + sep + text + "\n";
+	notejoin = 1;
 }
 
 # a note citing, for its mark to follow the text before; a style citing
@@ -891,6 +986,10 @@ footnote(text: string)
 		return;
 	if(style->inline()){
 		inlinecite(text);
+		return;
+	}
+	if(innote){
+		notecite(text);
 		return;
 	}
 	if(pending != nil && len pending > 0 && pending[0] != '.' && pending[0] != '\''){

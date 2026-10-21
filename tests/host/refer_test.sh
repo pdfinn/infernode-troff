@@ -24,7 +24,14 @@
 #	-C, as Bell Laboratories' refer: a reference written out in .[ .]
 #	(%A, %T, ...), the citation joined to the line before it, between
 #	what follows .[ and .] ([1]), or \*([. \*(.] and a full stop each
-#	side of them (\*(<. \*(>.); the list at $LIST$ with -e.
+#	side of them (\*(<. \*(>.); the list at $LIST$ with -e;
+#	-S chicago, a citation in a note of the author's own (.fn, .en):
+#	run into the note's text, not a note in the note (as the Chicago
+#	Manual has it, 14.37): after the word before it, its full note the
+#	first time and its short one after; in parentheses its own
+#	parentheses brackets (6.101); two in a row apart by a semicolon;
+#	the punctuation after it joined to it; a note ending in one ending
+#	with a full stop.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -113,6 +120,43 @@ if grep -qxF '.UC TROFF [1]' "$tmp/classic.out" &&
 else
     echo "FAIL: -C:"
     sed 's/^/    /' "$tmp/classic.out" "$tmp/classic.err" | head -30
+    fail=1
+fi
+
+# a citation in a note of one's own
+cat >"$tmp/innote.tr" <<'EOF'
+Short.\*[fnmark]
+.fn
+See also
+.cite macintyre1981 60-61
+on the project.
+.fe
+Again.\*[fnmark]
+.en
+In outline (
+.cite aristotle1999 1107a
+), though not said; compare
+.cite anscombe1958 5
+.cite macintyre1981 187
+and
+.cite lukasiewicz1957
+.ee
+Later.
+.cite macintyre1981 190
+EOF
+cp tests/latex/works.bib "$tmp/innote.bib"
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; refer -p innote.bib -S chicago innote.tr > innote.out >[2] innote.err" </dev/null >/dev/null 2>&1
+if [ "$(awk '/^\.(fn|en)$/{n=1} /^\.(fe|ee)$/{n=0} n && /^\.\]fn/{print}' "$tmp/innote.out")" = "" ] &&
+   grep -qF 'See also Alasdair MacIntyre, \fIAfter Virtue: A Study in Moral Theory\fP (Notre Dame, Ind.: University of Notre Dame Press, 1981), 60–61' "$tmp/innote.out" &&
+   grep -qF 'In outline (Aristotle, \fINicomachean Ethics\fP, 2nd ed., trans. Terence Irwin [Indianapolis: Hackett, 1999], 1107a\c' "$tmp/innote.out" &&
+   grep -qxF '), though not said; compare G. E. M. Anscombe, “Modern Moral Philosophy,” \fIPhilosophy\fP 33, no. 124 (1958): 5; MacIntyre, \fIAfter Virtue\fP, 187' "$tmp/innote.out" &&
+   grep -qF 'and Jan Łukasiewicz, \fIAristotle’s Syllogistic from the Standpoint of Modern Formal Logic\fP, 2nd ed. (Oxford: Clarendon Press, 1957).' "$tmp/innote.out" &&
+   grep -qxF 'MacIntyre, \fIAfter Virtue\fP, 190.' "$tmp/innote.out" && [ "$(grep -c '^\.\]fn' "$tmp/innote.out")" = 1 ] &&
+   ! grep -q . "$tmp/innote.err"; then
+    echo "PASS: -S chicago: a citation in a note in the note's text: full then short, brackets in parentheses, semicolons, its stop"
+else
+    echo "FAIL: a citation in a note:"
+    sed 's/^/    /' "$tmp/innote.out" "$tmp/innote.err" | head -30
     fail=1
 fi
 
