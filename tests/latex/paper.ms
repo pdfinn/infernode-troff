@@ -7,7 +7,7 @@
 .\" in the text (eqn's words and Unicode's), a table with spans and a text
 .\" block, figures in a column and across both, notes, lists, a program,
 .\" citations (one, several, with a page) and cross-references, LaTeX's
-.\" special characters and names with accents.
+.\" special characters and names with accents, URLs and an appendix.
 .EQ
 delim $$
 define RR % ℝ %
@@ -174,11 +174,19 @@ arrives in each class; Plan 9 is cited as a system of its own
 and Unicode's standard
 .cite unicode2022
 for its characters. Equation (2) and table \*[ref timing] keep their
-numbers.
+numbers. The programs are at
+.url https://github.com/pdfinn/infernode-troff/tree/main/appl/cmd ,
+and the corpus is described in appendix \*[ref corpus]; its sources are on
+.link https://github.com/pdfinn/infernode-troff/tree/main/tests/latex "the project's pages" .
 .section "Conclusion" conclusion
 
 A paper written once, in troff, is a paper for any journal that takes
 LaTeX.
+.appendix
+.section "The corpus" corpus
+
+The corpus is this paper and an essay in the humanities, with the
+examples distributed with the programs.
 .section* "Acknowledgments"
 
 We thank the authors of Neatroff, whose programs these are.

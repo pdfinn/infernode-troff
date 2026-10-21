@@ -17,6 +17,7 @@
 #	its ink, .nf and .ce, strings, the index (makeindex's entries,
 #	sort keys and formats), LaTeX's special characters escaped, troff's
 #	characters by name;
+#	.url, .link and .appendix as \url, \href and \appendix;
 #	a citation in a note of one's own in the note's text, as refer
 #	-S chicago sets it (brackets in parentheses, semicolons, its stop);
 #	where LuaLaTeX is installed (with biblatex-chicago, epigraph,
@@ -183,6 +184,19 @@ if command -v lualatex >/dev/null 2>&1 && command -v biber >/dev/null 2>&1 && [ 
         pass "a citation in a note, set by LuaLaTeX as refer sets it" ;;
     *) failed "a citation in a note, set: $t" ;;
     esac
+fi
+
+# .url, .link, .appendix: \url (its % and # escaped), \href, \appendix;
+# IEEEtran's \appendices and, with no hyperref, the address after the text
+printf '.section "A"\n\nAt\n.url https://example.org/a%%20b#c ,\nand\n.link https://example.org/m "the manual" .\n.appendix\n.section "B"\n\nB.\n' >"$tmp/url.ms"
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; book2tex -m article -o url.tex url.ms >[2] url.err; book2tex -m article -c ieee -o urli.tex url.ms >[2] urli.err" </dev/null >/dev/null 2>&1
+if grep -qxF '\url{https://example.org/a\%20b\#c},' "$tmp/url.tex" && grep -qxF '\href{https://example.org/m}{the manual}.' "$tmp/url.tex" &&
+   grep -qxF '\appendix' "$tmp/url.tex" && grep -qxF '\appendices' "$tmp/urli.tex" &&
+   grep -qxF 'the manual (\url{https://example.org/m}).' "$tmp/urli.tex" && grep -qxF '\usepackage{url}' "$tmp/urli.tex" &&
+   [ ! -s "$tmp/url.err" ] && [ ! -s "$tmp/urli.err" ]; then
+    pass ".url, .link and .appendix: LaTeX's url, href and appendix (IEEEtran's appendices)"
+else
+    failed ".url, .link, .appendix: $(grep -n 'url\|href\|append' "$tmp/url.tex" "$tmp/urli.tex" | head -8)"
 fi
 
 exit $fail

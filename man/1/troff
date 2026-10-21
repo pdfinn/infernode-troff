@@ -170,6 +170,16 @@ character:
 .B \e(rh
 (☞).
 .TP
+.BI ".cflags " "n c ..."
+groff's: with 4 in
+.IR n ,
+a line may break after each of the characters
+.I c
+(as after
+.BR \e: );
+without it, not.
+The other flags are not this troff's.
+.TP
 .BI \eD't " n" '
 The lines drawn after it are
 .I n

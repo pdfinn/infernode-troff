@@ -74,6 +74,30 @@ Endnotes, set under their chapters' names by
 .BR ".label " \fIname\fP,  " \e*[ref " \fIname\fP],  " \e*[pageref " \fIname\fP]
 A cross-reference: the chapter, section, figure or table, and the page.
 .TP
+.BI ".url " "address " \fR[\fPafter\fR]\fP
+.TP
+.BI ".link " "address text " \fR[\fPafter\fR]\fP
+A URL, the address itself or
+.I text
+a link to it: never hyphenated, a line broken if need be after its
+.B /
+.B .
+.B ?
+.B &
+.B =
+.B #
+.B _
+.BR - ,
+a link on each line it is set on; then
+.I after
+(its punctuation) joined to it.
+.TP
+.B .appendix
+The chapters after it (a book's) are its appendices, Appendix A, B ...,
+their sections A.1; an article's sections after it A, B, their
+subsections A.1, as after LaTeX's
+.BR \eappendix .
+.TP
 .BR \e*[TeX] ", " \e*[LaTeX]
 TeX's and LaTeX's names as their logos are set (TeX's E lowered,
 LaTeX's A small and raised), in the text or a heading, in its size and

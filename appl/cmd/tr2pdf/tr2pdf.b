@@ -559,6 +559,14 @@ postps()
 			if(pg_label[o_pages - 1] == nil)
 				pg_label[o_pages - 1] = f;
 		}
+	"linkbeg" =>
+		# a link of what is set from here to linkend, a rectangle on
+		# each line it is set on (a URL broken across lines)
+		(lnk, nil) := strcut(arg);
+		if(lnk != "" && lnk != "#")
+			lkspan_beg(lnk);
+	"linkend" =>
+		lkspan_end();
 	"link" =>
 		(lnk, spec) := strcut(arg);
 		v := scanints(spec, 2);

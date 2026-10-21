@@ -3,6 +3,9 @@
 # article_test.sh — -marticle and -mmemo, the classes on -mbook's macros,
 # refer's numbered style, and troff's .if d:
 #
+#	.appendix: an article's sections lettered after it, a book's
+#	chapters Appendix A; .url a link to itself, broken after its / and
+#	&, a link on each line it is set on; .link text a link;
 #	troff: .if d name true of a macro, a string and a diversion, false
 #	of a name never defined;
 #	refer -S numeric: [n] in the line, before the punctuation it ends
@@ -94,7 +97,8 @@ SDL_VIDEODRIVER=dummy with_timeout 300 "$EMU" -c1 -pheap=1024m -pmain=1024m -r"$
      book -m article long.ms >[2] long.err; book -m article one.ms >[2] one.err;
      book -m memo memo.ms >[2] memo.err; book -m memo report.ms >[2] report.err" </dev/null >"$tmp/emu.log" 2>&1
 
-python3 -I - "$tmp" <<'PY'
+fail=0
+python3 -I - "$tmp" <<'PY' || fail=1
 import re, subprocess, sys, zlib
 d = sys.argv[1]
 fail = 0
@@ -217,3 +221,66 @@ else:
     check(False, 'memo: .kind report', read('report.err'))
 sys.exit(fail)
 PY
+# .appendix and .url, .link: after .appendix an article's sections are
+# lettered (A, A.1, B), a book's chapters Appendix A and their sections
+# A.1; a URL a link to itself broken after its / and & (.cflags 4),
+# never hyphenated, a rectangle on each line it is set on; .link's text
+# a link
+mkdir "$tmp/ap"
+cat >"$tmp/ap/a.ms" <<'EOF'
+.title "Appendices and Links"
+.author "A. Writer"
+.maketitle
+.section "Introduction" intro
+
+The sources are at
+.url https://www.example.org/projects/infernode-troff/releases/2026/october/index.html?lang=en&page=2#top ,
+and the manual is
+.link https://example.org/manual "the manual's own site" .
+See appendix \*[ref proof].
+.appendix
+.section "A proof" proof
+
+Here.
+.subsection "A lemma"
+
+There.
+.section "Tables"
+
+More.
+EOF
+printf '.chapter "One" one\n\nText.\n.appendix\n.chapter "Sources" src\n\nSee.\n.section "Data"\n\nData.\n' >"$tmp/ap/b.ms"
+SDL_VIDEODRIVER=dummy with_timeout 300 "$EMU" -c1 -pheap=1024m -pmain=1024m -r"$ROOT" /dis/sh.dis -c \
+    "cd '#U*$tmp/ap'; book -m article a.ms >[2] a.err; book b.ms >[2] b.err" </dev/null >/dev/null 2>&1
+if command -v pdftotext >/dev/null 2>&1; then
+    a=$(pdftotext -raw "$tmp/ap/a.pdf" - | tr '\n' ' ')
+    b=$(pdftotext -raw "$tmp/ap/b.pdf" - | tr '\n' ' ')
+    case "$a|$b" in
+    *"See appendix A."*"A A proof"*"A.1 A lemma"*"B Tables"*"|"*"Appendix A"*"A.1 Data"*)
+        echo "PASS: .appendix: an article's sections A, A.1, B; a book's chapters Appendix A" ;;
+    *) echo "FAIL: .appendix: $a | $b"; fail=1 ;;
+    esac
+fi
+if command -v python3 >/dev/null 2>&1 && python3 -c 'import pypdf' 2>/dev/null; then
+    if python3 -I - "$tmp/ap/a.pdf" <<'PY'
+import sys, pypdf
+r = pypdf.PdfReader(sys.argv[1])
+links = []
+for p in r.pages:
+    for a in p.get('/Annots') or []:
+        a = a.get_object()
+        uri = a.get('/A', {}).get('/URI')
+        if uri: links.append((str(uri), [float(x) for x in a['/Rect']]))
+long = [l for l in links if 'releases' in l[0]]
+man = [l for l in links if l[0] == 'https://example.org/manual']
+w = float(r.pages[0].mediabox[2])
+ok = len(long) >= 2 and len(set(round(l[1][1]) for l in long)) == len(long) and \
+     all(l[1][2] < w / 2 for l in long) and len(man) == 1
+print('    links', links)
+sys.exit(0 if ok else 1)
+PY
+    then echo "PASS: .url broken across lines, a link on each, within its column; .link"
+    else echo "FAIL: .url's links"; fail=1; fi
+fi
+
+exit $fail

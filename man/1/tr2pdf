@@ -111,6 +111,16 @@ units thick; 0, the width
 .B linewidth
 gives.
 .TP
+.BI "linkbeg " target
+.TP
+.B linkend
+What is set between them a link to
+.I target
+(a URI, or
+.BI # name\fR),
+a rectangle on each line it is set on, from its first glyph to its
+last (a URL broken across lines).
+.TP
 .BI "text " word
 .TP
 .B endtext

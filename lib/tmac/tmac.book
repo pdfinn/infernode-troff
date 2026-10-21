@@ -16,6 +16,9 @@
 .\"					as refer's notes do)
 .\"	text\*[enmark] then .en ... .ee	an endnote; .notes prints them
 .\"	.label name, \*[ref name], \*[pageref name]	(the second pass's)
+.\"	.url address [after]		a URL, a link to itself
+.\"	.link address "text" [after]	text a link to a URL
+.\"	.appendix			the chapters (sections) after it lettered
 .\"	.contents			the table of contents (the second pass's)
 .\"	.cite key loc			refer -S chicago's notes; .bibliography
 .\"	\*[TeX], \*[LaTeX]		their logos (tmac.logos)
@@ -577,6 +580,16 @@
 .book-newpage 1 0
 ..
 .\" .chapter "Title" [label] ["Short"]: Short, if given, the running head
+.\" the appendices: after .appendix, a book's chapters (Appendix A) or
+.\" an article's sections lettered, A, B ..., as after LaTeX's \appendix
+.ds book-chword Chapter
+.de appendix
+.ds book-chword Appendix
+.nr book-chapter 0
+.af book-chapter A
+.nr book-section 0
+.if \\n[book-nochap] .af book-section A
+..
 .de chapter
 .book-begin
 .book-chapterhead 1 "\\$1" "\\$2" "\\$3"
@@ -642,7 +655,7 @@
 .		vs \\n[book-chvs]u
 .		ce 0
 .		ad l
-\\*[book-hx]\f[B]Chapter \\n[book-chapter]\fP
+\\*[book-hx]\f[B]\\*[book-chword] \\n[book-chapter]\fP
 .		br
 .		ad \\*[book-adj]
 .		ps
@@ -652,12 +665,12 @@
 .	\}
 .	el \{\
 .		ce 1
-\\*[book-hx]\f[SC]Chapter \\n[book-chapter]\fP
+\\*[book-hx]\f[SC]\\*[book-chword] \\n[book-chapter]\fP
 .		ds book-hx
 .		sp 0.25i
 .	\}
 .	tm aux:.book-tocent chapter "\\n[book-chapter]" "\\$2" \\n% book-h\\n[book-hn]
-.	ds book-en-chapter Chapter \\n[book-chapter]: \\$2
+.	ds book-en-chapter \\*[book-chword] \\n[book-chapter]: \\$2
 .\}
 .el \{\
 .	as book-hx \X^outline 1 \\$2^
@@ -668,7 +681,7 @@
 .\" (as LaTeX's \chapter[short]{long} would be given), else none
 .if \w'\s-1\f[SC]\\*[book-rh]\fP\s+1'>(\\n[book-ll]-8m) \{\
 .	tm book: the running head too wide; a short title, .chapter "\\$2" label "Short" (at \\n[.c] of \\n[.F])
-.	ie \\n[book-chnum] .ds book-rh Chapter \\n[book-chapter]
+.	ie \\n[book-chnum] .ds book-rh \\*[book-chword] \\n[book-chapter]
 .	el .ds book-rh
 .\}
 .ie \\n[book-chlatex] \{\
@@ -1789,6 +1802,26 @@
 .de label
 .book-label \\$1
 \\X^dest lab-\\$1^\c
+..
+.\" a URL: .url address [after], the address a link to itself; .link
+.\" address "text" [after], the text a link to it (tr2pdf's linkbeg and
+.\" linkend: on each line it is broken onto, where it is).  Set as it
+.\" is, never hyphenated, a line broken if need be after its / . ? & = #
+.\" _ - (.cflags 4); then what is after it
+.de url
+.book-url "\\$1" "\\$1" "\\$2"
+..
+.de link
+.book-url "\\$1" "\\$2" "\\$3"
+..
+.de book-url
+.ds book-ut \\$2
+.nr book-uhy \\n[.hy]
+.nh
+.cflags 4 /.?&=#_-
+\X^linkbeg "\\$1"^\\*[book-ut]\X^linkend^\\$3
+.cflags 0 /.?&=#_-
+.hy \\n[book-uhy]
 ..
 .\" links: \*[book-lks dest string], the string's text a link to the
 .\" destination; \*[book-pl folio text], the text a link to the page

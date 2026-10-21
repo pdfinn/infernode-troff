@@ -253,8 +253,10 @@ OWN = set('references reference keywords abstract figure fig table index terms'.
 # the text of a PDF (up to its references), running heads and folios
 # (lines on two pages or more, but the first) left out, hyphens at
 # lines' ends joined
-def text(p, cut=True):
-    t = subprocess.run(['pdftotext', p, '-'], capture_output=True, text=True).stdout
+def text(p, cut=True, raw=False):
+    # (troff's PDF read in the order it was set, -raw: a balanced last
+    # page's columns are not read across each other)
+    t = subprocess.run(['pdftotext'] + (['-raw'] if raw else []) + [p, '-'], capture_output=True, text=True).stdout
     pages = t.split('\f')
     # (a running head is the same line but its folio: 2 CHAPTER 1. ...)
     key = lambda l: re.sub(r'\s+', ' ', re.sub(r'\d', '', l)).strip() if re.search(r'[^\W\d_]{2}', l) else l.strip()
@@ -296,7 +298,7 @@ for d, stem, tg in [('c','paper','tex'), ('c','paper','ieee'), ('c','paper','iee
     tr = os.path.join(tmp, d, stem + '.pdf'); lx = os.path.join(tmp, d, '%s-%s.pdf' % (stem, tg))
     if not os.path.exists(tr) or not os.path.exists(lx):
         bad.append('%s for %s: no PDF to compare' % (stem, tg)); continue
-    a = words(text(tr))
+    a = words(text(tr, raw=True))
     lt = text(lx)
     b = words(lt)
     ball = words(text(lx, False))

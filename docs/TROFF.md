@@ -101,6 +101,8 @@ LaTeX without being LaTeX.
 | `text\*[enmark]` then `.en` ... `.ee`; `.notes` | `\endnote{...}`; `\theendnotes` |
 | `.label name`; `\*[ref name]`, `\*[pageref name]` | `\label`, `\ref`, `\pageref` |
 | `\*[TeX]`, `\*[LaTeX]` (their logos, in the text or a heading; `-ms` too) | `\TeX{}`, `\LaTeX{}` |
+| `.url address [after]`, `.link address "text" [after]` | `\url{address}`, `\href{address}{text}` (IEEEtran: `text (\url{address})`) |
+| `.appendix` | `\appendix` (IEEEtran: `\appendices`) |
 | `.contents` | `\tableofcontents` |
 | `.cite key [loc][; key loc]` | `\autocite[loc]{key}` (biblatex-chicago) |
 | `\*[cite key loc]` within a note of one's own | `\cite[loc]{key}` |
@@ -977,6 +979,24 @@ each macro by where it puts its words.
 The toolchain's own pages are `troff(1)`, `eqn(1)`, `tbl(1)`, `pic(1)`,
 `refer(1)`, `tr2pdf(1)`, `mkfn(1)`, `book(1)` (with `book2tex` and
 `mkindex`) and `troff(6)`, the macro packages.
+
+## Checking against Plan 9's troff
+
+`tools/p9compare` sets the same input with Plan 9's troff (from
+plan9port) and with this one, then shows the two side by side.
+`build.sh [dir]` fetches plan9port's troff and builds it. `compare.sh
+[-q] [file.tr ...]`, with `ROOT` naming the tree troff runs in, sets
+each file both ways. By default it sets the probes in `tests/p9/`:
+registers, conditions, diversions, traps, environments, escapes, tabs,
+widths and the rest. Each page is reduced to text: every line's place
+in points, its words, and its size and font where they change. The two
+pages are then diffed, along with what each troff wrote on its standard
+error. The two use different devices and fonts, so a difference is a
+thing to read, not a failure; that is why this is a tool, not a test.
+
+CI (`.github/workflows/ci.yml`) builds InferNode and this package over
+it, installs TeX Live with the journals' classes, and runs every
+`tests/host/*_test.sh`.
 
 ## Speed: what was done, and what was left
 

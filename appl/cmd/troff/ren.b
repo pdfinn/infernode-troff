@@ -873,6 +873,8 @@ ren_put(wb: ref Wb, c: string, src: int)
 		wb_putexpand(wb, c);
 	else
 		wb_put(wb, c);
+	if(c_brkafter(c))	# .cflags 4: a break point after it
+		wb_put(wb, c_bp);
 }
 
 # read a character and place it in wb
