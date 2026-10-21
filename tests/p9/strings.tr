@@ -1,0 +1,18 @@
+.ds a hello
+.tm [\*a]
+.ds ab two
+.tm [\*(ab]
+.ds q "quoted
+.tm [\*q]
+.as q  more
+.tm [\*q]
+.ds e
+.tm [\*e]
+.rn q r
+.tm [\*r]
+.rm r
+.tm [\*r]
+.ds z "a\\nb
+.tm [\*z]
+.ds sp "  lead
+.tm [\*(sp]

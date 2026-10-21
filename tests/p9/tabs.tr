@@ -1,0 +1,14 @@
+.nf
+.ta 1i 2i 3i
+a	b	c	d
+.ta 1iR 2iC 3iL
+x	right	cen	left
+.tc .
+a	b
+.tc
+.lc -
+.ta 1i
+a\ab
+.fc # ^
+#a^b#
+.fc

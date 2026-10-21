@@ -1,0 +1,23 @@
+.if t .tm troff
+.if n .tm nroff
+.if e .tm even
+.if o .tm odd
+.if "a"a" .tm streq
+.if !"a"b" .tm strne
+.if 3>2 .tm numgt
+.if (1+1)=2 .tm parenexpr
+.ie 0 .tm no
+.el .tm else
+.if 1 \{\
+.tm block
+.\}
+.if !d xx .tm notdef
+.de xx
+..
+.if d xx .tm defd
+.if r yy .tm reg
+.nr yy 1
+.if r yy .tm regd
+.if c \(em .tm charok
+.if 'a'a' .tm quotecmp
+.if 1 .if 1 .tm nested

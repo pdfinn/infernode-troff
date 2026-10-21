@@ -1,0 +1,17 @@
+.nr x 1999
+.af x I
+.tm roman \nx
+.af x i
+.tm lroman \nx
+.nr y 28
+.af y a
+.tm alpha \ny
+.af y A
+.tm Alpha \ny
+.af y 001
+.tm zero \ny
+.nr z 0
+.af z i
+.tm rzero [\nz]
+.af y 1
+.tm g \gy

@@ -1,0 +1,6 @@
+.tm before
+.so /dev/null
+.tm afterso
+.lf 99 foo
+.tm lf \n(.c
+.tm end

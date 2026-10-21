@@ -1,0 +1,26 @@
+.tm a\s11b\s0c
+.ps 10
+.tm \ws11X
+.ps 12
+.tm ps12 \n(.s
+.ps +2
+.tm psplus \n(.s
+.ps -3
+.tm psminus \n(.s
+.ps
+.tm psprev \n(.s
+.ps 0
+.tm ps0 \n(.s
+.ps 9.5
+.tm psfrac \n(.s
+.ps 100
+.tm psbig \n(.s
+.ps 10
+.vs 12
+.vs +2
+.tm vs \n(.v
+.vs
+.tm vsprev \n(.v
+X\s+2Y\s-2Z\s(12W\s+(12V\s'14'U\s0T
+.br
+.tm after \n(.s

@@ -1,0 +1,9 @@
+.nr x 5 2
+.tm \n+x \n+x \n-x
+.nr y 3
+.tm [\n(.g] [\n[y]] [\n(yy]
+.nr .s 99
+.tm \n(.s
+.rr x
+.tm gone [\nx]
+.tm year \n(yr mo \n(mo dy \n(dy dw \n(dw

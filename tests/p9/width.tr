@@ -1,0 +1,7 @@
+.ps 10
+.tm \w'abc'
+.tm \w'\h'1i''
+.tm st sb \w'Agy' \n(st \n(sb \n(ct
+.tm \w'\fBab\fP'
+.nr a \w'x'
+.tm kmark x\kmy[\nm]

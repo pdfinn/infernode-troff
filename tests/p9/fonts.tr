@@ -1,0 +1,15 @@
+.ft B
+.tm ftB \n(.f
+.ft
+.tm ftprev \n(.f
+.ft 2
+.tm ft2 \n(.f
+.ft P
+.tm ftP \n(.f
+.ft I
+\fBb\fIi\fRr\fPp\f3t\f(CWc\fP
+.br
+.tm fontsel \n(.f
+.ft R
+.fp 5 CW
+.tm fp5 \n(.f

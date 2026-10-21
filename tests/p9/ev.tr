@@ -1,0 +1,13 @@
+.ev 1
+.ll 3i
+.tm ev1 ll \n(.l ev \n(.ev
+.ev
+.tm back ll \n(.l
+.ev 2
+.ps 14
+.ev
+.ev 2
+.tm ev2 ps \n(.s
+.ev
+.ev 0
+.tm ev0

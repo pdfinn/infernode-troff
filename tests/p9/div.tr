@@ -1,0 +1,13 @@
+.di x
+.nf
+inside
+.tm in div \n(.z
+.fi
+.di
+.tm dn \n(dn dl \n(dl
+.x
+.da x
+more
+.br
+.di
+.x
