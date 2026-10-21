@@ -33,6 +33,11 @@ A text block of some length that should wrap inside its cell.
 T}
 Two	2
 .TE
+.TS
+box vrules;
+l | r.
+Euclid	300
+.TE
 .section "Pictures"
 .PS
 box "start"; arrow; circle "end"

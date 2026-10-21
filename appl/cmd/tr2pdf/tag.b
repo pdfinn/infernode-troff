@@ -338,6 +338,7 @@ tag_content(draw: int)
 
 mc_close()
 {
+	atextend();
 	if(mc_kind == MCNONE)
 		return;
 	textend();
@@ -439,6 +440,32 @@ tag_pagebeg()
 	mc_kind = MCNONE;
 	mc_elem = -1;
 	in_text = 0;
+}
+
+# x X text t, x X endtext: what is set between them is read as t, its
+# ActualText (TeX's logo's letters, lowered and raised, as the word
+# they spell), for search, copying and those who hear it read: marked
+# content in its element's, or on its own in a PDF with no structure
+atext := 0;
+
+atext_begin(t: string)
+{
+	atextend();
+	if(t == "")
+		return;
+	tag_content(0);
+	textend();
+	pg += "/Span <</ActualText " + pdftext(t) + ">> BDC\n";
+	atext = 1;
+}
+
+atextend()
+{
+	if(!atext)
+		return;
+	atext = 0;
+	textend();
+	pg += "EMC\n";
 }
 
 # a page ending: what is open on it closed; its entries in the page

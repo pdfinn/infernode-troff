@@ -20,6 +20,12 @@ book, book2tex, mkindex \- make a book
 .br
 .B book2tex
 [
+.BI -c " class\fR[\fP,options\fR]\fP"
+] [
+.BI -m " macros"
+] [
+.BI -S " style"
+] [
 .BI -p " works.bib"
 ] [
 .BI -o " book.tex"
@@ -112,14 +118,94 @@ sets a book, article or memorandum again a moment after each edit
 (see EXAMPLES).
 .PP
 .I Book2tex
-writes the book as LaTeX, for LuaLaTeX, for a publisher who wants it:
-each of
-.BR -mbook 's
-macros as the LaTeX it stands for, the citations as biblatex-chicago's,
-the equations as LaTeX's mathematics, the tables as tabulars, the
-pictures (with
+writes the book, article or memorandum as LaTeX, for a publisher or a
+journal who wants it: each of the macros as the LaTeX it stands for,
+the equations as LaTeX's mathematics, the tables as tabulars (their
+horizontal rules
+.IR booktabs ',
+their vertical ones only if the table asks for them, as
+.IR tbl (1)
+draws them), the citations as the class's, the pictures and chess
+boards (with
 .BR -o )
-drawn as PDFs of their own beside it.
+drawn by
+.IR pic (1)
+or
+.IR chess (1),
+troff and tr2pdf as PDFs of their own beside it, each the size of
+its ink, its labels' equations set by eqn.
+The class is that of the source's macros
+.RB ( -m ,
+or the line near its top that says how it is set):
+LaTeX's
+.B book
+for
+.BR -mbook ,
+its
+.B article
+for
+.B -marticle
+(in two columns, or one) and
+.B -mmemo
+(the memorandum's head as troff sets it), each for LuaLaTeX in
+Libertinus, with biblatex and biber, the citations in the style
+.B -S
+names as
+.IR refer 's
+are:
+.B chicago
+(the Chicago Manual's notes, biblatex-chicago's; its options
+.B nodoi
+and
+.BR nourl ),
+.B numeric
+(numbered, in the order cited) or
+.B authordate
+(biblatex-chicago's, which refer has not).
+.TP
+.BI "-c ieee" "\fR[\fP,conference\fR]\fP"
+A paper for the IEEE: IEEEtran's journal (or conference), for
+pdfLaTeX; the authors as its notes or blocks have them, the abstract,
+the keywords as its index terms, a table's caption above it, the
+citations BibTeX's in IEEEtran's style
+.RB ( "\ecite{key}" ,
+.B "\ecite[p.~5]{key}"
+for a place in the work, before the sentence's stop).
+.TP
+.BI "-c acm" "\fR[\fP,format\fR]\fP"
+A paper for the ACM: acmart's
+.B acmsmall
+(or
+.BR sigconf ,
+.B acmlarge
+and its other formats), for pdfLaTeX; each author's institution, city
+and country from
+.B .affil
+(its last part after a comma the country, the one before it the city:
+.BR ".affil \(dqBell Laboratories, Murray Hill, USA\(dq" ;
+with no country it is written
+.B [country]
+and said), the abstract and keywords before
+.BR \emaketitle ,
+each figure's
+.B .alt
+as its
+.BR \eDescription ,
+the citations BibTeX's in ACM's style.
+The rights, the venue and the CCS concepts are the ACM's to give: the
+LaTeX says where they go.
+.PP
+For pdfLaTeX, a character inputenc knows (accented Latin letters,
+quotation marks, dashes) is kept as it is; a mathematical one (Greek,
+arrows, relations, the logical and set-theoretic symbols, ℝ) is
+LaTeX's command for it, in the text or in an equation alike
+.RB ( \eensuremath ,
+or
+.B \eTextOrMath
+where the text has its own); any other is said, and written
+.BR [U+ XXXX ].
+A request or macro with no LaTeX of its own is kept as a comment, and
+said.
 .PP
 .I Mkindex
 reads troff's output for the entries
@@ -138,6 +224,13 @@ book -m article -S numeric -p works.bib paper.ms
 book -m memo memo.ms
 book -f -p works.bib -o press.pdf thesis.ms
 book2tex -p works.bib -o thesis.tex thesis.ms
+book2tex -c ieee -p works.bib -o paper.tex paper.ms
+book2tex -c acm,sigconf -p works.bib -o paper.tex paper.ms
+.EE
+.PP
+A paper for the IEEE or the ACM is then set as their systems set it:
+.EX
+pdflatex paper; bibtex paper; pdflatex paper; pdflatex paper
 .EE
 .PP
 A line near the top of a file says how it is set, for Xenith's

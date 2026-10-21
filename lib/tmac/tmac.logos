@@ -1,0 +1,14 @@
+.\" tmac.logos: TeX's and LaTeX's names as their logos are set, inline:
+.\" \*[TeX] and \*[LaTeX] (-mbook's, -marticle's, -mmemo's and -ms's).
+.\"
+.\" As plain.tex and latex.ltx draw them: TeX's E lowered half an ex
+.\" between kerns of a sixth and an eighth of an em; LaTeX's A at seven
+.\" tenths of the size (LaTeX's \sf@size), raised until its top is the T's,
+.\" between kerns of .36 and .15 of an em. The raise and the drop are
+.\" Libertinus's (its x-height .429 em, its T .653 em and its A .658 em
+.\" tall); each is in ems of the size it is set in, so the logos scale
+.\" with a heading's or a note's. The word is not broken by hyphenation,
+.\" and is read as the word it spells (tr2pdf's x X text: searched and
+.\" copied as TeX and LaTeX, heard so in a tagged PDF).
+.ds TeX \%\X'text TeX'T\h'-.1667m'\v'.2145m'E\v'-.2145m'\h'-.125m'X\X'endtext'
+.ds LaTeX \%\X'text LaTeX'L\h'-.36m'\v'-.192m'\s[-.3m]A\s0\v'.192m'\h'-.15m'T\h'-.1667m'\v'.2145m'E\v'-.2145m'\h'-.125m'X\X'endtext'

@@ -22,7 +22,11 @@
 #	checked against the font's GPOS;
 #	\s10 to \s39 are sizes of two digits, as in troff and groff (\s11
 #	was a size of 1 and a 1 printed); -ms spaces a picture of no height
-#	(a line and its labels) from the text round it.
+#	(a line and its labels) from the text round it;
+#	.na sets lines from the left margin after .ad r (they stayed
+#	right), .ad gives the alignment back; \n(.j is troff's number for
+#	the adjustment (left 0, both 1, centre 3, right 5), Neatroff's own
+#	modes above it, so that .ad \n(.j restores them.
 
 . "$(dirname "$0")/common.sh"
 cd "$ROOT"
@@ -108,6 +112,39 @@ if [ "$gap" -ge 2400 ] 2>/dev/null; then
     echo "PASS: -ms spaces a picture of no height ($gap units)"
 else
     echo "FAIL: -ms: a picture of no height spaced $gap units"; fail=1
+fi
+# .na: from the left margin, whatever .ad said (it kept a right or a
+# centred alignment); .ad gives it back; \n(.j as troff gives it (left
+# 0, both 1, centre 3, right 5, .na with right 4), .ad \n(.j restoring
+# Neatroff's modes too (pb)
+printf '.ll 3i\n.ad r\nright\n.br\n.na\nragged\n.br\n.ad\nright again\n.br\n.tm j=\\n(.j\n.na\n.tm j=\\n(.j\n.ad l\n.tm j=\\n(.j\n.ad b\n.tm j=\\n(.j\n.ad c\n.tm j=\\n(.j\n.ad pb\n.nr J \\n(.j\n.ad l\n.ad \\nJ\n.tm pb=\\n(.j\n' >"$tmp/na.tr"
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; troff na.tr > na.out >[2] na.err" </dev/null >/dev/null 2>&1
+# (where each line's first glyph is: right, ragged, right again)
+hs=$(python3 -I - "$tmp/na.out" <<'PY'
+import re, sys
+h = v = 0; first = {}
+for m in re.finditer(r'([HVhv])(-?\d+)|c(.)', open(sys.argv[1], encoding='utf-8', errors='replace').read()):
+    if m.group(1):
+        n = int(m.group(2))
+        if m.group(1) == 'H': h = n
+        elif m.group(1) == 'V': v = n
+        elif m.group(1) == 'h': h += n
+        else: v += n
+    elif v not in first:
+        first[v] = h
+print(' '.join(str(first[k]) for k in sorted(first)[:3]))
+PY
+)
+set -- $hs
+if [ $# -ge 3 ] && [ "$2" -lt "$1" ] && [ "$3" -gt "$2" ]; then
+    echo "PASS: .na from the left margin after .ad r; .ad gives it back"
+else
+    echo "FAIL: .na after .ad r: the lines' starts $hs"; fail=1
+fi
+if [ "$(grep '^j=\|^pb=' "$tmp/na.err" | tr '\n' ' ')" = "j=5 j=4 j=0 j=1 j=3 pb=33 " ]; then
+    echo "PASS: the adjustment (.j) as troff's numbers; .ad restores Neatroff's modes from them"
+else
+    echo "FAIL: the adjustment (.j): $(tr '\n' ' ' < "$tmp/na.err")"; fail=1
 fi
 if python3 -c 'import fontTools' 2>/dev/null; then
     python3 -I - "$ROOT/fonts/libertinus" > "$tmp/pairs.tr" <<'PY'

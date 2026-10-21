@@ -102,6 +102,15 @@ shows it, but its lower left corner here (not its box's 0 0), ink of the
 .B Figure
 that holds it, and one object however many pages show it.
 .TP
+.BI "text " word
+.TP
+.B endtext
+What is set between them is read as
+.IR word :
+marked content with an ActualText, so that a logo's letters, raised and
+lowered (\e*[LaTeX]), are searched, copied and heard as the word they
+spell; in a bookmark's title, the word for them.
+.TP
 .BI "vstretch " w
 The space after the line set last may stretch, by
 .I w
