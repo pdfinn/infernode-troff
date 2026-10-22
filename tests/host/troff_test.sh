@@ -277,4 +277,16 @@ case "$r" in
 *) printf '%s\n' "FAIL: registers: $r"; fail=1 ;;
 esac
 
+# a size of none or less (.ps -20 from 10 points) is 4 points, said:
+# it was 0.01 point, the text there but unseen; .ps 0 the size before
+printf 'A\n.ps 14\nB\n.ps 0\nC\n.ps -20\nD\n' >"$tmp/ps0.tr"
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; troff ps0.tr > ps0.out >[2] ps0.err" </dev/null >/dev/null 2>&1
+z=$(grep -o '^s[0-9]*\|c[A-D]' "$tmp/ps0.out" | tr '\n' ' ')
+case "$z" in
+*"cA s1400 cB s1000 cC s400 cD "*)
+    if grep -q 'set at 4 points' "$tmp/ps0.err"; then echo "PASS: a size of none or less set at 4 points, said; .ps 0 the size before"
+    else echo "FAIL: a size of none: not said: $(cat "$tmp/ps0.err")"; fail=1; fi ;;
+*) echo "FAIL: a size of none: $z"; fail=1 ;;
+esac
+
 exit $fail

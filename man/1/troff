@@ -198,6 +198,15 @@ or
 outside compatibility mode.
 Neatroff read it as a size of none, and set the text too small to see.
 .TP
+A size of none or less
+.RB ( ".ps -20"
+at 10 points) is 4 points, the typesetters' least, and is said; it was a
+hundredth of a point, the text there but unseen.
+.B ".ps 0"
+is the size before, as
+.B \es0
+is.
+.TP
 .BI ".ul " n "\fR, \fP.cu " n
 The next
 .I n

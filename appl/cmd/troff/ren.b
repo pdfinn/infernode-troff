@@ -580,7 +580,14 @@ ren_ps(s: string)
 	else
 		ps = eval_re(s, nr(R_s) * SC_PT() / dev_szscale, 'p');
 	nrset(R_s0, nr(R_s));
-	nrset(R_s, max(1, int ((big ps * big dev_szscale + big (SC_PT() / 2)) / big SC_PT())));
+	sz := int ((big ps * big dev_szscale + big (SC_PT() / 2)) / big SC_PT());
+	# a size of none or less (.ps -20 from 10) is the typesetters' least,
+	# 4 points, as troff's: smaller the text would be there but unseen
+	if(sz <= 0){
+		errmsg(sys->sprint("troff: size %s is no size; set at 4 points\n", s));
+		sz = 4 * dev_szscale;
+	}
+	nrset(R_s, sz);
 }
 
 tr_ps(args: array of string)
