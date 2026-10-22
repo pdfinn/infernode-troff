@@ -188,6 +188,53 @@ units thick (\eD't 0' the default again); Neatroff's dropped it.
 .B \e-
 A minus sign, read (searched, copied) as a hyphen-minus, so that an
 option copied from a page is one a shell takes.
+.TP
+.BI \es' n '
+A size quoted, as in
+.BR \es'14' ,
+.B \es'+2'
+or
+.BR \es+'2' ;
+outside compatibility mode.
+Neatroff read it as a size of none, and set the text too small to see.
+.TP
+.BI ".ul " n "\fR, \fP.cu " n
+The next
+.I n
+input lines (1 if none is given; requests' lines are not counted) are
+set in the underline font, as troff sets them on a typesetter, then
+the font as it was;
+.B ".ul 0"
+ends it at once.
+.BI .uf " f"
+names the underline font,
+.B I
+by default.
+Neatroff had none of the three.
+.TP
+.B .nr .s
+and
+.B \eR
+leave troff's own registers as they are: the names of a dot and one
+character
+.RB ( .s ,
+.BR .l ,
+.BR .v ,
+and the rest) and an environment's settings
+.RB ( .hy ,
+.BR .ce ,
+\&...).
+A document's own registers, dot or not, are set as ever.
+Neatroff set them, so that
+.B ".nr .s 99"
+set the text at 99 points.
+.TP
+.B \en(.w
+is the width of the last character set (Neatroff's was 0),
+.B \en(.$
+0 outside a macro (it was \-1), and
+.B \e$0
+the macro's name without its dot.
 .PP
 These are this troff's own; with none of them requested,
 it sets as Neatroff sets.

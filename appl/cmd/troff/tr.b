@@ -47,6 +47,8 @@ tr_nr(args: array of string)
 	if(len args < 3)
 		return;
 	id := map(args[1]);
+	if(num_ro(id))
+		return;
 	num_set(id, eval_re(args[2], nr(id), 'u'));
 	if(len args > 3)
 		num_setinc(id, eval(args[3], 'u'));
@@ -909,6 +911,33 @@ tr_bd(args: array of string)
 	}
 }
 
+# .ul n, .cu n: the next n input lines (1 if none given) set in the
+# underline font, as troff sets them on a typesetter; then the font as
+# it was. .uf names the font (I by default).
+ul_font := "I";
+
+tr_ul(args: array of string)
+{
+	n := 1;
+	if(len args > 1)
+		n = eval(args[1], 0);
+	if(n > 0){
+		if(nr(R_ul) <= 0){
+			nrset(R_ulf, nr(R_f));
+			ren_ft(ul_font);
+		}
+		nrset(R_ul, n);
+	}else
+		ren_ulend();
+}
+
+tr_uf(args: array of string)
+{
+	ul_font = "I";
+	if(len args > 1)
+		ul_font = args[1];
+}
+
 tr_it(args: array of string)
 {
 	if(len args > 2){
@@ -1480,6 +1509,7 @@ cmds := array[] of {
 	Cmd("co>", A_DS),
 	Cmd("cp", A_REQ),
 	Cmd("cs", A_REQ),
+	Cmd("cu", A_REQ),
 	Cmd("da", A_REQ),
 	Cmd("de", A_REG1),
 	Cmd("di", A_REQ),
@@ -1575,6 +1605,8 @@ cmds := array[] of {
 	Cmd("tl", A_NULL),
 	Cmd("tm", A_EOL),
 	Cmd("tr", A_EOL),
+	Cmd("uf", A_REQ),
+	Cmd("ul", A_REQ),
 	Cmd("vs", A_REQ),
 	Cmd("wh", A_REQ),
 };
@@ -1612,6 +1644,7 @@ cmd_run(i: int, args: array of string)
 	"co>" =>	tr_coo(args);
 	"cp" =>		tr_cp(args);
 	"cs" =>		tr_cs(args);
+	"cu" =>		tr_ul(args);
 	"da" =>		tr_di(args);
 	"de" =>		tr_de(args);
 	"di" =>		tr_di(args);
@@ -1707,6 +1740,8 @@ cmd_run(i: int, args: array of string)
 	"tl" =>		tr_tl(args);
 	"tm" =>		tr_tm(args);
 	"tr" =>		tr_tr(args);
+	"uf" =>		tr_uf(args);
+	"ul" =>		tr_ul(args);
 	"vs" =>		tr_vs(args);
 	"wh" =>		tr_wh(args);
 	}

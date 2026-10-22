@@ -674,6 +674,17 @@ ren_ft(s: string)
 	}
 }
 
+# the underlined lines ended: the font before them back
+ren_ulend()
+{
+	if(nr(R_ulf) > 0){
+		nrset(R_f0, nr(R_f));
+		nrset(R_f, nr(R_ulf));
+	}
+	nrset(R_ul, 0);
+	nrset(R_ulf, 0);
+}
+
 tr_ft(args: array of string)
 {
 	ren_ft(arg(args, 1));
@@ -1115,6 +1126,11 @@ render_rec(level: int): int
 			ren_fmtpop(cfmt());
 		if(c == '\n' || ren_nl)	# the end or start of an input line
 			nrset(R_lb, f_hpos());
+		if(c == '\n' && nr(R_ul) > 0){
+			nrset(R_ul, nr(R_ul) - 1);
+			if(nr(R_ul) == 0)
+				ren_ulend();
+		}
 		if(c == '\n' && nr(R_it)){
 			nrset(R_itn, nr(R_itn) - 1);
 			if(nr(R_itn) == 0)

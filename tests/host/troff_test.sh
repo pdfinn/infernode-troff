@@ -248,4 +248,33 @@ PY
 then echo "PASS: \\D't 3p' a line 3 points thick, \\D't 0' the default again"
 else echo "FAIL: \\D't': $(grep '^D' "$tmp/alias.out" | tr '\n' ' ')"; fail=1; fi
 
+# found against Plan 9's troff (tools/p9compare): a size quoted,
+# \s'14' \s+'4' \s'-2' (it was a size of 0.01 point: the text
+# invisible); .ul and .cu, the next n input lines in the underline
+# font (.uf, I by default), requests' lines not counted; troff's own
+# registers (.s .l .v, an environment's settings) not set by .nr or
+# \R, a document's own (.eqnsz) still; \n(.w the width of the last
+# character; \n(.$ 0 outside a macro; \$0 the macro's name, no dot
+printf 'X\\s'"'"'14'"'"'U\\s0T Y\\s+'"'"'4'"'"'V\\s0W Z\\s'"'"'-2'"'"'Q\\s0R\n' >"$tmp/sq.tr"
+printf 'one\n.ul 2\n.tm a=\\n(.f\nunder\n.tm b=\\n(.f\nunder too\n.tm c=\\n(.f\nplain\n.uf B\n.cu\n.tm d=\\n(.f\nbold\n.tm e=\\n(.f\n.ul 3\n.ul 0\n.tm g=\\n(.f\n' >"$tmp/ul.tr"
+printf '.tm dollar=\\n(.$\nab\n.tm w=\\n(.w\n.nr .s 99\n.nr .l 5\n.nr .hy 0\n.tm s=\\n(.s l=\\n(.l hy=\\n[.hy]\n\\R'"'"'.v 3'"'"'\n.tm v=\\n(.v\n.nr .eqnsz 7\n.tm user=\\n[.eqnsz]\n.de ww\n.tm zero=\\\\$0 n=\\\\n(.$\n..\n.ww a b\n' >"$tmp/ro.tr"
+with_timeout 60 "$EMU" -c1 -r"$ROOT" /dis/sh.dis -c "cd '#U*$tmp'; troff sq.tr > sq.out; troff ul.tr > ul.out >[2] ul.err; troff ro.tr > ro.out >[2] ro.err" </dev/null >/dev/null 2>&1
+s=$(grep -o '^s[0-9]*' "$tmp/sq.out" | sort -u | tr '\n' ' ')
+case " $s" in
+*" s1 "*) echo "FAIL: \\s'14': a size of 0.01 point: $s"; fail=1 ;;
+*" s1400 "*) case " $s" in *" s800 "*) echo "PASS: a quoted size, \\s'14' \\s+'4' \\s'-2'" ;;
+    *) echo "FAIL: \\s'-2': $s"; fail=1 ;; esac ;;
+*) echo "FAIL: \\s'14': $s"; fail=1 ;;
+esac
+u=$(tr '\n' ' ' <"$tmp/ul.err")
+case "$u" in
+"a=2 b=2 c=1 d=3 e=1 g=1 ") echo "PASS: .ul and .cu: the next lines in the underline font, .uf; then the font before" ;;
+*) echo "FAIL: .ul, .cu, .uf: $u"; fail=1 ;;
+esac
+r=$(tr '\n' ' ' <"$tmp/ro.err")
+case "$r" in
+"dollar=0 w=4"*" s=10 l=46800 hy=1 v=1200 user=7 zero=ww n=2 ") printf '%s\n' 'PASS: troff'"'"'s registers not set by .nr or \R, a document'"'"'s are; \n(.w; \n(.$ 0 outside a macro; \$0 no dot' ;;
+*) printf '%s\n' "FAIL: registers: $r"; fail=1 ;;
+esac
+
 exit $fail

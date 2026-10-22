@@ -35,7 +35,7 @@ eregs := array[] of {		# environment-specific number registers
 	".L0", ".m0", ".n0", ".s0", ".ss", ".ssh", ".sss", ".pmll", ".pmllcost",
 	".ti", ".lt", ".lt0", ".v0",
 	".I", ".I0", ".tI", ".td", ".cd",
-	".mtp", ".mtes", ".mtek", ".mtep", ".wo",
+	".mtp", ".mtes", ".mtek", ".mtep", ".wo", ".ul", ".ulf",
 };
 
 nreginit()
@@ -113,7 +113,7 @@ num_str(id: int): string
 		'D' =>
 			return directory(in_filename());
 		'$' =>
-			return sys->sprint("%d", in_nargs() - 1);
+			return sys->sprint("%d", max(0, in_nargs() - 1));	# 0 outside a macro
 		'j' =>
 			return sys->sprint("%d", adj_classic(nr(R_j), nr(R_na)));
 		}
@@ -149,6 +149,17 @@ num_set(id: int, val: int)
 	if(!nregs_fmt[id])
 		nregs_fmt[id] = '0';
 	nrset(id, val);
+}
+
+# a register of troff's own: a ".x" name (.s, .l, .v, .f and the rest)
+# or an environment's setting (.hy, .ce, .it ...); a document reads it
+# but does not set it (.nr and \R leave it), as in troff
+num_ro(id: int): int
+{
+	if(id < MAPBEG)
+		return 1;
+	i := eregs_idx[id];
+	return i && eregs[i - 1][0] == '.';
 }
 
 num_setinc(id: int, val: int)

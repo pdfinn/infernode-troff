@@ -84,8 +84,18 @@ def parse(path):
         elif c == 'n':
             num(); num()
         elif c == 'D':
-            l = eol()
-            out.append((page, v, h, 'D(' + l.strip().split()[0][0] + ')', size, fonts.get(font, font)))
+            l = eol().split()
+            k = l[0][0]
+            out.append((page, v, h, 'D(' + k + ')', size, fonts.get(font, font)))
+            # a drawing moves the point to its end, as troff counts it
+            d = [int(x) for x in l[1:] if re.fullmatch(r'-?\d+', x)]
+            if k in 'cC':
+                h += d[0] if d else 0
+            elif k in 'eE':
+                h += d[0] if d else 0
+            elif k != 't':
+                h += sum(d[0::2])
+                v += sum(d[1::2])
         elif c == '#':
             eol()
         else:
