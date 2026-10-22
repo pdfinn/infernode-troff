@@ -380,6 +380,7 @@ wb_putbuf(wb: ref Wb, c: string)
 		}
 		if(g != nil){
 			gw := font_gwid(gf, dev_font(wb.f), wb.s, g.wid);
+			nrset('w', gw);	# \n(.w, the width of the last character
 			wb.h += gw;
 			wb.gw += gw;
 			wb.ct |= g.typ;

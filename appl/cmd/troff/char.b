@@ -48,6 +48,15 @@ unquotednext(cmd: int, src: int): string
 			sb[len sb] = c;
 			c = next(src);
 		}
+	}else if(!nr(R_cp) && (cmd == 's' || cmd == '+' || cmd == '-') && c == '\''){
+		# a size quoted: \s'14', \s'+2', \s+'2' (groff's)
+		c = next(src);
+		while(c > 0 && c != '\n' && c != '\''){
+			sb[len sb] = c;
+			c = next(src);
+		}
+		if(c == '\n')
+			back(src, c);
 	}else{
 		if(c >= 0)
 			sb[len sb] = c;

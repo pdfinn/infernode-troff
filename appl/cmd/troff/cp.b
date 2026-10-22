@@ -150,8 +150,14 @@ cp_arg()
 		return;
 	}
 	argnum := atoi(argname);
-	if(argnum >= 0 && argnum < NARGS)
-		in_push(in_arg(argnum), nil);
+	if(argnum >= 0 && argnum < NARGS){
+		a := in_arg(argnum);
+		# \$0, the macro's name: without the control character it was
+		# called with
+		if(argnum == 0 && len a > 1 && (a[0] == c_cc || a[0] == c_c2))
+			a = a[1:];
+		in_push(a, nil);
+	}
 }
 
 # interpolate \w'xyz'
@@ -168,6 +174,8 @@ cp_numdef()
 	if(i < 0)
 		return;
 	id := map(arg[0:i]);
+	if(num_ro(id))
+		return;
 	num_set(id, eval_re(arg[i+1:], nr(id), 'u'));
 }
 
