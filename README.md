@@ -252,6 +252,14 @@ book has a board.
 chess.ms`; [the PDF](examples/chess.pdf)): Belle and Thompson's
 endgame databases, then Morphy's Opera Game of 1858.*
 
+[`examples/linotron202/`](examples/linotron202/) sets the figures of
+Condon, Kernighan and Thompson's 1980 memorandum on the Linotron 202
+again ([the PDF](examples/linotron202/linotron202.pdf)): the typesetter's
+block diagram, a letter e as the 202's vectors, a chess position and the
+interface's schematics and timing, in pic and chess, measured from the
+scan of the original. `make.sh` writes `linotron202.ms` from the sources
+beside it.
+
 ## Benchmarks
 
 Each is a complete build, from a clean directory to the finished PDF,
