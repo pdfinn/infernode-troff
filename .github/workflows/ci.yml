@@ -37,8 +37,12 @@ jobs:
         path: infernode
 
     - name: Install build and test dependencies
+      # a mirror that stops answering fails the step in minutes, retried,
+      # rather than holding the job until its own limit
+      timeout-minutes: 30
       run: |
-        sudo apt-get update && sudo apt-get install -y \
+        apt="-o Acquire::Retries=3 -o Acquire::http::Timeout=60 -o Acquire::https::Timeout=60"
+        sudo apt-get $apt update && sudo apt-get $apt install -y \
           build-essential cmake ninja-build \
           libx11-dev libxext-dev libxrandr-dev libxcursor-dev libxi-dev libxss-dev \
           libwayland-dev libxkbcommon-dev libegl-dev libgles-dev \
