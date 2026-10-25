@@ -43,11 +43,18 @@ after each edit, as Typst's preview is: see
 
 ## Writing it live
 
-Execute `Live` in the tag of the window you are writing in, and
-Xenith opens a window below it showing the document, which follows
-the text: 600 ms after the typing stops it is set again, unsaved edits
-and all, where the reader was in it. `Live` again stops it. (If the
-document is already shown beside the text, a `Zerox`'d twin
+Xenith knows troff's documents once the package is in its name space
+when it starts: `troffns` run from the standalone Xenith's start-up
+file, `~/.infernode/usr/inferno/lib/xen/profile` on a Mac (the
+README's [Xenith](../README.md#xenith) has the line, and what to do in
+an older Xenith).
+
+Execute `Live` in the tag of the window you are writing in, and Xenith
+opens a window below it showing the document, which follows the text:
+600 ms after the typing stops it is set again, unsaved edits and all,
+where the reader was in it. `Live` again stops it. Type in the text's
+window: a key typed on the document takes its window back to the text.
+(If the document is already shown beside the text, a `Zerox`'d twin
 `Render`ed, `Live` in either tag turns it on and off; `Render` in the
 document's window goes back to the text.) A book, article or
 memorandum is set by `book -l`, the whole pipeline (refer, pic, chess,

@@ -1,0 +1,4 @@
+# troff's kinds of document, for Xenith's /lib/xenith/doctypes (docreg(2)):
+# troffns adds them to InferNode's, unless they are there already.
+troff	binary	/dis/xenith/doc/trodoc.dis	magic=x\x20T\x20
+roff	source	/dis/xenith/doc/trodoc.dis	.ms .mm .me .man .roff .tr .t

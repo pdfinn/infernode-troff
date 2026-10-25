@@ -35,4 +35,20 @@ for d in $have {
 if {! ftest -d /man} {
 	echo 'troffns: this InferNode has no /man; the manual is in '^$p^'/man' >[1=2]
 }
+# Xenith's kinds of document: troff's added to InferNode's
+# /lib/xenith/doctypes, unless it has them, in a copy bound over it
+# (a file is not a directory, to be bound after).  Xenith reads it when
+# it starts, so this reaches a Xenith started after it: run troffns from
+# the standalone Xenith's start-up file, lib/xen/profile.
+dt=/lib/xenith/doctypes
+if {ftest -f $dt} {
+	if {! grep -s trodoc $dt} {
+		mine=/tmp/troffns.^`{cat /dev/user}^.doctypes
+		if {cat $dt $p/lib/troff/xenith.doctypes > $mine} {
+			bind $mine $dt
+		} {
+			echo 'troffns: cannot write '^$mine^': Xenith will not show troff''s documents' >[1=2]
+		}
+	}
+}
 status ''

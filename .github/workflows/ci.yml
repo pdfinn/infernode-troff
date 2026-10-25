@@ -74,7 +74,8 @@ jobs:
         mk ROOT="$INFERNODE" install
 
     - name: Add troff's document kinds to Xenith's
-      # as README.md has the user add them, to InferNode's own file
+      # as an older Xenith needs them (README.md); troffns adds them itself
+      # to a copy, and tests/host/troffns_test.sh checks that
       run: |
         d="$INFERNODE/lib/xenith/doctypes"
         printf 'troff\tbinary\t/dis/xenith/doc/trodoc.dis\tmagic=x\\x20T\\x20\n' >>"$d"

@@ -17,7 +17,9 @@ by binding its directories after InferNode's own.
 
 Tested in Xenith.app 0.8.0. It needs InferNode from 14 October 2026 or later
 (`af0acc617`): Xenith's document engine interface, `docengine(2)`,
-gained `pinned` and `viewing` then.
+gained `pinned` and `viewing` then. Writing live in Xenith wants
+InferNode from 25 October 2026 (infernode-os/infernode#971): before
+it, what was typed beside a live document went into the text twice.
 
 ## What it sets
 
@@ -343,26 +345,45 @@ run /n/local/path/to/troffpkg/troffns
 own (`bind -a`): the commands to `/dis`, the macros and device
 descriptions to `/lib/tmac` and `/lib/troff`, the fonts to
 `/fonts/libertinus`, the manual to `/man`. Nothing of InferNode's is
-hidden. Run it with `run`, so that the binds are made in the calling
-shell's name space. In a running Xenith, `Local run
-/n/local/path/to/troffpkg/troffns` makes them in Xenith's own name
-space, for every command run from it after. Put that line in your
-profile to have troff in every session; delete it to remove it.
+hidden. It also adds troff's two kinds of document to Xenith's
+`/lib/xenith/doctypes` (below), in a copy bound over InferNode's,
+unless they are there already. Run it with `run`, so that the binds are
+made in the calling shell's name space. Put that line in your profile
+to have troff in every session; delete it to remove it.
 
 ## Xenith
 
 Xenith shows troff's output (`x T` in its first bytes) as a typeset
-document, through the engine `dis/xenith/doc/trodoc.dis`. Xenith finds
-engines through `/lib/xenith/doctypes`, which is InferNode's; add these
-two lines to it:
+document, through the engine `dis/xenith/doc/trodoc.dis`, and a `.ms`,
+`.mm`, `.me` or `.man` file as one beside its text. It finds engines
+through `/lib/xenith/doctypes`, which it reads once, as it starts; the
+package's kinds of document are these two lines
+(`lib/troff/xenith.doctypes`):
 
     troff	binary	/dis/xenith/doc/trodoc.dis	magic=x\x20T\x20
     roff	source	/dis/xenith/doc/trodoc.dis	.ms .mm .me .man .roff .tr .t
 
-Xenith reads `doctypes` once, when it starts, so add the lines before
-starting it. The engine is loaded the first time a troff document is
-opened, from Xenith's name space: `troffns` run in the shell that
-starts Xenith, or later with `Local`, as above.
+So `troffns` must run before Xenith starts, in the name space Xenith
+starts in. With the standalone Xenith (`Xenith.app`, `xenith`,
+`tools/xen`), put it in Xenith's start-up file, which it runs before
+starting Xenith (`lib/xen/boot.sh`, from infernode-os/infernode#977):
+on a Mac, `~/.infernode/usr/inferno/lib/xen/profile`, one line:
+
+    run /n/local/Users/you/src/troffpkg/troffns
+
+with the path to where the package is built. Every Xenith started
+after shows troff's documents, with nothing to edit in the app and
+nothing to type in Xenith. (On the desktop, Lucifer, run it in your
+profile.) Rebuild the package (`mk nuke`, `mk install`) when the app
+is updated: a package built against an older InferNode's interfaces
+fails to load in a newer one (`link typecheck`).
+
+An older Xenith runs no start-up file. There, add the two lines to
+InferNode's own `/lib/xenith/doctypes` (in the app,
+`Xenith.app/Contents/Resources/lib/xenith/doctypes`) before starting
+Xenith, and in each Xenith, `Local run
+/n/local/path/to/troffpkg/troffns` (`Local`, so that its binds are made
+in Xenith's own name space, not only in a command's).
 
 A document is built, then viewed: its pipeline (refer, pic, tbl, eqn,
 then troff, as often as its contents and index need) makes troff's
@@ -372,14 +393,16 @@ tag, `book book.ms`, or a pipeline, `tbl paper.ms | troff -ms
 window. After each Put, middle-click the build, then Get in the
 output's window.
 
-Or write it live, as in Typst: execute `Live` in the tag of the
-window you are writing in, and a window opens below it showing the
-document, set again 600 ms after you stop typing, unsaved edits and
-all; `Live` again stops it. A book's, article's or memorandum's is set
-by `book -l`, the whole pipeline with no PDF, in a quarter to half a
-second for a chapter; a line at its top says how
-(`.\" book -m article -S numeric -p works.bib`). Any other `.ms`, `.man`
-or `.me` file is set by `troff` with the macros its name gives. See
+Or write it live, as in Typst: execute `Live` in the tag of the window
+you are writing in, and a window opens below it showing the document,
+set again 600 ms after you stop typing, unsaved edits and all; `Live`
+again stops it. Type in the text's window, not the document's: a key
+typed on a document goes back to its text, at the place last selected
+there. A book's, article's or memorandum's is set by `book -l`, the
+whole pipeline with no PDF, in a quarter to half a second for a
+chapter; a line at its top says how (`.\" book -m article -S numeric
+-p works.bib`). Any other `.ms`, `.man` or `.me` file is set by
+`troff` with the macros its name gives. See
 [docs/TROFF.md](docs/TROFF.md#writing-it-live).
 
 ## Not yet
