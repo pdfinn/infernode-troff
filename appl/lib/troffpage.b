@@ -938,10 +938,11 @@ drawing(w: ref Walk, b: array of byte, i, e: int, h, v: int, sz: int, colour: in
 		return (nh, nv);
 	src := colourimage(colour);
 	px := real sz * real w.d.res / (72.0 * real w.st.szscale) * w.k;
-	thick := int (px / 20.0);	# a twentieth of an em, as dpost draws
-	if(thick < 0)
-		thick = 0;
-	r := (thick + 1) / 2;
+	# a twentieth of an em, as dpost draws; Draw's line is 1+2r pixels
+	# wide, so the r nearest that (int rounds), thinner a pixel wide
+	r := int ((px / 20.0 - 1.0) / 2.0);
+	if(r < 0)
+		r = 0;
 	case c {
 	'l' or 'L' =>
 		if(nn >= 2)
