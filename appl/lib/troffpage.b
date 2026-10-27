@@ -62,6 +62,7 @@ Start: adt {
 	off:	int;		# where it is in the data
 	mounts:	array of string;	# the font names at each position
 	f, s, m:	int;
+	thick:	int;	# the lines' thickness (D t), in units; 0 the default
 };
 
 State: adt {
@@ -202,6 +203,7 @@ opendir(data: array of byte, fontdir, dir: string): (ref Doc, string)
 	f := 1;
 	s := 10;
 	m := 0;
+	thick := 0;
 	pl := -1;
 	pw := -1;
 	ph := -1;
@@ -241,7 +243,7 @@ opendir(data: array of byte, fontdir, dir: string): (ref Doc, string)
 		'p' =>
 			pm := array[NFONTS] of string;
 			pm[0:] = mounts;
-			starts = ref Start(i, pm, f, s, m) :: starts;
+			starts = ref Start(i, pm, f, s, m, thick) :: starts;
 			npages++;
 		's' =>
 			(s, nil) = num(b, i + 1);
@@ -249,6 +251,12 @@ opendir(data: array of byte, fontdir, dir: string): (ref Doc, string)
 			(f, nil) = num(b, i + 1);
 		'm' =>
 			m = colour(string b[i+1:e]);
+		'D' =>
+			# D t carries from page to page, as troff and tr2pdf have it
+			if(i + 1 < e && int b[i+1] == 't')
+				(thick, nil) = num(b, i + 2);
+			if(thick < 0)
+				thick = 0;
 		'V' =>
 			(pl, nil) = num(b, i + 1);	# the last is the page length
 		}
@@ -582,6 +590,7 @@ Walk: adt {
 	lastsz:	int;
 	text:	string;
 	links:	list of Link;
+	thick:	int;	# the lines' thickness (D t), in units; 0 the default
 };
 
 # the text of character i of f
@@ -755,6 +764,7 @@ walk(w: ref Walk, n: int)
 	f := ps.f;
 	s := ps.s;
 	m := ps.m;
+	w.thick = ps.thick;
 	h := 0;
 	v := 0;
 	b := st.data;
@@ -912,6 +922,12 @@ drawing(w: ref Walk, b: array of byte, i, e: int, h, v: int, sz: int, colour: in
 	nh := h;
 	nv := v;
 	case c {
+	't' =>
+		# the lines' thickness from here, in units; 0 (or none, or
+		# less) the default, as tr2pdf has it
+		w.thick = 0;
+		if(nn >= 1 && a[0] > 0)
+			w.thick = a[0];
 	'l' or 'L' =>
 		if(nn >= 2){
 			nh = h + a[0];
@@ -937,10 +953,13 @@ drawing(w: ref Walk, b: array of byte, i, e: int, h, v: int, sz: int, colour: in
 	if(w.what != Wpaint)
 		return (nh, nv);
 	src := colourimage(colour);
-	px := real sz * real w.d.res / (72.0 * real w.st.szscale) * w.k;
-	# a twentieth of an em, as dpost draws; Draw's line is 1+2r pixels
-	# wide, so the r nearest that (int rounds), thinner a pixel wide
-	r := int ((px / 20.0 - 1.0) / 2.0);
+	# a twentieth of an em, as dpost draws, or the thickness D t set
+	px := real sz * real w.d.res / (72.0 * real w.st.szscale) * w.k / 20.0;
+	if(w.thick > 0)
+		px = real w.thick * w.k;
+	# Draw's line is 1+2r pixels wide, so the r nearest that (int
+	# rounds), thinner a pixel wide
+	r := int ((px - 1.0) / 2.0);
 	if(r < 0)
 		r = 0;
 	case c {
@@ -1065,7 +1084,7 @@ Doc.paint(d: self ref Doc, n: int, scale: real, dst: ref Image, r: Rect, org: Po
 		return "no such page";
 	k := scale * 72.0 / real d.res;
 	w := ref Walk(Wpaint, st, d, k, dst, real (r.min.x - org.x), real (r.min.y - org.y), r,
-		nil, nil, ((0, 0), (0, 0)), 0, 0, 0, nil, nil);
+		nil, nil, ((0, 0), (0, 0)), 0, 0, 0, nil, nil, 0);
 	oclip := dst.clipr;
 	dst.clipr = r.clip(oclip).t0;
 	{
@@ -1086,7 +1105,7 @@ Doc.text(d: self ref Doc, n: int): string
 	if(st == nil || n < 0 || n >= d.npages)
 		return nil;
 	w := ref Walk(Wtext, st, d, 0.0, nil, 0.0, 0.0, ((0, 0), (0, 0)),
-		nil, nil, ((0, 0), (0, 0)), -1, -1, 0, nil, nil);
+		nil, nil, ((0, 0), (0, 0)), -1, -1, 0, nil, nil, 0);
 	walk(w, n);
 	return w.text;
 }
@@ -1097,7 +1116,7 @@ Doc.words(d: self ref Doc, n: int): array of Word
 	if(st == nil || n < 0 || n >= d.npages)
 		return nil;
 	w := ref Walk(Wtext, st, d, 0.0, nil, 0.0, 0.0, ((0, 0), (0, 0)),
-		nil, nil, ((0, 0), (0, 0)), -1, -1, 0, nil, nil);
+		nil, nil, ((0, 0), (0, 0)), -1, -1, 0, nil, nil, 0);
 	walk(w, n);
 	flushword(w);
 	k := 0;
@@ -1116,7 +1135,7 @@ Doc.links(d: self ref Doc, n: int): array of Link
 		return nil;
 	if(st.links[n] == nil){
 		w := ref Walk(Wlinks, st, d, 0.0, nil, 0.0, 0.0, ((0, 0), (0, 0)),
-			nil, nil, ((0, 0), (0, 0)), -1, -1, 0, nil, nil);
+			nil, nil, ((0, 0), (0, 0)), -1, -1, 0, nil, nil, 0);
 		walk(w, n);
 		k := 0;
 		for(l := w.links; l != nil; l = tl l)
